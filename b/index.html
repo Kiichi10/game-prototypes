@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>昔と今、増えた？減った？</title>
+<style>
+:root{--bg:#14213d;--ink:#fdf6e3;--sub:#a9b4c9;--up:#ef6f4f;--down:#3fb7a3;--card:#1d2d50;--line:#2c3e66;--gold:#f4c95d}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-font-smoothing:antialiased}
+.screen{min-height:100vh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:26px 20px 36px}
+.mincho{font-family:"Hiragino Mincho ProN",serif}
+h1{font-size:44px;line-height:1.3;margin:30px 0 14px;font-weight:600}
+h1 .u{color:var(--up)}h1 .d{color:var(--down)}
+.lead{color:var(--sub);font-size:16px;line-height:1.85}
+.cta{margin-top:auto;border:0;border-radius:14px;padding:18px;font-size:19px;font-weight:800;cursor:pointer;width:100%;background:var(--gold);color:#14213d}
+.ghost{background:transparent;border:1.5px solid var(--ink);color:var(--ink);border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;flex:1}
+.top{display:flex;justify-content:space-between;align-items:center;color:var(--sub);font-size:14px;font-weight:700}
+.top .score{color:var(--gold)}
+.marks{display:flex;gap:4px;margin:10px 0 20px}.marks i{flex:1;height:6px;border-radius:3px;background:var(--line)}.marks i.o{background:var(--down)}.marks i.x{background:var(--up)}
+.theme{font-size:25px;font-weight:700;line-height:1.45;margin:4px 0 18px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--card);border-radius:16px;padding:16px 14px 18px;text-align:center;border:1px solid var(--line)}
+.card .yr{font-size:14px;color:var(--sub)}.card .era{font-size:12px;color:var(--sub)}
+.card .v{font-size:40px;font-weight:600;margin-top:10px;line-height:1.1;font-variant-numeric:tabular-nums}
+.card .unit{font-size:14px;color:var(--sub);margin-top:4px}
+.card.now .v{color:var(--gold)}
+.q{font-size:36px;color:var(--sub)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.btns button{border:0;border-radius:16px;padding:22px 0;font-size:22px;font-weight:800;cursor:pointer;color:#fff}
+.btns .up{background:var(--up)}.btns .down{background:var(--down)}
+.reveal{margin-top:20px;border-radius:16px;padding:16px 18px;background:#0f1a31;border:1px solid var(--line);animation:pop .35s}
+.reveal .res{font-size:24px;font-weight:800}.reveal .res.o{color:var(--down)}.reveal .res.x{color:var(--up)}
+.reveal .ratio{font-size:15px;margin-top:4px;color:var(--gold);font-weight:700}
+.reveal p{margin:8px 0 0;line-height:1.75}.reveal .src{font-size:11px;color:var(--sub)}
+.next{margin-top:16px}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.big{font-size:96px;font-weight:600;text-align:center;line-height:1}.big small{font-size:30px}
+.rank{text-align:center;font-size:20px;font-weight:800;color:var(--gold);margin-top:12px}
+.emo{text-align:center;font-size:26px;letter-spacing:2px;margin:16px 0}
+.list{list-style:none;padding:0;margin:18px 0 0}.list li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.list li span{white-space:nowrap;color:var(--sub)}.list li.o b{color:var(--down)}.list li.x b{color:var(--up)}
+.row{display:flex;gap:10px;margin-top:12px}
+.note{color:var(--sub);font-size:12px;line-height:1.7;margin-top:18px}
+</style>
+</head>
+<body>
+<section class="screen" id="s-title">
+  <div class="top"><span>全10問</span><span>約2分</span></div>
+  <h1 class="mincho">昔と今、<br><span class="u">増えた</span>？<span class="d">減った</span>？</h1>
+  <p class="lead">昭和・平成の数字と、いまの数字。<br>はがきの値段、離婚の数、100歳以上の人。<br>実際の統計で、あなたの「時代の感覚」を試します。</p>
+  <button class="cta" id="startBtn">はじめる</button>
+</section>
+
+<section class="screen" id="s-play" hidden>
+  <div class="top"><span id="qNo"></span><span class="score" id="score"></span></div>
+  <div class="marks" id="marks"></div>
+  <div class="theme mincho" id="theme"></div>
+  <div class="pair">
+    <div class="card"><div class="yr" id="oldYr"></div><div class="era" id="oldEra"></div><div class="v mincho" id="oldV"></div><div class="unit" id="unit1"></div></div>
+    <div class="card now"><div class="yr" id="nowYr"></div><div class="era" id="nowEra"></div><div class="v mincho" id="nowV"><span class="q">？</span></div><div class="unit" id="unit2"></div></div>
+  </div>
+  <div class="btns" id="btns"><button class="up" data-a="up">増えた ↑</button><button class="down" data-a="down">減った ↓</button></div>
+  <div id="reveal"></div>
+</section>
+
+<section class="screen" id="s-end" hidden>
+  <div class="top"><span>結果</span><span></span></div>
+  <div class="big mincho" style="margin-top:30px"><span id="endScore"></span><small> / 10</small></div>
+  <div class="rank" id="rank"></div>
+  <div class="emo" id="emo"></div>
+  <button class="cta" id="shareBtn" style="margin-top:6px">Xで結果を投稿</button>
+  <div class="row"><button class="ghost" id="againBtn">もう一度（別の10問）</button></div>
+  <ul class="list" id="list"></ul>
+  <p class="note">数値は公表統計を丸めた試作用の値です。公開前に各出典と照合します。</p>
+</section>
+
+<script src="data.js"></script>
+<script>
+const $ = q => document.querySelector(q);
+let set = [], i = 0, marks = [];
+const show = id => { document.querySelectorAll('.screen').forEach(e => e.hidden = e.id !== id); window.scrollTo(0, 0); };
+const shuffle = a => { a = a.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+const era = y => y >= 2019 ? `令和${y === 2019 ? '元' : y - 2018}年` : y >= 1989 ? `平成${y === 1989 ? '元' : y - 1988}年` : `昭和${y - 1925}年`;
+const fmt = v => v >= 1000 ? Math.round(v).toLocaleString() : String(v);
+
+function start() { set = shuffle(ITEMS).slice(0, 10); i = 0; marks = []; show('s-play'); ask(); }
+function ask() {
+  const [t, u, [oy, ov], [ny]] = set[i];
+  $('#qNo').textContent = `第${i + 1}問`; $('#score').textContent = `正解 ${marks.filter(m => m).length}`;
+  $('#marks').innerHTML = Array.from({ length: 10 }, (_, k) => `<i class="${k < marks.length ? (marks[k] ? 'o' : 'x') : ''}"></i>`).join('');
+  $('#theme').textContent = t;
+  $('#oldYr').textContent = oy + '年'; $('#oldEra').textContent = era(oy); $('#oldV').textContent = fmt(ov);
+  $('#nowYr').textContent = ny + '年'; $('#nowEra').textContent = era(ny); $('#nowV').innerHTML = '<span class="q">？</span>';
+  $('#unit1').textContent = $('#unit2').textContent = u;
+  $('#btns').hidden = false; $('#reveal').innerHTML = '';
+}
+function answer(a) {
+  const [t, u, [oy, ov], [ny, nv], c, src] = set[i];
+  const ok = (nv > ov) === (a === 'up'); marks.push(ok);
+  $('#btns').hidden = true;
+  countUp($('#nowV'), nv);
+  const r = nv > ov ? nv / ov : ov / nv;
+  $('#reveal').innerHTML = `<div class="reveal"><div class="res ${ok ? 'o' : 'x'}">${ok ? '正解！' : 'ハズレ'}　${nv > ov ? '増えた' : '減った'}</div>
+    <div class="ratio">${ratioText(ov, nv)}</div>
+    <p>${c}</p><div class="src">出典：${src}</div></div>
+    <button class="cta next" id="nextBtn">${i < 9 ? '次の問題' : '結果を見る'}</button>`;
+  $('#score').textContent = `正解 ${marks.filter(m => m).length}`;
+  $('#nextBtn').onclick = () => { i++; i < 10 ? ask() : end(); };
+}
+function ratioText(ov, nv) {
+  const r = nv > ov ? nv / ov : ov / nv, n = r >= 10 ? Math.round(r) : r.toFixed(1), pct = Math.round(Math.abs(nv - ov) / ov * 100);
+  if (nv < ov) return `${pct}%減${r >= 2.5 ? `（約${Math.round(r)}分の1）` : ''}`;
+  return r < 1.95 ? `${pct}%増` : `約${n}倍に増加`;
+}
+function countUp(el, v) {
+  const dec = String(v).includes('.') ? String(v).split('.')[1].length : 0, t0 = performance.now();
+  const f = now => { const k = Math.min(1, (now - t0) / 700), x = v * (1 - Math.pow(1 - k, 3)); el.textContent = dec ? x.toFixed(dec) : fmt(Math.round(x)); if (k < 1) requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+}
+function rankOf(n) { return n === 10 ? '時代の生き字引' : n >= 8 ? 'かなりの事情通' : n >= 6 ? '人並みの時代感覚' : n >= 4 ? 'イメージで生きている' : '令和に生まれたばかり'; }
+function end() {
+  const n = marks.filter(m => m).length;
+  $('#endScore').textContent = n; $('#rank').textContent = rankOf(n);
+  $('#emo').textContent = marks.map(m => m ? '🟩' : '🟥').join('');
+  $('#list').innerHTML = set.map((s, k) => `<li class="${marks[k] ? 'o' : 'x'}"><b>${marks[k] ? '○' : '×'} ${s[0]}</b><span>${fmt(s[2][1])} → ${fmt(s[3][1])}${s[1]}</span></li>`).join('');
+  show('s-end');
+}
+$('#startBtn').onclick = start; $('#againBtn').onclick = start;
+$('#btns').onclick = e => { const a = e.target.dataset.a; if (a) answer(a); };
+$('#shareBtn').onclick = () => {
+  const n = marks.filter(m => m).length;
+  window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(`昔と今、増えた？減った？\n${n}/10問正解「${rankOf(n)}」\n${marks.map(m => m ? '🟩' : '🟥').join('')}\n#増えた減った`), '_blank');
+};
+</script>
+</body>
+</html>

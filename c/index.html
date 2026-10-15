@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>今日の日記、ひとつだけウソ</title>
+<style>
+:root{--paper:#fffdf6;--ink:#2d2a26;--sub:#8b8378;--rule:#d9e6f2;--red:#e0533d;--blue:#3d7be0;--bg:#f2ede2}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;-webkit-font-smoothing:antialiased}
+.screen{min-height:100vh;max-width:540px;margin:0 auto;padding:24px 18px 40px;display:flex;flex-direction:column}
+.note{background:var(--paper);border-radius:6px 16px 16px 6px;padding:26px 22px 24px 34px;position:relative;box-shadow:0 2px 0 #e5ddcc,0 10px 24px rgba(0,0,0,.06);
+  background-image:repeating-linear-gradient(transparent 0 35px,var(--rule) 35px 36px);border-left:6px solid #f0a4a4}
+.date{color:var(--sub);font-size:13px}
+h1{font-size:32px;line-height:1.5;margin:6px 0 10px}
+h1 .r{color:var(--red)}
+p{line-height:1.9;margin:0 0 8px}
+.cta{border:0;border-radius:14px;padding:17px;font-size:18px;font-weight:700;cursor:pointer;width:100%;background:var(--ink);color:#fff;margin-top:16px;font-family:inherit}
+.cta.red{background:var(--red)}
+.ghost{border:1.5px solid var(--ink);background:transparent;border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;flex:1;color:var(--ink)}
+.row{display:flex;gap:10px;margin-top:10px}
+label.f{display:block;margin:18px 0 6px;font-size:14px;font-weight:700}
+input[type=text],textarea{width:100%;border:1.5px solid #e2d9c7;border-radius:12px;padding:12px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink)}
+textarea{resize:none;height:70px;line-height:1.6}
+.item{position:relative;margin-top:14px}
+.item .lie{position:absolute;right:8px;top:-10px;font-size:12px;background:#fff;border:1.5px solid #e2d9c7;border-radius:99px;padding:3px 10px;cursor:pointer;color:var(--sub)}
+.item .lie.on{background:var(--red);border-color:var(--red);color:#fff}
+.hint{font-size:12px;color:var(--sub);margin-top:4px}
+.ent{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1.5px dashed #e2d9c7;padding:16px 4px 16px 40px;font-size:18px;line-height:1.7;position:relative;cursor:pointer;color:var(--ink);font-family:inherit}
+.ent:before{content:attr(data-n);position:absolute;left:4px;top:15px;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-size:14px;text-align:center;line-height:26px}
+.ent.lie{background:#fde6e1;padding-right:76px}.ent.lie:after{content:"ウソ";position:absolute;right:6px;top:8px;color:var(--red);font-weight:800;font-size:22px;transform:rotate(-12deg);border:3px solid var(--red);border-radius:8px;padding:0 6px}
+.ent.picked{outline:3px solid var(--blue);outline-offset:-3px;border-radius:8px}
+.verdict{text-align:center;font-size:30px;font-weight:800;margin:18px 0 4px}.verdict.o{color:var(--blue)}.verdict.x{color:var(--red)}
+.reveal{background:#fff;border-radius:12px;padding:12px 14px;margin-top:10px;font-size:15px;line-height:1.8}
+.url{word-break:break-all;font-size:12px;background:#fff;border-radius:10px;padding:10px;border:1.5px dashed #e2d9c7;margin-top:10px;color:var(--sub)}
+.small{font-size:12px;color:var(--sub);line-height:1.7;margin-top:14px}
+.err{color:var(--red);font-size:14px;margin-top:8px;min-height:1em}
+</style>
+</head>
+<body>
+
+<section class="screen" id="s-top">
+  <div class="note">
+    <div class="date" id="today"></div>
+    <h1>今日の日記、<br><span class="r">ひとつだけウソ。</span></h1>
+    <p>今日あった出来事を3つ書いて、そのうち1つだけウソを混ぜます。</p>
+    <p>URLを友だちに送って、どれがウソか当ててもらいましょう。</p>
+    <p>ありえない本当の話と、ありそうなウソ。ここが腕の見せどころです。</p>
+  </div>
+  <button class="cta red" id="makeBtn">出題する</button>
+  <p class="small">登録は不要です。書いた内容はどこにも保存されず、出題用のURLの中にだけ入ります。</p>
+</section>
+
+<section class="screen" id="s-make" hidden>
+  <div class="note">
+    <div class="date" id="today2"></div>
+    <label class="f">名前（ニックネーム）</label>
+    <input type="text" id="name" maxlength="16" placeholder="例：たろう">
+    <div id="items"></div>
+    <label class="f">ネタばらし（答えのあとに出ます・任意）</label>
+    <textarea id="memo" maxlength="120" placeholder="例：本当は唐揚げ定食でした"></textarea>
+    <div class="err" id="err"></div>
+  </div>
+  <button class="cta red" id="buildBtn">出題URLを作る</button>
+  <button class="ghost" id="backBtn" style="margin-top:10px">もどる</button>
+</section>
+
+<section class="screen" id="s-share" hidden>
+  <div class="note">
+    <h1 style="font-size:26px">出題できました</h1>
+    <p>このURLを友だちに送ってください。開くと、3つの中からウソを当てるゲームが始まります。</p>
+    <div class="url" id="url"></div>
+  </div>
+  <button class="cta" id="copyBtn">URLをコピー</button>
+  <div class="row"><button class="ghost" id="xBtn">Xで出題</button><button class="ghost" id="lineBtn">LINEで送る</button></div>
+  <div class="row"><button class="ghost" id="tryBtn">自分で開いてみる</button></div>
+</section>
+
+<section class="screen" id="s-play" hidden>
+  <div class="note">
+    <div class="date" id="pDate"></div>
+    <h1 style="font-size:26px"><span id="pName"></span>さんの今日。<br><span class="r">1つだけウソ</span>があります。</h1>
+    <div id="ents"></div>
+    <div id="result"></div>
+  </div>
+  <div id="after" hidden>
+    <button class="cta red" id="ownBtn">自分も出題する</button>
+    <div class="row"><button class="ghost" id="resShare">結果を投稿</button></div>
+  </div>
+</section>
+
+<script>
+const $ = q => document.querySelector(q);
+const show = id => { document.querySelectorAll('.screen').forEach(e => e.hidden = e.id !== id); window.scrollTo(0, 0); };
+const PROMPTS = ['今日、いちばん驚いたこと', '今日、食べたもの', '今日、誰かに言われた一言', '今日、買ったもの', '今日、行った場所', '今日、失敗したこと'];
+const W = ['日', '月', '火', '水', '木', '金', '土'];
+const dstr = d => `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${W[d.getDay()]}）`;
+let lieIdx = 0, current = null;
+
+// URLへの埋め込み（UTF-8→base64url）。ウソの番号は日付で少しずらして、URLを見ただけでは分からないようにする
+const enc = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const dec = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))));
+const mask = (i, d) => (i + d.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 3;
+const unmask = (m, d) => ((m - d.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 3 + 3) % 3;
+
+function buildForm() {
+  const ps = PROMPTS.slice().sort(() => Math.random() - 0.5);
+  $('#items').innerHTML = [0, 1, 2].map(i => `<div class="item"><label class="f">出来事 ${i + 1}</label>
+    <button class="lie ${i === lieIdx ? 'on' : ''}" data-i="${i}">${i === lieIdx ? 'これがウソ' : 'ウソにする'}</button>
+    <textarea id="t${i}" maxlength="80" placeholder="例：${ps[i]}は…"></textarea></div>`).join('') +
+    '<div class="hint">赤い「これがウソ」が付いた出来事が、ウソの答えになります。</div>';
+  document.querySelectorAll('.item .lie').forEach(b => b.onclick = () => {
+    const keep = [0, 1, 2].map(i => $('#t' + i).value); lieIdx = +b.dataset.i; buildForm(); keep.forEach((v, i) => $('#t' + i).value = v);
+  });
+}
+function build() {
+  const ts = [0, 1, 2].map(i => $('#t' + i).value.trim()), name = $('#name').value.trim() || 'だれか';
+  if (ts.some(t => !t)) { $('#err').textContent = '3つとも書いてください。'; return; }
+  const d = new Date().toISOString().slice(0, 10);
+  const url = location.href.split('#')[0] + '#q=' + enc({ n: name, t: ts, m: mask(lieIdx, d), d, x: $('#memo').value.trim() });
+  current = { url, name };
+  $('#url').textContent = url; show('s-share');
+}
+function play(o) {
+  current = o; const lie = unmask(o.m, o.d);
+  $('#pName').textContent = o.n; $('#pDate').textContent = dstr(new Date(o.d));
+  $('#ents').innerHTML = o.t.map((t, i) => `<button class="ent" data-n="${i + 1}" data-i="${i}">${esc(t)}</button>`).join('');
+  $('#result').innerHTML = ''; $('#after').hidden = true;
+  document.querySelectorAll('.ent').forEach(b => b.onclick = () => {
+    if ($('#result').innerHTML) return;
+    const pick = +b.dataset.i, ok = pick === lie; current.ok = ok;
+    b.classList.add('picked'); document.querySelectorAll('.ent')[lie].classList.add('lie');
+    $('#result').innerHTML = `<div class="verdict ${ok ? 'o' : 'x'}">${ok ? '見破った！' : 'だまされた！'}</div>` + (o.x ? `<div class="reveal">${esc(o.n)}さんより：${esc(o.x)}</div>` : '');
+    $('#after').hidden = false;
+  });
+  show('s-play');
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const shareMsg = () => `${current.name}さんの「今日の日記」、3つのうち1つがウソです。どれか分かる？`;
+
+$('#today').textContent = $('#today2').textContent = dstr(new Date());
+$('#makeBtn').onclick = $('#ownBtn').onclick = () => { history.replaceState(null, '', location.pathname); lieIdx = Math.floor(Math.random() * 3); buildForm(); show('s-make'); };
+$('#backBtn').onclick = () => show('s-top');
+$('#buildBtn').onclick = build;
+document.addEventListener('input', () => { $('#err').textContent = ''; });
+$('#copyBtn').onclick = async () => { try { await navigator.clipboard.writeText(current.url); $('#copyBtn').textContent = 'コピーしました'; } catch (e) { $('#copyBtn').textContent = '長押しでコピーしてください'; } };
+$('#xBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(shareMsg()) + '&url=' + encodeURIComponent(current.url), '_blank');
+$('#lineBtn').onclick = () => window.open('https://line.me/R/msg/text/?' + encodeURIComponent(shareMsg() + '\n' + current.url), '_blank');
+$('#tryBtn').onclick = () => { location.hash = current.url.split('#')[1]; };
+$('#resShare').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(`${current.n}さんの日記のウソ、${current.ok ? '見破った！' : 'まんまとだまされた…'}\n#今日の日記ひとつだけウソ`), '_blank');
+function route() { const m = location.hash.match(/#q=(.+)/); if (m) { try { play(dec(m[1])); return; } catch (e) { } } show('s-top'); }
+window.onhashchange = route; route();
+</script>
+</body>
+</html>

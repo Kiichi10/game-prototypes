@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>日記で育つ町</title>
+<style>
+:root{--bg:#f4f1ea;--ink:#2a2c2e;--sub:#85827a;--line:#e2ddd1;--card:#fffdf8;--green:#4f8f35;--accent:#e85a4f;--blue:#3d7be0}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding:0 0 90px}
+.townbox{position:relative;background:#000}
+#town{width:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+.hud{display:flex;justify-content:space-between;padding:10px 16px;background:#22262b;color:#f4f1ea;font-size:13px}
+.hud b{font-size:16px}
+.sec{padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:15px}
+.date{color:var(--sub);font-size:13px}
+textarea,input[type=search]{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink)}
+textarea{height:76px;resize:none;line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:7px 13px;font-size:14px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.moods{display:flex;gap:8px;justify-content:space-between;margin:6px 0 4px}
+.mood{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:8px 0;font-size:24px;cursor:pointer}
+.mood.on{border-color:var(--ink);background:#fff6d6}
+.cta{width:100%;border:0;border-radius:14px;padding:16px;font-size:17px;font-weight:700;background:var(--green);color:#fff;cursor:pointer;margin-top:10px;font-family:inherit}
+.ghost{border:1.5px solid var(--ink);background:transparent;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
+.toast{background:#22262b;color:#fff;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:15px;animation:pop .4s}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+.entry p{margin:6px 0;font-size:16px;line-height:1.7}
+.tags{display:flex;gap:6px;flex-wrap:wrap}.tags span{font-size:12px;background:#ecebe3;border-radius:99px;padding:2px 9px}
+.back{border-left:4px solid var(--blue);padding:4px 0 4px 12px;margin:10px 0}
+.back .when{font-size:12px;color:var(--blue);font-weight:700}.back p{margin:2px 0 0;font-size:15px}
+.blds{list-style:none;padding:0;margin:0}.blds li{display:grid;grid-template-columns:86px 1fr 52px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.blds .bar{height:6px;background:#ecebe3;border-radius:3px}.blds .bar i{display:block;height:100%;background:var(--green);border-radius:3px}
+.blds .n{text-align:right;color:var(--sub);font-size:12px}
+.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;border:0;background:none;padding:14px 0;font-size:14px;font-weight:700;color:var(--sub);font-family:inherit;cursor:pointer}
+.tabs button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--ink)}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal div{aspect-ratio:1;border-radius:8px;font-size:12px;display:flex;align-items:flex-start;justify-content:flex-start;padding:4px;background:#f1eee6;color:var(--sub);cursor:pointer}
+.cal .w{background:none;aspect-ratio:auto;justify-content:center;cursor:default}
+.cal .has{color:var(--ink);font-weight:700}
+.cal .today{outline:2px solid var(--ink)}
+.cal .blank{background:none;cursor:default}
+.hit{padding:10px 0;border-bottom:1px dashed var(--line)}.hit .d{font-size:12px;color:var(--sub)}.hit p{margin:2px 0 0;font-size:15px}
+mark{background:#fff0a8}
+.small{font-size:12px;color:var(--sub);line-height:1.7}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="townbox"><canvas id="town" width="256" height="144"></canvas></div>
+  <div class="hud"><span>人口 <b id="pop">0</b>人</span><span>記録 <b id="days">0</b>日</span><span>連続 <b id="streak">0</b>日</span></div>
+
+  <div id="tab-town" class="sec">
+    <div id="toast"></div>
+    <div class="card" id="todayCard"></div>
+    <div class="card" id="backCard" hidden><h3>あの日のあなた</h3><div id="backs"></div></div>
+    <div class="card"><h3>町の建物</h3><ul class="blds" id="blds"></ul>
+      <p class="small">書いた日の出来事に合わせて建物が育ちます。書かない日が続くと、空き地に雑草が生えます。</p></div>
+  </div>
+
+  <div id="tab-log" class="sec" hidden>
+    <div class="card">
+      <div class="cal-head"><button class="ghost" id="prevM">‹</button><b id="monTitle"></b><button class="ghost" id="nextM">›</button></div>
+      <div class="cal" id="cal"></div>
+      <div id="dayView"></div>
+    </div>
+    <div class="card"><h3>言葉で探す</h3><input type="search" id="q" placeholder="例：カレー、母、ジム"><div id="hits"></div></div>
+    <div class="card"><h3>記録の保存</h3>
+      <p class="small">記録はこの端末のブラウザの中にだけ保存されます。消えないように、ときどき書き出してください。</p>
+      <div class="row"><button class="ghost" id="exportBtn">書き出す</button><button class="ghost" id="importBtn">読み込む</button><input type="file" id="file" accept=".json" hidden></div>
+      <p class="small" style="margin-top:14px">試しに町の育ち方を見たいときは、サンプルの記録（約1年分）を入れられます。</p>
+      <div class="row"><button class="ghost" id="sampleBtn">サンプルを入れる</button><button class="ghost" id="clearSampleBtn">サンプルを消す</button></div>
+    </div>
+  </div>
+</div>
+<nav class="tabs"><button data-t="town" class="on">町と今日</button><button data-t="log">記録をさかのぼる</button></nav>
+<script src="town.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>母の時代を生きる（試作）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="title" class="screen">
+  <div class="wrap">
+    <div class="kicker">試作版 · 昭和・平成・令和の実際の統計にもとづく人生シミュレーション</div>
+    <h1>母の時代を<em>生きる</em></h1>
+    <p class="lead">あなたのお母さんが生まれた年に、日本のどこかで生まれた一人の赤ちゃんになって、今日までを生きてみます。どこで、どんな家に生まれるかは選べません。お母さんがそうだったように。</p>
+    <div class="yearbox">
+      <div class="yrbig"><span id="yrNum">1958</span><small>年生まれ</small></div>
+      <input type="range" id="yrRange" min="1940" max="1980" step="1">
+      <p class="sub" id="yrLine"></p>
+      <div class="who"><button data-who="f" class="on">お母さん</button><button data-who="m">お父さん</button></div>
+    </div>
+  </div>
+  <div class="dock"><button class="cta" id="bornBtn">生まれる</button></div>
+</section>
+
+<section id="cert" class="screen" hidden>
+  <div class="wrap">
+    <div class="certcard">
+      <div class="certhead"><span>出生届</span><span id="certNo" class="mono"></span></div>
+      <div class="certbody">
+        <div class="lbl">名前</div>
+        <div class="name" id="certName"></div>
+        <p id="certLead" class="lead"></p>
+        <dl id="certDl"></dl>
+      </div>
+    </div>
+  </div>
+  <div class="dock"><button class="cta" id="lifeBtn">人生を始める</button></div>
+</section>
+
+<section id="life" class="screen" hidden>
+  <header class="top">
+    <div class="agebox"><span id="ageNum">0</span><small>歳</small><span class="yr" id="yrTxt"></span></div>
+    <div class="prog"><div id="progBar"></div></div>
+    <div class="ctrl">
+      <button id="pauseBtn">❚❚</button>
+      <button data-sp="1">1×</button><button data-sp="2" class="on">2×</button><button data-sp="4">4×</button><button data-sp="8">8×</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <div class="scenebox"><canvas id="scene" width="192" height="108"></canvas><div class="where" id="where"></div></div>
+    <div class="meters" id="meters"></div>
+    <div class="choice" id="choice" hidden></div>
+    <div class="logbox">
+      <h3>人生の記録</h3>
+      <ol id="log"></ol>
+    </div>
+  </div>
+</section>
+
+<section id="end" class="screen" hidden>
+  <div class="wrap">
+    <div class="kicker" id="endKicker"></div>
+    <h2 id="endTitle"></h2>
+    <p class="lead" id="endLead"></p>
+    <canvas id="card" width="1200" height="630"></canvas>
+    <div class="ask">
+      <h3 id="askTitle"></h3>
+      <ol id="askList"></ol>
+    </div>
+    <h3>この人生のおもな出来事</h3>
+    <ol id="endLog" class="endlog"></ol>
+    <div class="row">
+      <button class="cta" id="saveBtn">カードを保存</button>
+      <button class="ghost" id="againBtn">同じ年にもう一度生まれる</button>
+      <button class="ghost" id="topBtn">年を変える</button>
+    </div>
+    <p class="note">数値は公的統計（学校基本調査・人口動態統計・出生動向基本調査・消費動向調査・生命表など）を丸めた試作用の概算です。公開前に出典と照合します。</p>
+  </div>
+</section>
+
+<script src="data.js"></script>
+<script src="events_child.js"></script>
+<script src="events_adult.js"></script>
+<script src="scene.js"></script>
+<script src="life.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

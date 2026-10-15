@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>選ばなかった方の私（試作）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap">
+
+<section id="intro">
+  <h1>選ばなかった<span class="accent">方の</span>私</h1>
+  <p class="lead">人生には、戻れない分かれ道がいくつかありました。<br>
+  あなたが選ばなかった方の道を、日本の統計で今日まで生きてみます。</p>
+
+  <div class="row">
+    <label>生まれた年
+      <select id="birthYear"></select>
+    </label>
+    <label>性別
+      <select id="sex"><option value="m">男性</option><option value="f">女性</option></select>
+    </label>
+  </div>
+
+  <h2>あなたが選んだ道</h2>
+  <p class="hint">それぞれ、実際に選んだ方を押してください。逆にしてみたい分かれ道に「もしも」を付けます（1〜3つ）。</p>
+  <div id="forks"></div>
+
+  <button id="startBtn" class="cta" disabled>二つの人生を始める</button>
+  <p class="note">※試作版です。数値は公開統計をもとにした概算で、公開前に出典と照合します。</p>
+</section>
+
+<section id="result" hidden>
+  <h2 id="resTitle"></h2>
+  <p id="resLine" class="lead"></p>
+  <table id="resTable"></table>
+  <canvas id="card" width="1200" height="630"></canvas>
+  <div class="row">
+    <button id="saveBtn" class="cta">カードを保存</button>
+    <button id="againBtn" class="ghost">別の可能性を見る</button>
+    <button id="resetBtn" class="ghost">最初から</button>
+  </div>
+  <p class="note">同じ選択でも、運によって結果は毎回変わります。統計が決めるのは「起こりやすさ」だけです。</p>
+</section>
+
+<section id="play" hidden>
+  <div class="bar">
+    <div class="age"><span id="ageNum">18</span><small>歳</small> <span id="yearNum" class="yr"></span></div>
+    <div class="speed">
+      <button data-sp="1">1×</button><button data-sp="3" class="on">3×</button><button data-sp="10">10×</button>
+      <button id="skipBtn">最後まで</button>
+    </div>
+  </div>
+  <div class="cols">
+    <div class="col" id="colA"><h3>選んだ道の私</h3><div class="stats" id="statA"></div><ol class="log" id="logA"></ol></div>
+    <div class="col alt" id="colB"><h3>選ばなかった方の私</h3><div class="stats" id="statB"></div><ol class="log" id="logB"></ol></div>
+  </div>
+</section>
+
+
+</main>
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
