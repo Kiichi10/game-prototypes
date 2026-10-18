@@ -30,6 +30,7 @@ const STR = {
     profH: '分野ごとの、あなたの感覚', cats: { talk: '連絡のしかた', words: '言葉づかい', fun: '遊び・娯楽', life: '暮らしの道具' },
     profNote: (hiC, hiY, loC, loY) => hiY - loY >= 8 ? `${hiC}は${hiY}年、${loC}は${loY}年。あなたの中に、${hiY - loY}年分の世代が同居しています。` : 'どの分野もほぼ同じ時代。ぶれない感覚の持ち主です。',
     shareCats: cs => '（' + cs.map(([n, y]) => `${n}${y}`).join('・') + '）',
+    realEra: (d, pct, n) => `選んだ人の${pct}%が${d}年代生まれ`, privacy: '答えと生まれ年は、名前なしで統計に使います。',
     serif: '"Hiragino Mincho ProN", "Yu Mincho", serif', sans: '"Hiragino Sans", sans-serif',
   },
   en: {
@@ -54,6 +55,7 @@ const STR = {
     profH: 'Your instincts, area by area', cats: { talk: 'Communication', words: 'Words', fun: 'Fun', life: 'Everyday life' },
     profNote: (hiC, hiY, loC, loY) => hiY - loY >= 8 ? `${hiC}: ${hiY}. ${loC}: ${loY}. You carry ${hiY - loY} years of generations inside you.` : 'Every area points to the same era. Your instincts are consistent.',
     shareCats: cs => ' (' + cs.map(([n, y]) => `${n} ${y}`).join(', ') + ')',
+    realEra: (d, pct, n) => `${pct}% who chose this were born in the ${d}s`, privacy: 'Your answers and birth year are used anonymously for statistics.',
     serif: 'Georgia, "Times New Roman", serif', sans: '-apple-system, "Helvetica Neue", Arial, sans-serif',
   },
 };

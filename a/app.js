@@ -3,6 +3,20 @@ const $ = q => document.querySelector(q);
 const X_MIN = 1950, X_MAX = 2010;
 let lang = pickLang(), L = STR[lang], P = PACK[lang];
 let prior = null, asked = [], pool = [], result = null;
+// ── データ送信（Cloudflare）。API が空のあいだは何も送らない ──
+const API = new URLSearchParams(location.search).get('api') || ''; // 本番の窓口アドレスは接続後に設定する
+const VER = 'a2', STAT_MIN = +(new URLSearchParams(location.search).get('statmin') || 30);
+let playId = null, STATS = null;
+// 質問の文面から作る固定ID（文面を変えたら別の質問として扱う）
+const qid = Q => { let h = 0x811c9dc5; for (const ch of Q.q) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
+const apiPost = (path, body) => API ? fetch(API + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).then(r => r.json()).catch(() => null) : Promise.resolve(null);
+function loadStats() { if (!API) return; fetch(`${API}/api/stats?lang=${lang}`).then(r => r.json()).then(d => { STATS = d; }).catch(() => { }); }
+// この答えを選んだ人の、一番多い生まれ年代と割合（STAT_MIN人以上いる時だけ）
+function realEra(a) {
+  const o = STATS && STATS.s && STATS.s[qid(a.Q)] && STATS.s[qid(a.Q)][a.k]; if (!o) return null;
+  const tot = Object.values(o).reduce((x, y) => x + y, 0); if (tot < STAT_MIN) return null;
+  const [dec, n] = Object.entries(o).sort((x, y) => y[1] - x[1])[0]; return L.realEra(+dec, Math.round(n / tot * 100), tot);
+}
 
 const show = id => { document.querySelectorAll('.screen').forEach(e => e.hidden = e.id !== id); window.scrollTo(0, 0); };
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -17,7 +31,7 @@ function applyLang() {
   $('#langBtn').textContent = L.other;
 }
 function start() {
-  prior = normalize(ENGINE.years().map(() => 1)); asked = []; pool = shuffle(P.q);
+  prior = normalize(ENGINE.years().map(() => 1)); asked = []; pool = shuffle(P.q); playId = null; loadStats();
   show('s-q'); ask();
 }
 function ask() {
@@ -61,11 +75,12 @@ function render() {
   profile();
   const sel = $('#realSel');
   sel.innerHTML = `<option value="">${L.realPh}</option>` + Array.from({ length: 2015 - 1935 + 1 }, (_, k) => 2015 - k).map(v => `<option value="${v}">${L.realOpt(v)}</option>`).join('');
-  sel.onchange = () => { result.real = sel.value ? +sel.value : null; gapText(); bar(); card(); };
+  sel.onchange = () => { result.real = sel.value ? +sel.value : null; gapText(); bar(); card(); if (playId && result.real) apiPost('/api/real', { id: playId, real: result.real }); };
   result.real = null; $('#gap').innerHTML = '';
   const m = result.ys.reduce((x, v) => x + v, 0) / result.ys.length; // 答えた年そのもののばらつき
   $('#spread').textContent = L.spread(Math.sqrt(result.ys.reduce((x, v) => x + (v - m) ** 2, 0) / result.ys.length), T[1]);
-  $('#ans').innerHTML = asked.map(a => `<li><b>${a.Q.a[a.k][0]}</b><span>${L.era(a.Q.a[a.k][1])}</span></li>`).join('');
+  $('#ans').innerHTML = asked.map(a => `<li><b>${a.Q.a[a.k][0]}</b><span>${realEra(a) || L.era(a.Q.a[a.k][1])}</span></li>`).join('');
+  apiPost('/api/play', { lang, ver: VER, est: result.y, ans: asked.map(a => [qid(a.Q), a.k]) }).then(r => { if (r && r.ok) playId = r.id; });
   bar(); card(); show('s-res');
 }
 const catList = () => Object.entries(result.cats).map(([c, v]) => [L.cats[c], v.y]);
