@@ -5,6 +5,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>日記で育つ町</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#22262b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="育つ町">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>
 :root{--bg:#f4f1ea;--ink:#2a2c2e;--sub:#85827a;--line:#e2ddd1;--card:#fffdf8;--green:#4f8f35;--accent:#e85a4f;--blue:#3d7be0}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -51,6 +57,10 @@ textarea{height:76px;resize:none;line-height:1.6}
 mark{background:#fff0a8}
 .small{font-size:12px;color:var(--sub);line-height:1.7}
 .row{display:flex;gap:8px;flex-wrap:wrap}
+.daynav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.daynav b{font-size:15px}.daynav .ghost:disabled{opacity:.3}
+.hint{background:#fff6d6;border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:10px}
+.linkb{border:0;background:none;color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;padding:0 4px}
+.notice{border:2px solid var(--blue)}.notice h3{color:var(--blue)}
 </style>
 </head>
 <body>
@@ -60,6 +70,8 @@ mark{background:#fff0a8}
 
   <div id="tab-town" class="sec">
     <div id="toast"></div>
+    <div class="card notice" id="installCard" hidden></div>
+    <div class="card notice" id="backupCard" hidden></div>
     <div class="card" id="todayCard"></div>
     <div class="card" id="backCard" hidden><h3>あの日のあなた</h3><div id="backs"></div></div>
     <div class="card"><h3>町の建物</h3><ul class="blds" id="blds"></ul>

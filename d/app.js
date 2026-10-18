@@ -24,36 +24,48 @@ function townState() {
 }
 function buildingName(k, n) { const lv = levelOf(n); return lv ? TAGS.find(t => t[0] === k)[2][lv - 1] : '空き地'; }
 
-// ---------- 今日 ----------
+// ---------- 記録する日（今日／書き忘れた日） ----------
+let cur = null; // 書いている日（null＝今日）
+const curDay = () => cur || TODAY();
 function renderToday() {
-  const t = TODAY(), e = db.e[t], box = $('#todayCard');
+  const t = curDay(), e = db.e[t], box = $('#todayCard'), isToday = t === TODAY();
+  const y = ymd(addDays(new Date(), -1));
+  const nav = `<div class="daynav"><button class="ghost" id="prevD">‹ 前の日</button><b>${isToday ? '今日' : jp(t)}</b><button class="ghost" id="nextD" ${isToday ? 'disabled' : ''}>次の日 ›</button></div>`
+    + (isToday && !db.e[y] && Object.keys(db.e).length ? `<div class="hint">昨日の分がまだです。<button class="linkb" id="goY">昨日を書く</button></div>` : '');
+  const wire = () => {
+    $('#prevD').onclick = () => { cur = ymd(addDays(parse(t), -1)); editing = false; sel = { tags: new Set(), mood: 3 }; renderToday(); };
+    $('#nextD').onclick = () => { const n = ymd(addDays(parse(t), 1)); cur = n >= TODAY() ? null : n; editing = false; sel = { tags: new Set(), mood: 3 }; renderToday(); };
+    const g = $('#goY'); if (g) g.onclick = () => { cur = y; editing = false; renderToday(); };
+  };
   if (e && !editing) {
-    box.innerHTML = `<div class="date">${jp(t)}</div><div class="entry"><p>${MOODS[e.mood - 1]} ${esc(e.text)}</p>
+    box.innerHTML = nav + `<div class="date">${jp(t)}${e.sample ? '（サンプル）' : ''}</div><div class="entry"><p>${MOODS[e.mood - 1]} ${esc(e.text)}</p>
       <div class="tags">${e.tags.map(k => `<span>${TAGS.find(x => x[0] === k)[1]}</span>`).join('')}</div></div>
       <button class="ghost" id="editBtn" style="margin-top:10px">書き直す</button>`;
-    $('#editBtn').onclick = () => { editing = true; sel = { tags: new Set(e.tags), mood: e.mood }; renderToday(); $('#txt').value = e.text; };
+    wire();
+    $('#editBtn').onclick = () => { editing = true; sel = { tags: new Set(e.tags), mood: e.mood }; renderToday(); $('#txt').value = e.sample ? '' : e.text; };
     return;
   }
-  box.innerHTML = `<div class="date">${jp(t)}</div><h3 style="margin:6px 0 10px">今日は、なにをしましたか？</h3>
+  box.innerHTML = nav + `<div class="date">${jp(t)}</div><h3 style="margin:6px 0 10px">${isToday ? '今日は' : 'この日は'}、なにをしましたか？</h3>
     <textarea id="txt" maxlength="200" placeholder="1行でかまいません。例：母と電話した。夜はカレー。"></textarea>
     <div class="chips">${TAGS.map(([k, n]) => `<button class="chip ${sel.tags.has(k) ? 'on' : ''}" data-k="${k}">${n}</button>`).join('')}</div>
-    <div class="date">今日の気分</div>
+    <div class="date">${isToday ? '今日' : 'この日'}の気分</div>
     <div class="moods">${MOODS.map((m, i) => `<button class="mood ${sel.mood === i + 1 ? 'on' : ''}" data-m="${i + 1}">${m}</button>`).join('')}</div>
     <button class="cta" id="saveBtn">町に記録する</button>`;
+  wire();
   box.querySelectorAll('.chip').forEach(b => b.onclick = () => { const k = b.dataset.k; sel.tags.has(k) ? sel.tags.delete(k) : sel.tags.add(k); b.classList.toggle('on'); });
   box.querySelectorAll('.mood').forEach(b => b.onclick = () => { sel.mood = +b.dataset.m; box.querySelectorAll('.mood').forEach(x => x.classList.toggle('on', x === b)); });
   $('#saveBtn').onclick = saveToday;
 }
 function saveToday() {
-  const text = $('#txt').value.trim();
+  const text = $('#txt').value.trim(), t = curDay();
   if (!text && !sel.tags.size) { $('#txt').focus(); return; }
-  const before = townState().counts, prev = db.e[TODAY()];
-  db.e[TODAY()] = { text: text || '（ひとことなし）', tags: [...sel.tags], mood: sel.mood };
+  const before = townState().counts, prev = db.e[t] && !db.e[t].sample ? db.e[t] : null;
+  db.e[t] = { text: text || '（ひとことなし）', tags: [...sel.tags], mood: sel.mood, at: Date.now() }; // 本物の記録（sample印なし）
   save(); editing = false;
   const after = townState().counts, msgs = [];
-  if (!prev) TAGS.forEach(([k]) => { const a = levelOf(before[k] || 0), b = levelOf(after[k] || 0); if (b > a) msgs.push(a === 0 ? `町に「${buildingName(k, after[k])}」ができました。` : `「${TAGS.find(t => t[0] === k)[2][a - 1]}」が「${buildingName(k, after[k])}」に育ちました。`); });
-  $('#toast').innerHTML = `<div class="toast">${msgs.length ? msgs.join('<br>') : prev ? '今日の記録を書き直しました。' : '記録しました。町の人がひとり増えました。'}</div>`;
-  sel = { tags: new Set(), mood: 3 }; refresh();
+  if (!prev) TAGS.forEach(([k]) => { const a = levelOf(before[k] || 0), b = levelOf(after[k] || 0); if (b > a) msgs.push(a === 0 ? `町に「${buildingName(k, after[k])}」ができました。` : `「${TAGS.find(x => x[0] === k)[2][a - 1]}」が「${buildingName(k, after[k])}」に育ちました。`); });
+  $('#toast').innerHTML = `<div class="toast">${msgs.length ? msgs.join('<br>') : prev ? `${t === TODAY() ? '今日' : jp(t)}の記録を書き直しました。` : '記録しました。町の人がひとり増えました。'}</div>`;
+  sel = { tags: new Set(), mood: 3 }; cur = null; refresh();
 }
 // ---------- あの日のあなた ----------
 function renderBacks() {
@@ -77,7 +89,9 @@ function renderCal() {
   for (let d = 1; d <= dim; d++) { const k = ymd(new Date(y, m, d)), e = db.e[k]; h += `<div data-k="${k}" class="${e ? 'has' : ''} ${k === TODAY() ? 'today' : ''}" style="${e ? `background:${col(e.mood)}` : ''}">${d}</div>`; }
   $('#cal').innerHTML = h; $('#dayView').innerHTML = '';
   $('#cal').querySelectorAll('[data-k]').forEach(c => c.onclick = () => { const e = db.e[c.dataset.k];
-    $('#dayView').innerHTML = `<div class="back"><div class="when">${jp(c.dataset.k)}</div><p>${e ? MOODS[e.mood - 1] + ' ' + esc(e.text) : 'この日の記録はありません。'}</p></div>`; });
+    const future = c.dataset.k > TODAY();
+    $('#dayView').innerHTML = `<div class="back"><div class="when">${jp(c.dataset.k)}</div><p>${e ? MOODS[e.mood - 1] + ' ' + esc(e.text) : 'この日の記録はありません。'}</p>${future ? '' : `<button class="ghost" id="writeDay">${e ? 'この日を書き直す' : 'この日を書く'}</button>`}</div>`;
+    const w = $('#writeDay'); if (w) w.onclick = () => { cur = c.dataset.k === TODAY() ? null : c.dataset.k; editing = !!e; if (e) sel = { tags: new Set(e.tags), mood: e.mood }; document.querySelector('.tabs button[data-t="town"]').click(); renderToday(); if (e && !e.sample) $('#txt').value = e.text; window.scrollTo(0, $('#todayCard').offsetTop - 10); }; });
 }
 function search() {
   const q = $('#q').value.trim(); if (!q) { $('#hits').innerHTML = ''; return; }
@@ -94,7 +108,32 @@ function loadSample() {
 }
 $('#sampleBtn').onclick = loadSample;
 $('#clearSampleBtn').onclick = () => { Object.keys(db.e).forEach(k => db.e[k].sample && delete db.e[k]); save(); refresh(); };
-$('#exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' })); a.download = `日記で育つ町_${TODAY()}.json`; a.click(); };
+// ---------- 控えの保存（iPhoneは共有シートから「ファイルに保存」→ iCloud Drive を選べる） ----------
+async function backup() {
+  const name = `日記で育つ町_${TODAY()}.json`, blob = new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: name });
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
+    localStorage.setItem('machi_backup_at', String(Date.now())); renderNotices();
+  } catch (e) { /* 共有シートを閉じただけ */ }
+}
+$('#exportBtn').onclick = backup;
+const realCount = () => Object.values(db.e).filter(e => !e.sample).length;
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function renderNotices() {
+  // ホーム画面に追加していない時の案内（閉じたら出さない）
+  const ic = $('#installCard');
+  ic.hidden = standalone() || localStorage.getItem('machi_install_hide') === '1';
+  ic.innerHTML = '<h3>ホーム画面に追加してください</h3><p class="small" style="font-size:13px">iPhoneのSafariは、7日間開かなかったサイトの保存データを消すことがあります。ホーム画面に追加すると、アプリのように開けて、記録が消えにくくなります。<br><b>Safariの共有ボタン（□↑）→「ホーム画面に追加」</b></p><button class="ghost" id="icHide">追加した・閉じる</button>';
+  const h = $('#icHide'); if (h) h.onclick = () => { localStorage.setItem('machi_install_hide', '1'); renderNotices(); };
+  // 本物の記録が5日分以上あって、控えを7日以上保存していない時
+  const last = +(localStorage.getItem('machi_backup_at') || 0), days = Math.floor((Date.now() - last) / 864e5);
+  const bc = $('#backupCard'); bc.hidden = !(realCount() >= 5 && days >= 7);
+  bc.innerHTML = `<h3>控えを保存しましょう</h3><p class="small" style="font-size:13px">${last ? `前回の控えから${days}日たちました。` : 'まだ控えを保存していません。'}記録はこの端末の中にしかありません。「ファイルに保存」→ iCloud Drive を選ぶのがおすすめです。</p><button class="cta" id="bkNow" style="margin-top:6px">控えを保存する</button>`;
+  const k = $('#bkNow'); if (k) k.onclick = backup;
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
 $('#importBtn').onclick = () => $('#file').click();
 $('#file').onchange = async e => { try { const d = JSON.parse(await e.target.files[0].text()); if (d && d.e) { Object.assign(db.e, d.e); save(); refresh(); alert('読み込みました。'); } } catch (err) { alert('読み込めませんでした。'); } };
 $('#prevM').onclick = () => { mon = new Date(mon.getFullYear(), mon.getMonth() - 1, 1); renderCal(); };
@@ -107,7 +146,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
 function refresh() {
   const st = townState();
   $('#pop').textContent = st.days * 3 + (st.counts.meet || 0) * 2; $('#days').textContent = st.days; $('#streak').textContent = st.streak;
-  renderToday(); renderBacks(); renderBuildings(st); renderCal(); search();
+  renderToday(); renderBacks(); renderBuildings(st); renderCal(); search(); renderNotices();
 }
 function loop() { frame++; drawTown($('#town').getContext('2d'), townState.cache || townState(), frame); requestAnimationFrame(loop); }
 const _ts = townState; townState = () => (townState.cache = _ts());
