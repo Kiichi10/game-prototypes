@@ -1,11 +1,11 @@
-// あなたの感覚は何年生まれ？ — 本体（日本語・英語）
+// あなたの感覚は何年生まれ？ — 本体（日本語・英語／答えに応じて次の質問を選ぶ）
 const $ = q => document.querySelector(q);
-const N = 10, X_MIN = 1950, X_MAX = 2010;
+const X_MIN = 1950, X_MAX = 2010;
 let lang = pickLang(), L = STR[lang], P = PACK[lang];
-let set = [], picks = [], result = null;
+let prior = null, asked = [], pool = [], result = null;
 
-const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const show = id => { document.querySelectorAll('.screen').forEach(e => e.hidden = e.id !== id); window.scrollTo(0, 0); };
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 function applyLang() {
   L = STR[lang]; P = PACK[lang];
@@ -17,24 +17,38 @@ function applyLang() {
   $('#langBtn').textContent = L.other;
 }
 function start() {
-  set = shuffle(P.q).slice(0, N); picks = [];
+  prior = normalize(ENGINE.years().map(() => 1)); asked = []; pool = shuffle(P.q);
   show('s-q'); ask();
 }
 function ask() {
-  const i = picks.length, Q = set[i];
-  $('#dots').innerHTML = set.map((_, k) => `<i class="${k <= i ? 'on' : ''}"></i>`).join('');
-  $('#qbox').innerHTML = `<div class="slide"><div class="qn">${L.qn(i + 1, N)}</div><div class="qt mincho">${Q.q}</div>` +
+  const Q = pickNext(prior, pool, asked); pool = pool.filter(x => x !== Q);
+  liveMeter();
+  $('#qbox').innerHTML = `<div class="slide"><div class="qn">${L.qnA(asked.length + 1)}</div><div class="qt mincho">${Q.q}</div>` +
     shuffle(Q.a.map((a, k) => [a, k])).map(([a, k]) => `<button class="opt" data-k="${k}">${a[0]}</button>`).join('') + '</div>';
   document.querySelectorAll('.opt').forEach(b => b.onclick = () => {
-    b.classList.add('pick'); picks.push(Q.a[+b.dataset.k]);
-    setTimeout(() => picks.length < N ? ask() : calc(), 180);
+    if (b.classList.contains('pick')) return;
+    b.classList.add('pick'); const k = +b.dataset.k;
+    asked.push({ Q, k }); prior = post(prior, Q, k);
+    setTimeout(() => shouldStop(prior, asked.length) || !pool.length ? calc() : ask(), 180);
   });
 }
+// 答えるたびに更新される「予想の分布」
+function liveMeter() {
+  const c = $('#liveC').getContext('2d'), W = 1000, H = 150, ys = ENGINE.years(), mx = Math.max(...prior);
+  c.clearRect(0, 0, W, H);
+  c.strokeStyle = '#e2d9c8'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, H - 22); c.lineTo(W, H - 22); c.stroke();
+  c.fillStyle = '#7a7167'; c.font = '22px sans-serif';
+  [1950, 1970, 1990, 2010].forEach(y => c.fillText(y, Math.min(W - 52, (y - ENGINE.Y0) / (ENGINE.Y1 - ENGINE.Y0) * W - 24), H - 2));
+  c.beginPath(); c.moveTo(0, H - 22);
+  prior.forEach((v, i) => c.lineTo(i / (ys.length - 1) * W, H - 22 - (v / mx) * (H - 40)));
+  c.lineTo(W, H - 22); c.closePath(); c.fillStyle = asked.length ? 'rgba(217,69,43,.22)' : 'rgba(31,27,22,.08)'; c.fill();
+  c.strokeStyle = asked.length ? '#d9452b' : '#bdb3a4'; c.lineWidth = 3; c.stroke();
+  const s = stats(prior);
+  $('#liveT').innerHTML = asked.length ? L.liveT(Math.round(s.mean), Math.round(s.conf * 100)) : L.liveFirst;
+}
 function calc() {
-  const ys = picks.map(p => p[1]);
-  const mean = ys.reduce((a, b) => a + b, 0) / ys.length;
-  const sd = Math.sqrt(ys.reduce((a, b) => a + (b - mean) ** 2, 0) / ys.length);
-  result = { y: Math.round(mean), sd, ys };
+  const s = stats(prior);
+  result = { y: Math.round(s.mean), lo: s.lo, hi: s.hi, sd: s.sd, ys: asked.map(a => a.Q.a[a.k][1]), cats: categoryYears(asked) };
   show('s-calc');
   let t = 0; const iv = setInterval(() => { $('#calcY').textContent = 1950 + Math.floor(Math.random() * 60); if (++t > 16) { clearInterval(iv); render(); } }, 70);
 }
@@ -43,13 +57,25 @@ function render() {
   const y = result.y, T = typeOf(y);
   $('#resY').textContent = y; $('#resWa').textContent = L.sub(y);
   $('#resType').textContent = T[1]; $('#resDesc').textContent = T[2];
+  $('#range').textContent = L.range(result.lo, result.hi);
+  profile();
   const sel = $('#realSel');
   sel.innerHTML = `<option value="">${L.realPh}</option>` + Array.from({ length: 2015 - 1935 + 1 }, (_, k) => 2015 - k).map(v => `<option value="${v}">${L.realOpt(v)}</option>`).join('');
   sel.onchange = () => { result.real = sel.value ? +sel.value : null; gapText(); bar(); card(); };
   result.real = null; $('#gap').innerHTML = '';
-  $('#spread').textContent = L.spread(result.sd, T[1]);
-  $('#ans').innerHTML = set.map((Q, i) => `<li><b>${picks[i][0]}</b><span>${L.era(picks[i][1])}</span></li>`).join('');
+  const m = result.ys.reduce((x, v) => x + v, 0) / result.ys.length; // 答えた年そのもののばらつき
+  $('#spread').textContent = L.spread(Math.sqrt(result.ys.reduce((x, v) => x + (v - m) ** 2, 0) / result.ys.length), T[1]);
+  $('#ans').innerHTML = asked.map(a => `<li><b>${a.Q.a[a.k][0]}</b><span>${L.era(a.Q.a[a.k][1])}</span></li>`).join('');
   bar(); card(); show('s-res');
+}
+const catList = () => Object.entries(result.cats).map(([c, v]) => [L.cats[c], v.y]);
+function profile() {
+  const cs = Object.entries(result.cats);
+  $('#prof').innerHTML = cs.map(([c, v]) => `<div class="prow"><span>${L.cats[c]}</span><div class="ptrack"><i style="left:${xp(v.y)}%"></i></div><b>${v.y}</b></div>`).join('');
+  if (cs.length >= 2) {
+    const sorted = cs.slice().sort((a, b) => b[1].y - a[1].y), hi = sorted[0], lo = sorted[sorted.length - 1];
+    $('#profNote').textContent = L.profNote(L.cats[hi[0]], hi[1].y, L.cats[lo[0]], lo[1].y);
+  } else $('#profNote').textContent = '';
 }
 function gapText() {
   const r = result.real; if (!r) { $('#gap').innerHTML = ''; return; }
@@ -66,16 +92,25 @@ function bar() {
 function card() {
   const c = $('#card').getContext('2d'), T = typeOf(result.y), serif = L.serif, sans = L.sans;
   c.fillStyle = '#f6f1e7'; c.fillRect(0, 0, 1200, 630);
-  c.fillStyle = '#1f1b16'; c.font = `600 34px ${serif}`; c.fillText(L.cardPre, 80, 120);
-  c.font = `600 190px ${serif}`; c.fillText(result.y, 70, 310);
-  const w = c.measureText(result.y).width; c.font = `600 48px ${serif}`; c.fillText(L.unit, 90 + w, 310);
-  c.fillStyle = '#7a7167'; c.font = `30px ${sans}`; c.fillText(L.sub(result.y), 84, 365);
-  c.font = `bold 34px ${sans}`; const tw = c.measureText(T[1]).width;
-  c.fillStyle = '#d9452b'; roundRect(c, 80, 400, tw + 56, 64, 32); c.fill();
-  c.fillStyle = '#fff'; c.fillText(T[1], 108, 444);
-  if (result.real) { c.fillStyle = '#1f1b16'; c.font = `bold 34px ${sans}`; c.fillText(L.cardGap(result.real - result.y), 80, 530); }
-  c.fillStyle = '#7a7167'; c.font = `24px ${sans}`; c.fillText(L.htmlTitle, 80, 590);
+  c.fillStyle = '#1f1b16'; c.font = `600 32px ${serif}`; c.fillText(L.cardPre, 70, 110);
+  c.font = `600 170px ${serif}`; c.fillText(result.y, 60, 290);
+  const w = c.measureText(result.y).width; c.font = `600 42px ${serif}`; c.fillText(L.unit, 76 + w, 290);
+  c.fillStyle = '#7a7167'; c.font = `28px ${sans}`; c.fillText(L.sub(result.y), 74, 340);
+  c.font = `bold 32px ${sans}`; const tw = c.measureText(T[1]).width;
+  c.fillStyle = '#d9452b'; roundRect(c, 70, 372, tw + 56, 60, 30); c.fill();
+  c.fillStyle = '#fff'; c.fillText(T[1], 98, 413);
+  if (result.real) { c.fillStyle = '#1f1b16'; c.font = `bold 30px ${sans}`; c.fillText(L.cardGap(result.real - result.y), 70, 500); }
+  // 右側：分野ごとの感覚
+  const cs = catList(), x0 = 740;
+  c.fillStyle = '#7a7167'; c.font = `24px ${sans}`; c.fillText(L.profH, x0, 120);
+  cs.forEach(([n, y], i) => {
+    const yy = 175 + i * 82; c.fillStyle = '#1f1b16'; c.font = `26px ${sans}`; c.fillText(n, x0, yy);
+    c.font = `600 44px ${serif}`; c.fillText(y, x0 + 250, yy + 6);
+    c.fillStyle = '#e2d9c8'; c.fillRect(x0, yy + 20, 360, 6); c.fillStyle = '#d9452b'; c.beginPath(); c.arc(x0 + xp(y) / 100 * 360, yy + 23, 10, 0, 7); c.fill();
+  });
+  c.fillStyle = '#7a7167'; c.font = `22px ${sans}`; c.fillText(L.htmlTitle, 70, 588);
   c.strokeStyle = '#1f1b16'; c.lineWidth = 6; c.strokeRect(20, 20, 1160, 590);
+  c.fillStyle = '#e2d9c8'; c.fillRect(700, 70, 2, 470);
 }
 function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
@@ -83,5 +118,5 @@ $('#startBtn').onclick = start;
 $('#againBtn').onclick = start;
 $('#langBtn').onclick = () => { lang = lang === 'ja' ? 'en' : 'ja'; try { localStorage.setItem('instinct_lang', lang); } catch (e) { } applyLang(); };
 $('#saveBtn').onclick = () => { const a = document.createElement('a'); a.download = L.file(result.y); a.href = $('#card').toDataURL('image/png'); a.click(); };
-$('#shareBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(L.shareText(result.y, typeOf(result.y)[1], result.real ? result.real - result.y : null)), '_blank');
+$('#shareBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(L.shareText(result.y, typeOf(result.y)[1], result.real ? result.real - result.y : null).replace('\n', L.shareCats(catList()) + '\n')), '_blank');
 applyLang();

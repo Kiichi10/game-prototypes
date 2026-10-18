@@ -50,6 +50,14 @@ select{font-size:17px;padding:10px;border-radius:10px;border:1.5px solid var(--l
 canvas{width:100%;border-radius:14px;display:block;border:1px solid var(--line)}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.row>*{flex:1}
 .note{color:var(--sub);font-size:12px;margin-top:18px;line-height:1.7}
+.live{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px 8px;margin-bottom:22px}
+#liveC{width:100%;height:56px;display:block;border:0;border-radius:0}
+.liveT{font-size:13px;color:var(--sub);margin-top:4px}.liveT b{color:var(--red)}
+.range{text-align:center;color:var(--sub);font-size:14px;margin:10px 0 0}
+.prow{display:grid;grid-template-columns:96px 1fr 44px;gap:8px;align-items:center;padding:7px 0;font-size:14px}
+.ptrack{position:relative;height:6px;background:var(--line);border-radius:3px}
+.ptrack i{position:absolute;top:-5px;width:16px;height:16px;border-radius:50%;background:var(--red);transform:translateX(-50%)}
+.prow b{text-align:right;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -63,7 +71,7 @@ canvas{width:100%;border-radius:14px;display:block;border:1px solid var(--line)}
 </section>
 
 <section class="screen" id="s-q" hidden>
-  <div class="dots" id="dots"></div>
+  <div class="live"><canvas id="liveC" width="1000" height="150"></canvas><div class="liveT" id="liveT"></div></div>
   <div id="qbox"></div>
 </section>
 
@@ -78,7 +86,13 @@ canvas{width:100%;border-radius:14px;display:block;border:1px solid var(--line)}
     <div class="wa" id="resWa"></div>
     <div class="type" id="resType"></div>
   </div>
+  <p class="range" id="range"></p>
   <p class="desc" id="resDesc"></p>
+  <div class="box">
+    <h3 data-t="profH"></h3>
+    <div id="prof"></div>
+    <p class="note" id="profNote" style="margin-top:10px;font-size:14px;color:var(--ink)"></p>
+  </div>
   <div class="box">
     <h3 data-t="realH"></h3>
     <select id="realSel"></select>
@@ -103,6 +117,7 @@ canvas{width:100%;border-radius:14px;display:block;border:1px solid var(--line)}
 <script src="i18n.js"></script>
 <script src="questions.js"></script>
 <script src="questions_en.js"></script>
+<script src="engine.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
