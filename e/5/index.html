@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>思い出で、あなたを当てる（試作）</title>
+<link rel="stylesheet" href="../common/style.css">
+<style>
+.tl{list-style:none;padding:0;margin:6px 0 0;position:relative}
+.tl:before{content:"";position:absolute;left:52px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl li{display:grid;grid-template-columns:44px 1fr;gap:16px;padding:7px 0;font-size:15px;position:relative}
+.tl li:after{content:"";position:absolute;left:47px;top:13px;width:12px;height:12px;border-radius:50%;background:var(--gold)}
+.tl li span{color:var(--sub);font-size:13px;text-align:right}
+.tl li small{color:var(--sub);display:block;font-size:12px}
+.gen{font-size:22px;font-weight:800;text-align:center;color:var(--gold);margin:4px 0 0;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="tvBox"></div>
+  <section id="s-top" style="width:100%">
+    <h1><small>YOUR OMOIDE</small>思い出で、<br>あなたを当てる</h1>
+    <p class="lead">年齢は聞きません。<br>子どものころの<b>お菓子・おもちゃ・テレビ</b>の思い出だけで、<br>あなたの<b>生まれた年</b>と<b>世代</b>を当てます。</p>
+    <div class="btns"><button class="btn gold" id="startBtn">はじめる</button></div>
+    <p class="small" id="obsInfo"></p>
+  </section>
+  <section id="s-q" hidden style="width:100%">
+    <div class="bubble"><span class="no" id="qNo"></span><span id="qText"></span></div>
+    <div class="btns">
+      <button class="btn yes" data-a="yes">はい</button>
+      <div class="row2"><button class="btn" data-a="py">たぶんそう</button><button class="btn" data-a="pn">たぶん違う</button></div>
+      <button class="btn no" data-a="no">いいえ</button>
+      <button class="btn sub" data-a="dk">わからない・知らない</button>
+    </div>
+    <div class="meter"><i id="conf"></i></div>
+  </section>
+  <section id="s-guess" hidden style="width:100%">
+    <div class="bubble"><span class="no">わかった！</span>あなたは……<br><span class="big" id="gYear"></span>生まれ、ですね？</div>
+    <div class="btns"><button class="btn yes" id="gExact">ぴったり！</button><button class="btn" id="gNear">近い（3年以内）</button><button class="btn no" id="gNo">ちがう</button></div>
+  </section>
+  <section id="s-end" hidden style="width:100%">
+    <div class="bubble" id="endText"></div>
+    <div class="card"><div style="text-align:center;font-size:13px;color:var(--sub)">あなたは</div><div class="gen" id="genName"></div><div style="text-align:center;font-size:13px;color:var(--sub)">世代</div></div>
+    <div class="card"><b>あなたの子ども時代の年表</b><ul class="tl" id="tl"></ul></div>
+    <div class="card" id="teachBox">
+      <div style="font-size:14px;margin-bottom:6px">本当の生まれ年を教えてください。年表の「◯歳のころ」も正しく直り、思い出ごとの答えと合わせて学習します。</div>
+      <select id="realSel" style="width:100%;padding:12px;border-radius:10px;font-size:16px"></select>
+      <div class="btns" style="margin-top:8px"><button class="btn gold" id="teachBtn">教える</button></div>
+    </div>
+    <div class="btns" style="margin-top:12px"><button class="btn gold" id="shareBtn">Xで投稿</button><button class="btn sub" id="againBtn">もう一度</button></div>
+  </section>
+</div>
+<script src="../common/aki.js"></script>
+<script src="../common/tv.js"></script>
+<script src="../common/omoide_eras.js"></script>
+<script>
+const $ = q => document.querySelector(q);
+const Y0 = 1945, Y1 = 2012, KEY = 'omoide_you_obs_v1';
+const obs = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } };
+// 質問：思い出ごとに、生まれ年別の「はい」の確率。教えてもらった本当の年（±2年）で補正
+function makeQ(O) {
+  return ERAS.map(e => ({ id: e[0], text: e[1], e, f: c => {
+    let v = eraProb(e, c.y);
+    const near = O.filter(o => Math.abs(o.year - c.y) <= 2 && o.ans[e[0]] != null);
+    if (near.length) { const k = 4; v = (v * k + near.reduce((s, o) => s + o.ans[e[0]], 0)) / (k + near.length); }
+    return v;
+  } }));
+}
+const wareki = y => y >= 1989 ? `平成${y === 1989 ? '元' : y - 1988}年` : `昭和${y - 1925}年`;
+let aki, C, n, guesses, cur, last, minQ, finalY;
+$('#tvBox').innerHTML = tvHTML(); tvMood('');
+const show = id => document.querySelectorAll('section').forEach(s => s.hidden = s.id !== id);
+function start() {
+  C = []; for (let y = Y0; y <= Y1; y++) C.push({ y, w: y < 1950 || y > 2006 ? 0.5 : 1 });
+  aki = new Aki(C, makeQ(obs()), { noise: 0.85 }); n = 0; guesses = 0; minQ = 7; tvMood('think'); show('s-q'); ask();
+}
+const around = i => aki.p.slice(Math.max(0, i - 2), i + 3).reduce((a, b) => a + b, 0);
+function bestYear() { let b = -1, bi = 0; aki.p.forEach((_, i) => { if (aki.excluded.has(i)) return; const v = around(i); if (v > b) { b = v; bi = i; } }); return { i: bi, conf: b }; }
+function ask() {
+  const { conf } = bestYear();
+  if ((conf > 0.7 && n >= minQ) || n >= 16 + guesses * 2) return guess();
+  const q = aki.next(2); if (!q) return guess();
+  cur = q; n++; $('#qNo').textContent = `思い出 ${n}`; $('#qText').textContent = q.text;
+  $('#conf').style.width = Math.round(conf * 100) + '%'; tvMood(conf > 0.4 ? 'sure' : 'think');
+}
+function guess() { guesses++; last = C[bestYear().i]; $('#gYear').textContent = `${last.y}年（${wareki(last.y)}）`; tvMood('sure'); show('s-guess'); }
+// 結果：「はい」と答えた思い出から、世代名と年表を作る
+function profile(y) {
+  const yes = aki.asked.filter(x => x.a != null && x.a >= 0.75).map(x => x.q.e);
+  const flag = yes.filter(e => e[7]).sort((a, b) => (Math.abs((a[2] + a[3]) / 2 - (y + 9))) - (Math.abs((b[2] + b[3]) / 2 - (y + 9))));
+  $('#genName').textContent = flag.length ? flag.slice(0, 2).map(e => e[6]).join(' × ') : `${Math.floor(y / 10) * 10}年代生まれ`;
+  // 流行の期間と「思い出になる年齢」が重なる年齢を出す（重ならなければ流行期間の年齢そのもの）
+  const ages = e => { let lo = Math.max(e[2] - y, e[4]), hi = Math.min(e[3] - y, e[5]); if (lo > hi) { lo = Math.max(0, e[2] - y); hi = Math.max(lo, e[3] - y); } return [lo, hi]; };
+  $('#tl').innerHTML = yes.length ? yes.map(e => ({ e, a: ages(e) })).sort((p, q) => p.a[0] - q.a[0]).map(({ e, a }) => `<li><span>${y + a[0]}</span><div>${e[6]}<small>あなたが${a[0] === a[1] ? a[0] : a[0] + '〜' + a[1]}歳のころ</small></div></li>`).join('') : '<li><span></span><div>「はい」と答えた思い出がありませんでした</div></li>';
+}
+function end(kind) {
+  finalY = last.y; last.kind = kind;
+  $('#endText').innerHTML = { exact: `<span class="no">${n}問でぴったり！</span>思い出だけで、${last.y}年生まれを当てました。`, near: `<span class="no">おしい！</span>${n}問で${last.y}年の近くまで来ました。`, lose: `<span class="no">まいった……</span>${guesses}回挑戦しましたが、当てられませんでした。` }[kind];
+  tvMood(kind === 'lose' ? 'lose' : 'win'); profile(finalY);
+  $('#realSel').innerHTML = '<option value="">選んでください</option>' + Array.from({ length: Y1 - Y0 + 1 }, (_, k) => Y1 - k).map(v => `<option${kind === 'exact' && v === last.y ? ' selected' : ''}>${v}</option>`).join('');
+  $('#teachBox').hidden = false; show('s-end');
+}
+$('#startBtn').onclick = start; $('#againBtn').onclick = start;
+document.querySelectorAll('#s-q [data-a]').forEach(b => b.onclick = () => { aki.answer(cur, ANS[b.dataset.a]); ask(); });
+$('#gExact').onclick = () => end('exact'); $('#gNear').onclick = () => end('near');
+$('#gNo').onclick = () => { const i = C.indexOf(last); [-1, 0, 1].forEach(d => C[i + d] && aki.exclude(i + d)); if (guesses >= 3) return end('lose'); minQ = n + 2; tvMood('think'); show('s-q'); ask(); };
+$('#teachBtn').onclick = () => {
+  const y = +$('#realSel').value; if (!y) return;
+  const ans = {}; aki.asked.forEach(x => { if (x.a != null) ans[x.q.id] = x.a; });
+  const O = obs(); O.push({ year: y, ans }); localStorage.setItem(KEY, JSON.stringify(O));
+  finalY = y; profile(y);
+  $('#teachBox').innerHTML = `<b>覚えました。</b>年表を${y}年生まれとして直しました。この端末で教えてもらった人：${O.length}人。`;
+};
+$('#shareBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent((last.kind === 'exact' ? `思い出だけで、生まれ年を${n}問で当てられた…！` : last.kind === 'near' ? `思い出だけで、生まれ年をほぼ当てられた。` : `思い出で年齢当てに勝った！`) + `\n私は「${$('#genName').textContent}」世代\n#思い出であなたを当てる`), '_blank');
+$('#obsInfo').textContent = obs().length ? `この端末で学習した人：${obs().length}人` : '';
+</script>
+</body>
+</html>
