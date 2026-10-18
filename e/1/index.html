@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>思い出アキネーター（試作）</title>
+<link rel="stylesheet" href="../common/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="tvBox"></div>
+
+  <section id="s-top" style="width:100%">
+    <h1><small>OMOIDE AKINATOR</small>思い出アキネーター</h1>
+    <p class="lead">子どものころの<b>お菓子</b>か<b>おもちゃ</b>を、<br>ひとつだけ思い浮かべてください。<br>質問に答えるだけで、当ててみせます。</p>
+    <div class="btns"><button class="btn gold" id="startBtn">思い浮かべた</button></div>
+    <p class="small" id="learnedInfo"></p>
+  </section>
+
+  <section id="s-q" hidden style="width:100%">
+    <div class="bubble"><span class="no" id="qNo"></span><span id="qText"></span></div>
+    <div class="btns">
+      <button class="btn yes" data-a="yes">はい</button>
+      <div class="row2"><button class="btn" data-a="py">たぶんそう</button><button class="btn" data-a="pn">たぶん違う</button></div>
+      <button class="btn no" data-a="no">いいえ</button>
+      <button class="btn sub" data-a="dk">わからない</button>
+    </div>
+    <div class="meter"><i id="conf"></i></div>
+  </section>
+
+  <section id="s-guess" hidden style="width:100%">
+    <div class="bubble"><span class="no">ひらめいた！</span>思い浮かべたのは……<br><span class="big" id="gName"></span><span style="font-size:14px;font-weight:400" id="gNote"></span><br>ですね？</div>
+    <div class="row2"><button class="btn yes" id="gYes">正解！</button><button class="btn no" id="gNo">ちがう</button></div>
+  </section>
+
+  <section id="s-win" hidden style="width:100%">
+    <div class="bubble"><span class="no" id="wNo"></span><span id="wText"></span></div>
+    <div class="card" id="wEra"></div>
+    <div class="btns" style="margin-top:14px"><button class="btn gold" id="shareBtn">Xで投稿</button><button class="btn sub" id="againBtn">もう一度あそぶ</button></div>
+  </section>
+
+  <section id="s-teach" hidden style="width:100%">
+    <div class="bubble"><span class="no">まいった……</span>あなたが思い浮かべたものを教えてください。次は当てられるように覚えます。</div>
+    <input type="text" id="tName" maxlength="30" placeholder="例：ヤングドーナツ">
+    <div class="btns"><button class="btn gold" id="tBtn">教える</button><button class="btn sub" id="tSkip">教えずにもう一度</button></div>
+  </section>
+
+  <section id="s-thanks" hidden style="width:100%">
+    <div class="bubble" id="thText"></div>
+    <div class="btns"><button class="btn gold" id="again2">もう一度あそぶ</button></div>
+  </section>
+</div>
+<script src="../common/aki.js"></script>
+<script src="../common/tv.js"></script>
+<script src="../common/omoide_items.js"></script>
+<script>
+const $ = q => document.querySelector(q);
+const KEY = 'omoide_learned_v1';
+let aki, C, Q, n = 0, guesses = 0, cur = null;
+$('#tvBox').innerHTML = tvHTML();
+const learned = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } };
+const show = id => document.querySelectorAll('section').forEach(s => s.hidden = s.id !== id);
+
+function start() {
+  C = omoideCands(learned()); Q = omoideQuestions(); aki = new Aki(C, Q); n = 0; guesses = 0;
+  tvMood('think'); show('s-q'); ask();
+}
+function ask() {
+  const top = aki.ranked()[0];
+  if ((top.p > 0.6 && n >= 4) || n >= 22) return guess();
+  const q = aki.next(2); if (!q) return guess();
+  cur = q; n++;
+  $('#qNo').textContent = `質問 ${n}`; $('#qText').textContent = q.text;
+  $('#conf').style.width = Math.round(top.p * 100) + '%';
+  tvMood(top.p > 0.35 ? 'sure' : 'think');
+}
+function answer(a) { aki.answer(cur, ANS[a]); ask(); }
+function guess() {
+  const top = aki.ranked()[0];
+  if (!top || guesses >= 3) return teach();
+  guesses++; cur = top;
+  $('#gName').textContent = top.c.name; $('#gNote').textContent = top.c.year ? `（${top.c.year}年ごろ〜）` : '（みんなが教えてくれたもの）';
+  tvMood('sure'); show('s-guess');
+}
+function win() {
+  const c = cur.c; tvMood('win');
+  $('#wNo').textContent = `${n}問で正解！`;
+  $('#wText').textContent = `${c.name}。${c.note || ''}`;
+  const y = c.year;
+  $('#wEra').innerHTML = y && y > 1940 ? `<b>${c.name}</b>が登場したのは${y}年ごろ。このころに子どもだったなら、あなたは<b>${y - 12}〜${y - 3}年ごろの生まれ</b>かもしれません。<br><span class="small">（感覚の生まれ年をもっと詳しく当てる試作は「3」へ）</span>` : '昔から長く遊ばれてきたもの。世代を超えた思い出ですね。';
+  show('s-win');
+}
+function teach() { tvMood('lose'); $('#tName').value = ''; show('s-teach'); }
+function learn() {
+  const name = $('#tName').value.trim(); if (!name) return;
+  // 答えから特徴を作る：はい=特徴あり、たぶんそう=半分、それ以外=なし（年の質問は使わない）
+  const tags = aki.asked.filter(x => !x.q.id.startsWith('y') && x.a != null && x.a >= 0.75).map(x => (x.a === 1 ? '' : '?') + x.q.id).join(' ');
+  const L = learned(), same = L.find(x => x[0] === name) || C.find(c => c.name === name);
+  if (!same) { L.push([name, null, tags || 'food', 'みんなが教えてくれたもの']); localStorage.setItem(KEY, JSON.stringify(L)); }
+  $('#thText').innerHTML = same ? `「${name}」でしたか！知っていたのに当てられませんでした。答え方を覚えておきます。` : `「${name}」ですね。覚えました！<br>次に誰かが思い浮かべたら、当ててみせます。<br><span style="font-size:13px;font-weight:400">（この端末で教えてもらったもの：${L.length}件）</span>`;
+  tvMood('sure'); show('s-thanks');
+}
+$('#startBtn').onclick = start; $('#againBtn').onclick = start; $('#again2').onclick = start; $('#tSkip').onclick = start;
+document.querySelectorAll('#s-q [data-a]').forEach(b => b.onclick = () => answer(b.dataset.a));
+$('#gYes').onclick = win;
+$('#gNo').onclick = () => { aki.exclude(cur.i); show('s-q'); tvMood('think'); guesses >= 3 ? teach() : ask(); };
+$('#tBtn').onclick = learn;
+$('#shareBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(`思い出アキネーターに「${cur.c.name}」を${n}問で当てられた…！\n#思い出アキネーター`), '_blank');
+$('#learnedInfo').textContent = `お菓子とおもちゃ ${OMOIDE.length}件を知っています（試作版）`;
+tvMood('');
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>記憶を取り戻すアキネーター（試作）</title>
+<link rel="stylesheet" href="../common/style.css">
+<style>.peek{background:var(--ink);color:#2a2540;border-radius:16px;padding:16px;width:100%;font-size:17px;line-height:1.7;text-align:center}.peek .d{font-size:13px;color:#8b82a8}</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="tvBox"></div>
+  <section id="s-top" style="width:100%">
+    <h1><small>MEMORY AKINATOR</small>記憶を取り戻す<br>アキネーター</h1>
+    <p class="lead">「あれ、いつだったっけ？」<br>あなたの日記の中から、思い出せない<b>あの日</b>を、質問で見つけ出します。</p>
+    <div class="card" id="dataInfo"></div>
+    <div class="btns" style="margin-top:12px">
+      <button class="btn gold" id="startBtn">あの日を思い浮かべた</button>
+      <button class="btn" id="trialBtn">お試し（サンプルの1日を覚えてから挑戦）</button>
+      <button class="btn sub" id="sampleBtn">サンプルの日記（約1年分）を入れる</button>
+    </div>
+    <p class="small">日記は「日記で育つ町（D）」と同じ記録を使います。記録はこの端末の中だけにあります。</p>
+  </section>
+  <section id="s-peek" hidden style="width:100%">
+    <div class="bubble">この日を覚えてください。<span id="cnt"></span>秒後に隠します。</div>
+    <div class="peek" id="peek"></div>
+  </section>
+  <section id="s-q" hidden style="width:100%">
+    <div class="bubble"><span class="no" id="qNo"></span><span id="qText"></span></div>
+    <div class="btns">
+      <button class="btn yes" data-a="yes">はい</button>
+      <div class="row2"><button class="btn" data-a="py">たぶんそう</button><button class="btn" data-a="pn">たぶん違う</button></div>
+      <button class="btn no" data-a="no">いいえ</button>
+      <button class="btn sub" data-a="dk">覚えていない</button>
+    </div>
+    <p class="small" id="left"></p>
+  </section>
+  <section id="s-guess" hidden style="width:100%">
+    <div class="bubble"><span class="no">見つけた！</span>それは……<div class="peek" style="margin-top:8px" id="gDay"></div>この日ですね？</div>
+    <div class="row2"><button class="btn yes" id="gYes">その日だ！</button><button class="btn no" id="gNo">ちがう</button></div>
+  </section>
+  <section id="s-end" hidden style="width:100%">
+    <div class="bubble" id="endText"></div>
+    <div class="card" id="around"></div>
+    <div class="btns" style="margin-top:12px"><button class="btn gold" id="againBtn">別の日を探す</button></div>
+  </section>
+</div>
+<script src="../common/aki.js"></script>
+<script src="../common/tv.js"></script>
+<script>
+const $ = q => document.querySelector(q);
+const KEY = 'machi_v1', W = ['日', '月', '火', '水', '木', '金', '土'], MO = ['😣', '🙁', '😐', '🙂', '😄'];
+const TAGN = { work: '仕事をした', move: '運動した', meet: '人に会った', learn: '何かを学んだ', cook: '料理をした', out: 'お出かけした', rest: 'ゆっくり休んだ', early: '早起きした', make: '何かを作った（創作）' };
+const db = () => { try { return JSON.parse(localStorage.getItem(KEY)) || { e: {} }; } catch (e) { return { e: {} }; } };
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const jp = s => { const d = parse(s); return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${W[d.getDay()]}）`; };
+const daysAgo = s => Math.round((new Date().setHours(0, 0, 0, 0) - parse(s)) / 864e5);
+$('#tvBox').innerHTML = tvHTML(); tvMood('');
+const show = id => document.querySelectorAll('section').forEach(s => s.hidden = s.id !== id);
+
+// 日記から質問を作る：曜日・季節・どれくらい前か・その日やったこと・気分・日記によく出る言葉
+function build() {
+  const E = db().e, C = Object.keys(E).sort().map(k => ({ k, ...E[k], d: parse(k), ago: daysAgo(k) }));
+  const Q = [
+    { id: 'wkday', text: '平日のことでしたか？', f: c => c.d.getDay() % 6 ? 1 : 0 },
+    { id: 'sun', text: '日曜日でしたか？', f: c => c.d.getDay() === 0 ? 1 : 0 },
+    { id: 'm1', text: 'ここ1か月以内のことですか？', f: c => c.ago <= 30 ? 1 : c.ago <= 40 ? 0.5 : 0 },
+    { id: 'm3', text: 'ここ3か月以内のことですか？', f: c => c.ago <= 90 ? 1 : c.ago <= 110 ? 0.5 : 0 },
+    { id: 'm6', text: 'ここ半年以内のことですか？', f: c => c.ago <= 182 ? 1 : c.ago <= 210 ? 0.5 : 0 },
+    { id: 'y1', text: '1年近く前、またはそれより前のことですか？', f: c => c.ago >= 330 ? 1 : c.ago >= 290 ? 0.5 : 0 },
+    { id: 'summer', text: '夏（6〜8月）でしたか？', f: c => [5, 6, 7].includes(c.d.getMonth()) ? 1 : 0 },
+    { id: 'winter', text: '冬（12〜2月）でしたか？', f: c => [11, 0, 1].includes(c.d.getMonth()) ? 1 : 0 },
+    { id: 'spring', text: '春（3〜5月）でしたか？', f: c => [2, 3, 4].includes(c.d.getMonth()) ? 1 : 0 },
+    { id: 'early', text: '月の前半（1〜15日）でしたか？', f: c => c.d.getDate() <= 15 ? 1 : 0 },
+    { id: 'happy', text: 'その日は、気分のいい日でしたか？', f: c => c.mood >= 4 ? 1 : c.mood === 3 ? 0.5 : 0 },
+    { id: 'sad', text: 'その日は、落ち込んだりしんどかったりしましたか？', f: c => c.mood <= 2 ? 1 : c.mood === 3 ? 0.4 : 0 },
+    ...Object.entries(TAGN).map(([t, n]) => ({ id: 't_' + t, text: `その日は${n}日でしたか？`, f: c => c.tags.includes(t) ? 1 : 0 })),
+  ];
+  // 日記によく出る言葉（カタカナ・漢字のまとまり）を質問にする。全体の3〜40%に出てくる言葉だけ
+  const cnt = {};
+  C.forEach(c => new Set((c.text.match(/[ァ-ヴー]{2,}|[一-龠々]{2,}/g) || [])).forEach(w => cnt[w] = (cnt[w] || 0) + 1));
+  Object.entries(cnt).filter(([w, n]) => n >= Math.max(2, C.length * 0.03) && n <= C.length * 0.4).slice(0, 40)
+    .forEach(([w]) => Q.push({ id: 'w_' + w, text: `日記に「${w}」と書いた日ですか？`, f: c => c.text.includes(w) ? 1 : 0 }));
+  return { C, Q };
+}
+let aki, C, Q, n, guesses, cur, target = null, minQ = 4; // minQ: 次に予想してよい最少の問数（外したら+2）
+function info() {
+  const k = Object.keys(db().e), s = k.filter(x => db().e[x].sample).length;
+  $('#dataInfo').innerHTML = k.length ? `日記の記録：<b>${k.length}日分</b>${s ? `（うちサンプル${s}日）` : ''}` : '日記の記録がまだありません。サンプルを入れて試せます。';
+  $('#startBtn').disabled = $('#trialBtn').disabled = k.length < 10;
+}
+function start() { ({ C, Q } = build()); aki = new Aki(C, Q, { noise: 0.8 }); n = 0; guesses = 0; minQ = 4; tvMood('think'); show('s-q'); ask(); }
+function ask() {
+  const top = aki.ranked()[0];
+  if ((top.p > 0.5 && n >= minQ) || n >= 18 + guesses * 2) return guess();
+  const q = aki.next(1); if (!q) return guess();
+  cur = q; n++; $('#qNo').textContent = `質問 ${n}`; $('#qText').textContent = q.text;
+  const alive = aki.ranked().filter(r => r.p > 0.5 / C.length).length;
+  $('#left').textContent = `候補の日：${alive}日`; tvMood(top.p > 0.3 ? 'sure' : 'think');
+}
+const dayHTML = c => `<div class="d">${jp(c.k)}</div>${MO[c.mood - 1]} ${c.text}`;
+function guess() {
+  const top = aki.ranked()[0]; if (!top || guesses >= 5) return end(false);
+  guesses++; cur = top; $('#gDay').innerHTML = dayHTML(top.c); tvMood('sure'); show('s-guess');
+}
+function end(ok) {
+  tvMood(ok ? 'win' : 'lose');
+  $('#endText').innerHTML = ok ? `<span class="no">${n}問で見つけました！</span>${jp(cur.c.k)}。${cur.c.ago}日前のことでした。` : `<span class="no">ごめんなさい……</span>見つけられませんでした。${target ? `正解は ${jp(target.k)} でした。` : ''}`;
+  const c = ok ? cur.c : target;
+  if (c) { const i = C.findIndex(x => x.k === c.k), near = C.slice(Math.max(0, i - 2), i + 3);
+    $('#around').innerHTML = '<b>その前後の日</b>' + near.map(x => `<div style="margin-top:8px;${x.k === c.k ? 'color:var(--gold)' : ''}">${jp(x.k)}　${MO[x.mood - 1]} ${x.text}</div>`).join(''); }
+  else $('#around').innerHTML = '';
+  show('s-end');
+}
+// お試し：サンプルから1日を見せて覚えてもらう
+function trial() {
+  ({ C } = build()); target = C[Math.floor(Math.random() * C.length)];
+  $('#peek').innerHTML = dayHTML(target); show('s-peek'); let t = 6; $('#cnt').textContent = t;
+  const iv = setInterval(() => { t--; $('#cnt').textContent = t; if (t <= 0) { clearInterval(iv); start(); } }, 1000);
+}
+// サンプル：1年分の日記（人・食べ物・場所を組み合わせて、似た日が多すぎないようにする）
+function sample() {
+  const P = ['母', '友だち', '同僚', '上司', '妹', '昔の同級生'], F = ['カレー', '焼肉', 'ラーメン', '寿司', 'パスタ', 'お好み焼き'], PL = ['海', '映画館', '実家', '図書館', '温泉', '美術館', '公園', '東京', '京都'];
+  const r = a => a[Math.floor(Math.random() * a.length)];
+  const T = [
+    [['meet'], () => `${r(P)}と${r(F)}を食べた。`], [['meet', 'out'], () => `${r(P)}と${r(PL)}へ行った。`], [['work'], () => `会議が${2 + Math.floor(Math.random() * 3)}本。疲れた。`],
+    [['work'], () => '資料作りで残業。'], [['work', 'meet'], () => `${r(P)}に仕事を褒められた。`], [['move'], () => `ジムで${3 + Math.floor(Math.random() * 4)}0分走った。`],
+    [['move', 'early'], () => '6時に起きて朝ヨガ。'], [['rest'], () => '一日中ゴロゴロ。昼寝しすぎた。'], [['out'], () => `ひとりで${r(PL)}へ。`],
+    [['cook'], () => `${r(F)}を作った。うまくいった。`], [['learn'], () => `本を${2 + Math.floor(Math.random() * 6)}0ページ読んだ。`], [['learn', 'early'], () => '早起きして英語の勉強。'],
+    [['make'], () => '絵を描いた。'], [['make', 'work'], () => '動画の編集を夜中まで。'], [['rest', 'meet'], () => `${r(P)}から電話。長話した。`],
+  ];
+  const d = db();
+  for (let i = 1; i <= 380; i++) { if (Math.random() < 0.25) continue; const x = new Date(); x.setDate(x.getDate() - i);
+    const k = `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; if (d.e[k]) continue;
+    const [tags, f] = r(T); d.e[k] = { text: f(), tags, mood: 1 + Math.floor(Math.random() * 5), sample: 1 }; }
+  localStorage.setItem(KEY, JSON.stringify(d)); info();
+}
+$('#startBtn').onclick = () => { target = null; start(); }; $('#trialBtn').onclick = trial; $('#sampleBtn').onclick = sample;
+document.querySelectorAll('#s-q [data-a]').forEach(b => b.onclick = () => { aki.answer(cur, ANS[b.dataset.a]); ask(); });
+$('#gYes').onclick = () => end(true);
+$('#gNo').onclick = () => { aki.exclude(cur.i); minQ = n + 2; show('s-q'); tvMood('think'); guesses >= 5 ? end(false) : ask(); };
+$('#againBtn').onclick = () => { info(); show('s-top'); tvMood(''); };
+info();
+</script>
+</body>
+</html>

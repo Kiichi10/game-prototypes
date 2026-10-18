@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>今日の思い出お題（試作）</title>
+<link rel="stylesheet" href="../common/style.css">
+<style>
+.qlist{display:grid;gap:7px;width:100%;max-height:44vh;overflow:auto;padding:2px}
+.qlist button{text-align:left;font-size:15px;padding:11px 14px;font-weight:600}
+.qlist button[disabled]{opacity:.35}
+.log{list-style:none;padding:0;margin:0;width:100%}
+.log li{display:flex;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.log li b{white-space:nowrap}.log .y{color:var(--green)}.log .n{color:var(--red)}.log .m{color:var(--sub)}
+.stat{display:flex;justify-content:space-between;width:100%;font-size:13px;color:var(--sub);margin:4px 0 8px}
+.stat b{color:var(--gold);font-size:17px}
+.emo{font-size:22px;letter-spacing:2px;text-align:center;margin:8px 0;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="tvBox"></div>
+  <section id="s-top" style="width:100%">
+    <h1><small>DAILY OMOIDE</small>今日の思い出お題</h1>
+    <p class="lead">テレビくんが、昭和・平成の<b>お菓子かおもちゃ</b>をひとつ思い浮かべています。<br>質問して、<b>20問以内</b>に当ててください。<br>お題は毎日ひとつ。みんな同じです。</p>
+    <div class="btns"><button class="btn gold" id="startBtn"></button></div>
+  </section>
+
+  <section id="s-play" hidden style="width:100%">
+    <div class="bubble" id="say">何でも聞いてね。「はい・いいえ」で答えるよ。</div>
+    <div class="stat"><span>質問 <b id="qUsed">0</b> / 20</span><span>候補は <b id="left"></b> 件まで絞れた</span></div>
+    <div style="display:flex;gap:8px;width:100%"><input type="text" id="gIn" placeholder="答えがわかったら入力" style="flex:1;margin:0"><button class="btn gold" id="gBtn" style="padding:0 16px">答える</button></div>
+    <p class="small" id="gMsg" style="margin:6px 0"></p>
+    <div class="qlist" id="qlist"></div>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <section id="s-end" hidden style="width:100%">
+    <div class="bubble" id="endText"></div>
+    <div class="emo" id="emo"></div>
+    <div class="btns"><button class="btn gold" id="shareBtn">結果を投稿</button></div>
+    <p class="small">次のお題は明日の0時に変わります。</p>
+  </section>
+</div>
+<script src="../common/aki.js"></script>
+<script src="../common/tv.js"></script>
+<script src="../common/omoide_items.js"></script>
+<script>
+const $ = q => document.querySelector(q);
+const C = omoideCands(), Q = omoideQuestions(true);
+const DAY0 = new Date(2026, 9, 1), today = new Date(); today.setHours(0, 0, 0, 0);
+const dayNo = Math.floor((today - DAY0) / 864e5) + 1;
+// 日付から毎日のお題を決める（全員同じ）
+const pickIdx = d => { let h = d * 2654435761 % 4294967296; return h % C.length; };
+const T = C[pickIdx(dayNo)];
+let used = 0, marks = [], done = false;
+$('#tvBox').innerHTML = tvHTML(); tvMood('');
+$('#startBtn').textContent = `第${dayNo}回のお題に挑戦`;
+const cls = v => v == null ? 'na' : v >= 0.75 ? 'y' : v <= 0.25 ? 'n' : 'm';
+const said = { y: 'はい！', n: 'いいえ。', m: 'うーん、どちらとも言えるかな。', na: 'それは関係ないかな。' };
+let alive = C.map((c, i) => i);
+const norm = s => s.replace(/[（(].*?[）)]/g, '').replace(/[\s・ー－-]/g, '').replace(/[ぁ-ん]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60)).toLowerCase();
+
+function start() {
+  $('#s-top').hidden = true; $('#s-play').hidden = false; tvMood('think'); renderQ(); updLeft();
+}
+function renderQ() {
+  $('#qlist').innerHTML = Q.map(q => `<button class="btn" data-id="${q.id}">${q.text}</button>`).join('');
+  $('#qlist').querySelectorAll('button').forEach(b => b.onclick = () => ask(Q.find(q => q.id === b.dataset.id), b));
+}
+function ask(q, b) {
+  if (done || used >= 20) return;
+  used++; b.disabled = true; marks.push('🟨');
+  const r = cls(q.f(T)); tvMood(r === 'y' ? 'sure' : 'think');
+  $('#say').textContent = `「${q.text}」…… ${said[r]}`;
+  $('#log').insertAdjacentHTML('afterbegin', `<li><span>${q.text}</span><b class="${r === 'y' ? 'y' : r === 'n' ? 'n' : 'm'}">${said[r]}</b></li>`);
+  alive = alive.filter(i => cls(q.f(C[i])) === r);
+  $('#qUsed').textContent = used; updLeft();
+  if (used >= 20) $('#gMsg').textContent = '質問はここまで。最後に答えを入力してください（あと3回まで）。';
+}
+const updLeft = () => $('#left').textContent = alive.length;
+let wrong = 0;
+function guess() {
+  const v = $('#gIn').value.trim(); if (!v || done) return;
+  if (norm(v) === norm(T.name) || norm(T.name).includes(norm(v)) && norm(v).length >= 3) return finish(true);
+  wrong++; marks.push('🟥'); $('#gMsg').textContent = `「${v}」ではありません。（あと${3 - wrong}回）`; tvMood('sure'); $('#gIn').value = '';
+  if (wrong >= 3) finish(false);
+}
+function finish(ok) {
+  done = true; if (ok) marks.push('🟩');
+  $('#s-play').hidden = true; $('#s-end').hidden = false; tvMood(ok ? 'lose' : 'win');
+  $('#endText').innerHTML = ok ? `<span class="no">お見事！</span>正解は「${T.name}」。<br>${used}問で当てられちゃった……<br><span style="font-size:14px;font-weight:400">${T.note}</span>` : `<span class="no">ざんねん！</span>正解は「${T.name}」でした。<br><span style="font-size:14px;font-weight:400">${T.note}</span>`;
+  $('#emo').textContent = marks.join('');
+  localStorage.setItem('daily_' + dayNo, JSON.stringify({ ok, used }));
+}
+$('#startBtn').onclick = start; $('#gBtn').onclick = guess; $('#gIn').onkeydown = e => { if (e.key === 'Enter') guess(); };
+$('#shareBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(`今日の思い出お題 第${dayNo}回 ${marks.includes('🟩') ? used + '問で正解' : '敗北'}\n${marks.join('')}\n#今日の思い出お題`), '_blank');
+</script>
+</body>
+</html>

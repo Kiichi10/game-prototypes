@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>生まれ年アキネーター（試作）</title>
+<link rel="stylesheet" href="../common/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="tvBox"></div>
+  <section id="s-top" style="width:100%">
+    <h1><small>BIRTH YEAR AKINATOR</small>生まれ年アキネーター</h1>
+    <p class="lead">あなたの<b>生まれた年</b>を、質問だけで当てます。<br>年齢を直接聞くような質問はしません。<br>思い出をたどって答えてください。</p>
+    <div class="btns"><button class="btn gold" id="startBtn">はじめる</button></div>
+    <p class="small" id="obsInfo"></p>
+  </section>
+  <section id="s-q" hidden style="width:100%">
+    <div class="bubble"><span class="no" id="qNo"></span><span id="qText"></span></div>
+    <div class="btns">
+      <button class="btn yes" data-a="yes">はい</button>
+      <div class="row2"><button class="btn" data-a="py">たぶんそう</button><button class="btn" data-a="pn">たぶん違う</button></div>
+      <button class="btn no" data-a="no">いいえ</button>
+      <button class="btn sub" data-a="dk">わからない</button>
+    </div>
+    <div class="meter"><i id="conf"></i></div>
+  </section>
+  <section id="s-guess" hidden style="width:100%">
+    <div class="bubble"><span class="no">わかった！</span>あなたは……<br><span class="big" id="gYear"></span>生まれ、ですね？</div>
+    <div class="btns"><button class="btn yes" id="gExact">ぴったり！</button><button class="btn" id="gNear">近い（3年以内）</button><button class="btn no" id="gNo">ちがう</button></div>
+  </section>
+  <section id="s-end" hidden style="width:100%">
+    <div class="bubble" id="endText"></div>
+    <div class="card" id="teachBox">
+      <div style="font-size:14px;margin-bottom:6px">よければ本当の生まれ年を教えてください。質問ごとの答えと合わせて覚え、次からもっと当てられるようにします。</div>
+      <select id="realSel" style="width:100%;padding:12px;border-radius:10px;font-size:16px"></select>
+      <div class="btns" style="margin-top:8px"><button class="btn gold" id="teachBtn">教える</button></div>
+    </div>
+    <div class="btns" style="margin-top:12px"><button class="btn gold" id="shareBtn">Xで投稿</button><button class="btn sub" id="againBtn">もう一度</button></div>
+  </section>
+</div>
+<script src="../common/aki.js"></script>
+<script src="../common/tv.js"></script>
+<script>
+const $ = q => document.querySelector(q);
+const Y0 = 1940, Y1 = 2012, KEY = 'nendai_obs_v1';
+// [id, 質問, 「はい」と答えやすい生まれ年の範囲, 境目のくっきり度（省略=2年ほどぼやける／年で決まる事実は小さく）]（試作用の見立て。教えてもらった実データで補正していく）
+const RAW = [
+  ['kurodenwa', '子どものころ、家に黒電話がありましたか？', 1940, 1978],
+  ['banpaku', '1970年の大阪万博を、当時のニュースで覚えていますか？', 1940, 1963],
+  ['shohi', '消費税がなかったころの買い物を覚えていますか？', 1940, 1980],
+  ['showa', '昭和が終わった日（1989年1月）のことを覚えていますか？', 1940, 1982],
+  ['pokebell', 'ポケベルを使ったことがありますか？', 1966, 1983],
+  ['famicom', '子どものころ、ファミコンで遊びましたか？', 1970, 1988],
+  ['dq3', 'ドラクエIIIの発売日の行列を、ニュースや現場で覚えていますか？', 1965, 1982],
+  ['hyogaki', '就職活動のころ「就職氷河期」と言われていましたか？', 1970, 1984],
+  ['hanshin', '阪神・淡路大震災のニュースを、当時見た記憶がありますか？', 1940, 1989],
+  ['tamagotchi', 'たまごっちが大流行したとき、小中高生でしたか？', 1980, 1990],
+  ['pokemon1', '初代ポケモン（赤・緑）を発売当時に遊びましたか？', 1984, 1992],
+  ['purikura', 'プリクラを手帳に貼っていましたか？', 1975, 1992],
+  ['mixi', '学生時代に mixi をやっていましたか？', 1981, 1992],
+  ['deco', 'ガラケーで「デコメ」や絵文字だらけのメールを送っていましたか？', 1978, 1996],
+  ['saturday', '小学生のころ、土曜日も授業がありましたか？', 1940, 1994, 0.9],
+  ['yutori', '「ゆとり世代」と呼ばれることがありますか？', 1987, 2004],
+  ['jhsphone', '中学生のとき、自分の携帯電話を持っていましたか？', 1987, 2012],
+  ['hsphone', '高校生のとき、スマホを持っていましたか？', 1993, 2012],
+  ['pc', '小学校の授業でパソコンを使いましたか？', 1988, 2012],
+  ['line', '学生時代の友だちとの連絡は、主にLINEでしたか？', 1994, 2012],
+  ['311', '東日本大震災のとき、学生（小学生〜大学生）でしたか？', 1987, 2004, 0.9],
+  ['seijin', '成人式は、平成のうちに迎えましたか？', 1969, 1998, 0.7],
+  ['youtube', '小学生のころ、YouTubeを見ていましたか？', 1998, 2012],
+  ['nenkin', '年金をすでに受け取っていますか？', 1940, 1961, 0.7],
+  ['switch', '小中学生のころ、Nintendo Switchで遊びましたか？', 2002, 2012],
+  ['gaito', '街頭テレビやお店のテレビで、力道山のプロレスを見ましたか？', 1940, 1950],
+  ['tokyo64', '1964年の東京オリンピックを、当時テレビで見た記憶がありますか？', 1940, 1958],
+  ['dankai', '「団塊の世代」と呼ばれる世代ですか？', 1947, 1949, 0.6],
+  ['anpo', '学生運動（全共闘・安保闘争）の時代に大学生でしたか？', 1944, 1952],
+  ['invader', 'インベーダーゲームを、喫茶店やゲームセンターで遊びましたか？', 1950, 1966],
+  ['pinklady', '子どものころ、ピンク・レディーの振り付けを真似しましたか？', 1965, 1974],
+  ['shinjinrui', '若いころ「新人類」と呼ばれましたか？', 1955, 1965],
+  ['bubble', 'バブルのころ（1986〜1991年）、すでに社会人でしたか？', 1945, 1968],
+  ['walkman', '中高生のころ、ウォークマンが欲しくてたまりませんでしたか？', 1963, 1972],
+  ['teinen', '会社員なら、60歳の定年をもう迎えている年齢ですか？', 1940, 1966, 0.6],
+  ['corona', 'コロナの休校を、小中高生として経験しましたか？', 2002, 2012, 0.7],
+];
+const obs = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } };
+// 「はい」と答える確率：範囲内0.88、外は距離に応じて下がる。教えてもらった実データ（±2年）で補正
+function makeQ(O) {
+  return RAW.map(([id, text, a, b, sh = 2]) => ({
+    id, text, f: c => {
+      const y = c.y, d = y < a ? a - y : y > b ? y - b : 0;
+      let v = 0.05 + 0.83 * Math.exp(-(d * d) / (2 * sh * sh));
+      const near = O.filter(o => Math.abs(o.year - y) <= 2 && o.ans[id] != null);
+      if (near.length) { const k = 4; v = (v * k + near.reduce((s, o) => s + o.ans[id], 0)) / (k + near.length); }
+      return v;
+    },
+  }));
+}
+const wareki = y => y >= 1989 ? `平成${y === 1989 ? '元' : y - 1988}年` : `昭和${y - 1925}年`;
+let aki, C, n, guesses, cur, last, minQ = 6; // minQ: 次に予想してよい最少の問数（外したら+2）
+$('#tvBox').innerHTML = tvHTML(); tvMood('');
+const show = id => document.querySelectorAll('section').forEach(s => s.hidden = s.id !== id);
+function start() {
+  C = []; for (let y = Y0; y <= Y1; y++) C.push({ y, name: y + '年', w: y < 1950 || y > 2006 ? 0.5 : 1 }); // 遊ぶ人が少ないはずの端の年は見込みを低めに
+  aki = new Aki(C, makeQ(obs()), { noise: 0.85 }); n = 0; guesses = 0; minQ = 6; tvMood('think'); show('s-q'); ask();
+}
+// 年は前後の年と区別しにくいので、±2年をまとめた確率で判断する
+function around(i) { return aki.p.slice(Math.max(0, i - 2), i + 3).reduce((a, b) => a + b, 0); }
+function ask() {
+  const r = aki.ranked(), top = r[0], conf = around(top.i);
+  if ((conf > 0.7 && n >= minQ) || n >= 16 + guesses * 2) return guess();
+  const q = aki.next(2); if (!q) return guess();
+  cur = q; n++; $('#qNo').textContent = `質問 ${n}`; $('#qText').textContent = q.text;
+  $('#conf').style.width = Math.round(conf * 100) + '%'; tvMood(conf > 0.4 ? 'sure' : 'think');
+}
+function guess() {
+  // ±2年の確率が一番高い年を答える
+  let best = -1, bi = 0; aki.p.forEach((_, i) => { if (aki.excluded.has(i)) return; const v = around(i); if (v > best) { best = v; bi = i; } });
+  guesses++; last = C[bi];
+  $('#gYear').textContent = `${last.y}年（${wareki(last.y)}）`; tvMood('sure'); show('s-guess');
+}
+function end(kind) {
+  const msg = { exact: `<span class="no">${n}問でぴったり！</span>${last.y}年生まれ、当てました。`, near: `<span class="no">おしい！</span>${n}問で${last.y}年の近くまで来ました。`, lose: `<span class="no">まいった……</span>${guesses}回挑戦しましたが、当てられませんでした。` }[kind];
+  $('#endText').innerHTML = msg; tvMood(kind === 'lose' ? 'lose' : 'win'); last.kind = kind;
+  $('#realSel').innerHTML = '<option value="">選んでください</option>' + Array.from({ length: Y1 - Y0 + 1 }, (_, k) => Y1 - k).map(v => `<option${kind === 'exact' && v === last.y ? ' selected' : ''}>${v}</option>`).join('');
+  $('#teachBox').hidden = false; show('s-end');
+}
+$('#startBtn').onclick = start; $('#againBtn').onclick = start;
+document.querySelectorAll('#s-q [data-a]').forEach(b => b.onclick = () => { aki.answer(cur, ANS[b.dataset.a]); ask(); });
+$('#gExact').onclick = () => end('exact');
+$('#gNear').onclick = () => end('near');
+$('#gNo').onclick = () => {
+  const i = C.indexOf(last); [-1, 0, 1].forEach(d => { if (C[i + d]) aki.exclude(i + d); });
+  if (guesses >= 3) return end('lose');
+  minQ = n + 2; tvMood('think'); show('s-q'); ask();
+};
+$('#teachBtn').onclick = () => {
+  const y = +$('#realSel').value; if (!y) return;
+  const ans = {}; aki.asked.forEach(x => { if (x.a != null) ans[x.q.id] = x.a; });
+  const O = obs(); O.push({ year: y, ans }); localStorage.setItem(KEY, JSON.stringify(O));
+  $('#teachBox').innerHTML = `<b>覚えました。</b>この端末で教えてもらった人：${O.length}人。人数が増えるほど、質問ごとの「はい」の年の分布が本物に近づきます。`;
+};
+$('#shareBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(last.kind === 'exact' ? `生まれ年アキネーターに${n}問で生まれ年を当てられた…！\n#生まれ年アキネーター` : `生まれ年アキネーター、${last.kind === 'near' ? 'あと少しで当てられるところだった' : '勝った！当てられなかった'}\n#生まれ年アキネーター`), '_blank');
+$('#obsInfo').textContent = obs().length ? `この端末で学習した人：${obs().length}人` : '';
+</script>
+</body>
+</html>
