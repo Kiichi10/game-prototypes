@@ -1,0 +1,93 @@
+/* 日記で育つ町 — 理想図（モックアップ） */
+:root{--cream:#fbf5ea;--paper:#fffaf1;--ink:#3a2f28;--sub:#8a7a6b;--line:#eadfcd;--amber:#e8a24a;--rose:#d9746a;--leaf:#6f9a5a;--night:#1d2742}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#efe5d4,#e6d9c3);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-font-smoothing:antialiased}
+.mincho{font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+header.page{max-width:1180px;margin:0 auto;padding:40px 24px 10px}
+header.page h1{font-family:"Hiragino Mincho ProN",serif;font-weight:600;font-size:34px;margin:0 0 8px}
+header.page p{color:#6b5d50;line-height:1.9;margin:0;max-width:760px}
+.tag{display:inline-block;border:1px solid #c9b79c;border-radius:99px;padding:2px 12px;font-size:12px;color:#7a6650;margin-bottom:12px}
+.screens{max-width:1180px;margin:0 auto;padding:20px 24px 40px;display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:34px 26px}
+.cell h2{font-size:15px;margin:14px 4px 4px}.cell p{font-size:13px;color:#6b5d50;line-height:1.75;margin:0 4px}
+/* スマホの枠 */
+.phone{position:relative;width:330px;height:700px;margin:0 auto;border-radius:44px;background:#111;padding:10px;box-shadow:0 30px 60px -20px rgba(60,40,20,.45),0 0 0 2px #2a2a2a inset}
+.scr{position:relative;width:100%;height:100%;border-radius:35px;overflow:hidden;background:var(--cream)}
+.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:28px;border-radius:20px;background:#111;z-index:20}
+.bg{position:absolute;inset:0;background-size:cover;background-position:center}
+.status{position:absolute;top:0;left:0;right:0;height:48px;z-index:15;display:flex;justify-content:space-between;align-items:flex-end;padding:0 26px 6px;font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+/* ガラスの上部バー */
+.topbar{position:absolute;top:54px;left:14px;right:14px;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:18px;background:rgba(255,250,241,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 6px 20px -8px rgba(60,40,20,.35)}
+.topbar .d{font-size:12px;color:var(--sub)}.topbar .d b{display:block;font-size:15px;color:var(--ink);font-family:"Hiragino Mincho ProN",serif}
+.flame{display:flex;align-items:center;gap:4px;background:#fff1dc;border-radius:99px;padding:5px 10px;font-weight:800;font-size:13px;color:#b8641c}
+/* 住人の吹き出し */
+.speech{position:absolute;z-index:10;display:flex;gap:8px;align-items:flex-end;max-width:250px}
+.speech .av{width:46px;height:46px;border-radius:50%;background-size:cover;background-position:center 20%;border:3px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.2);flex:none}
+.speech .tx{background:#fff;border-radius:16px 16px 16px 4px;padding:9px 12px;font-size:12px;line-height:1.6;box-shadow:0 6px 16px -6px rgba(0,0,0,.35)}
+.speech .tx small{display:block;color:var(--sub);font-size:10px}
+/* 下からのシート */
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:12;background:var(--paper);border-radius:28px 28px 0 0;padding:14px 20px 26px;box-shadow:0 -10px 30px -10px rgba(60,40,20,.3)}
+.grab{width:40px;height:5px;border-radius:3px;background:#e2d5c0;margin:0 auto 12px}
+.qlabel{font-size:11px;color:var(--amber);font-weight:800;letter-spacing:.08em}
+.qtext{font-family:"Hiragino Mincho ProN",serif;font-size:21px;line-height:1.5;margin:4px 0 12px}
+.cta{display:block;width:100%;border:0;border-radius:16px;padding:15px;font-size:16px;font-weight:800;color:#fff;background:linear-gradient(180deg,#eaa851,#d98a2f);box-shadow:0 8px 18px -8px rgba(217,138,47,.8);font-family:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:9px 12px;font-size:14px;display:flex;gap:6px;align-items:center}
+.chip.on{border-color:var(--amber);background:#fff3df;font-weight:700}
+.input{border:1.5px dashed #e0cfb4;border-radius:14px;padding:12px;font-size:14px;color:#b3a28e;margin-bottom:12px;background:#fffdf8}
+.moods{display:flex;justify-content:space-between;margin-bottom:14px}
+.moods span{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:#fff;border:1.5px solid var(--line)}
+.moods span.on{background:#fff1dc;border-color:var(--amber);transform:scale(1.12)}
+.timer{font-size:11px;color:var(--sub);text-align:center;margin-top:8px}
+/* 届けた直後 */
+.glow{position:absolute;z-index:6;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(255,226,150,.9),rgba(255,200,110,.35) 40%,rgba(255,214,130,0) 70%);mix-blend-mode:screen;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.15);opacity:.75}}
+.pin{position:absolute;z-index:9;background:#fff;border-radius:12px;padding:6px 10px;font-size:12px;font-weight:800;box-shadow:0 6px 14px -4px rgba(0,0,0,.35)}
+.pin:after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);border:7px solid transparent;border-top-color:#fff;border-bottom:0}
+.pin small{display:block;font-weight:400;color:var(--sub);font-size:10px}
+.toast{position:absolute;z-index:12;left:16px;right:16px;bottom:22px;background:rgba(58,47,40,.92);color:#fff;border-radius:18px;padding:14px 16px;font-size:13px;line-height:1.7;backdrop-filter:blur(8px)}
+.toast b{color:#ffd28a}
+.plus{display:flex;gap:8px;margin-top:8px}.plus span{background:rgba(255,255,255,.14);border-radius:99px;padding:3px 10px;font-size:11px}
+/* 住人の会話 */
+.talkbg{position:absolute;inset:0;background:#f7efdf}
+.portrait{position:absolute;left:0;right:0;top:56px;height:380px;background-size:cover;background-position:center 30%;-webkit-mask-image:radial-gradient(ellipse 72% 70% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 72% 70% at 50% 50%,#000 60%,transparent 100%)}
+.dialog{position:absolute;left:14px;right:14px;bottom:20px;background:var(--paper);border-radius:22px;padding:16px 18px 18px;border:2px solid #e3d2b6;box-shadow:0 10px 24px -10px rgba(60,40,20,.4)}
+.dialog .who{position:absolute;top:-14px;left:16px;background:var(--rose);color:#fff;border-radius:10px;padding:3px 12px;font-size:12px;font-weight:800}
+.dialog .line{font-size:14px;line-height:1.85;margin-top:6px}
+.letter{background:#fff8ea;border:1px solid #ecd9b8;border-radius:10px;padding:8px 10px;margin:8px 0;font-family:"Hiragino Mincho ProN",serif;font-size:13px;line-height:1.7}
+.letter small{display:block;font-family:"Hiragino Sans";color:var(--sub);font-size:10px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn2{border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:800;border:1.5px solid var(--line);background:#fff}
+.btn2.main{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* 訪問者 */
+.vbg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,#2b4a4f,#14262b 70%)}
+.vimg{position:absolute;left:18px;right:18px;top:70px;aspect-ratio:1;border-radius:26px;background-size:cover;box-shadow:0 0 0 3px rgba(255,214,130,.4),0 0 40px rgba(255,214,130,.35)}
+.vcard{position:absolute;left:16px;right:16px;bottom:18px;color:#f6ecd8}
+.rare{display:inline-block;background:linear-gradient(90deg,#f6c453,#ffe7a6);color:#3a2f28;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:800}
+.vcard h3{font-family:"Hiragino Mincho ProN",serif;font-size:22px;margin:8px 0 2px}
+.vcard p{font-size:12px;line-height:1.7;color:#cfe0dc;margin:0 0 10px}
+.dex{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}
+.dex i{aspect-ratio:1;border-radius:7px;background:rgba(255,255,255,.08)}.dex i.got{background:linear-gradient(135deg,#f6c453,#d98a2f)}
+.dexl{font-size:11px;color:#a8c4bf;margin:8px 0 6px;display:flex;justify-content:space-between}
+/* 町の新聞 */
+.news{position:absolute;inset:0;background:#f4ecdc;padding:62px 18px 18px;overflow:hidden;font-family:"Hiragino Mincho ProN",serif}
+.mast{text-align:center;border-bottom:3px double var(--ink);padding-bottom:6px}
+.mast .t{font-size:26px;font-weight:700;letter-spacing:.1em}.mast .s{font-family:"Hiragino Sans";font-size:10px;color:var(--sub);display:flex;justify-content:space-between;margin-top:4px}
+.hl{font-size:22px;line-height:1.45;font-weight:700;margin:12px 0 6px}
+.hl em{font-style:normal;background:linear-gradient(transparent 62%,#f6d38a 62%);-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 2px}
+.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;font-size:12px;line-height:1.75;border-top:1px solid #cdbb9c;padding-top:8px}
+.cols h4{font-size:13px;margin:0 0 4px;border-bottom:1px solid #cdbb9c}
+.cols .q{font-family:"Hiragino Sans";background:#fffaf0;border-left:3px solid var(--amber);padding:5px 8px;font-size:11px;margin:4px 0}
+.chart{display:flex;align-items:flex-end;gap:2px;height:60px;margin:4px 0 2px}.chart i{flex:1;background:#d9b37a;border-radius:2px 2px 0 0}
+.chart i.hi{background:var(--rose)}
+.thumb{height:92px;border-radius:8px;background-size:cover;background-position:center 40%;margin-bottom:4px;filter:sepia(.25)}
+.cap{font-size:10px;color:var(--sub);font-family:"Hiragino Sans"}
+/* 下の解説 */
+section.spec{max-width:1180px;margin:0 auto;padding:10px 24px 60px}
+section.spec h2{font-family:"Hiragino Mincho ProN",serif;font-size:24px;margin:30px 0 10px}
+section.spec p,section.spec li{line-height:1.85;color:#4e4236}
+table{width:100%;border-collapse:collapse;background:#fffaf1;border-radius:14px;overflow:hidden;font-size:14px}
+th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#f3e7d2;font-size:13px}
+td.ok{color:#4f7a3c;font-weight:700}td.mid{color:#b7791f;font-weight:700}td.ng{color:#b5463a;font-weight:700}
+.warn{background:#fff1e6;border:1px solid #f0c9a8;border-radius:14px;padding:14px 18px;margin:14px 0}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:520px}.pair img{width:100%;border-radius:12px}
