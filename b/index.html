@@ -50,7 +50,9 @@ h1 .u{color:var(--up)}h1 .d{color:var(--down)}
   <div class="top"><span>全10問</span><span>約2分</span></div>
   <h1 class="mincho">昔と今、<br><span class="u">増えた</span>？<span class="d">減った</span>？</h1>
   <p class="lead">昭和・平成の数字と、いまの数字。<br>はがきの値段、離婚の数、100歳以上の人。<br>実際の統計で、あなたの「時代の感覚」を試します。</p>
-  <button class="cta" id="startBtn">はじめる</button>
+  <button class="cta" id="startBtn">今日の10問</button>
+  <button class="ghost" id="randBtn" style="margin-top:10px;flex:none">ランダムで10問</button>
+  <p class="note" id="qCount" style="text-align:center"></p>
 </section>
 
 <section class="screen" id="s-play" hidden>
@@ -70,8 +72,9 @@ h1 .u{color:var(--up)}h1 .d{color:var(--down)}
   <div class="big mincho" style="margin-top:30px"><span id="endScore"></span><small> / 10</small></div>
   <div class="rank" id="rank"></div>
   <div class="emo" id="emo"></div>
+  <p class="note" id="dailyNote" style="text-align:center;margin:0 0 10px"></p>
   <button class="cta" id="shareBtn" style="margin-top:6px">Xで結果を投稿</button>
-  <div class="row"><button class="ghost" id="againBtn">もう一度（別の10問）</button></div>
+  <div class="row"><button class="ghost" id="againBtn">ランダムで10問</button></div>
   <ul class="list" id="list"></ul>
   <p class="note">数値は公表統計を丸めた試作用の値です。公開前に各出典と照合します。</p>
 </section>
@@ -79,32 +82,46 @@ h1 .u{color:var(--up)}h1 .d{color:var(--down)}
 <script src="data.js"></script>
 <script>
 const $ = q => document.querySelector(q);
-let set = [], i = 0, marks = [];
+let set = [], i = 0, marks = [], mode = 'rand';
 const show = id => { document.querySelectorAll('.screen').forEach(e => e.hidden = e.id !== id); window.scrollTo(0, 0); };
-const shuffle = a => { a = a.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
-const era = y => y >= 2019 ? `令和${y === 2019 ? '元' : y - 2018}年` : y >= 1989 ? `平成${y === 1989 ? '元' : y - 1988}年` : `昭和${y - 1925}年`;
+const era = y => y >= 2019 ? `令和${y === 2019 ? '元' : y - 2018}年` : y >= 1989 ? `平成${y === 1989 ? '元' : y - 1988}年` : y >= 1926 ? `昭和${y - 1925}年` : `明治・大正`;
 const fmt = v => v >= 1000 ? Math.round(v).toLocaleString() : String(v);
+// 問題データは「配列（旧形式）」と「オブジェクト（照合済み形式）」のどちらでも読む
+const norm = x => Array.isArray(x)
+  ? { t: x[0], u: x[1], oy: x[2][0], ov: x[2][1], ny: x[3][0], nv: x[3][1], c: x[4], src: x[5] }
+  : { t: x.label, u: x.unit, oy: x.old.year, ov: x.old.value, ny: x.new.year, nv: x.new.value, c: x.comment || '', src: x.source_new === x.source_old ? x.source_new : `${x.source_old} ／ ${x.source_new}`, url: x.url_new, note: x.note };
+const ALL = ITEMS.map(norm);
+// 日付から決まる乱数（今日の10問は全員同じ）
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const shuffle = (a, r = Math.random) => { a = a.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(r() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+const today = new Date(); today.setHours(0, 0, 0, 0);
+const DAY0 = new Date(2026, 9, 1), dayNo = Math.floor((today - DAY0) / 864e5) + 1, dkey = 'b_daily_' + dayNo;
+const daily = () => { try { return JSON.parse(localStorage.getItem(dkey)); } catch (e) { return null; } };
+function streak() { let n = 0; for (let d = dayNo; d > 0 && localStorage.getItem('b_daily_' + d); d--) n++; return n; }
 
-function start() { set = shuffle(ITEMS).slice(0, 10); i = 0; marks = []; show('s-play'); ask(); }
+function start(m) {
+  mode = m;
+  if (m === 'daily' && daily()) { const r = daily(); set = r.ids.map(k => ALL[k]); marks = r.marks; return end(); }
+  set = m === 'daily' ? shuffle(ALL.map((x, k) => k), rng(dayNo * 7919)).slice(0, 10).map(k => ALL[k]) : shuffle(ALL).slice(0, 10);
+  i = 0; marks = []; show('s-play'); ask();
+}
 function ask() {
-  const [t, u, [oy, ov], [ny]] = set[i];
-  $('#qNo').textContent = `第${i + 1}問`; $('#score').textContent = `正解 ${marks.filter(m => m).length}`;
+  const q = set[i];
+  $('#qNo').textContent = (mode === 'daily' ? `今日の10問 第${dayNo}回　` : '') + `第${i + 1}問`; $('#score').textContent = `正解 ${marks.filter(m => m).length}`;
   $('#marks').innerHTML = Array.from({ length: 10 }, (_, k) => `<i class="${k < marks.length ? (marks[k] ? 'o' : 'x') : ''}"></i>`).join('');
-  $('#theme').textContent = t;
-  $('#oldYr').textContent = oy + '年'; $('#oldEra').textContent = era(oy); $('#oldV').textContent = fmt(ov);
-  $('#nowYr').textContent = ny + '年'; $('#nowEra').textContent = era(ny); $('#nowV').innerHTML = '<span class="q">？</span>';
-  $('#unit1').textContent = $('#unit2').textContent = u;
+  $('#theme').textContent = q.t;
+  $('#oldYr').textContent = q.oy + '年'; $('#oldEra').textContent = era(q.oy); $('#oldV').textContent = fmt(q.ov);
+  $('#nowYr').textContent = q.ny + '年'; $('#nowEra').textContent = era(q.ny); $('#nowV').innerHTML = '<span class="q">？</span>';
+  $('#unit1').textContent = $('#unit2').textContent = q.u;
   $('#btns').hidden = false; $('#reveal').innerHTML = '';
 }
 function answer(a) {
-  const [t, u, [oy, ov], [ny, nv], c, src] = set[i];
-  const ok = (nv > ov) === (a === 'up'); marks.push(ok);
-  $('#btns').hidden = true;
-  countUp($('#nowV'), nv);
-  const r = nv > ov ? nv / ov : ov / nv;
-  $('#reveal').innerHTML = `<div class="reveal"><div class="res ${ok ? 'o' : 'x'}">${ok ? '正解！' : 'ハズレ'}　${nv > ov ? '増えた' : '減った'}</div>
-    <div class="ratio">${ratioText(ov, nv)}</div>
-    <p>${c}</p><div class="src">出典：${src}</div></div>
+  const q = set[i], ok = (q.nv > q.ov) === (a === 'up'); marks.push(ok);
+  $('#btns').hidden = true; countUp($('#nowV'), q.nv);
+  const src = q.url ? `<a href="${q.url}" target="_blank" rel="noopener" style="color:inherit">${q.src}</a>` : q.src;
+  $('#reveal').innerHTML = `<div class="reveal"><div class="res ${ok ? 'o' : 'x'}">${ok ? '正解！' : 'ハズレ'}　${q.nv > q.ov ? '増えた' : '減った'}</div>
+    <div class="ratio">${ratioText(q.ov, q.nv)}</div>
+    ${q.c ? `<p>${q.c}</p>` : ''}<div class="src">出典：${src}${q.note ? `（${q.note}）` : ''}</div></div>
     <button class="cta next" id="nextBtn">${i < 9 ? '次の問題' : '結果を見る'}</button>`;
   $('#score').textContent = `正解 ${marks.filter(m => m).length}`;
   $('#nextBtn').onclick = () => { i++; i < 10 ? ask() : end(); };
@@ -115,24 +132,26 @@ function ratioText(ov, nv) {
   return r < 1.95 ? `${pct}%増` : `約${n}倍に増加`;
 }
 function countUp(el, v) {
-  const dec = String(v).includes('.') ? String(v).split('.')[1].length : 0, t0 = performance.now();
+  const dec = v < 1000 && String(v).includes('.') ? String(v).split('.')[1].length : 0, t0 = performance.now(); // 1000以上は区切り付きの整数（昔の側と同じ）
   const f = now => { const k = Math.min(1, (now - t0) / 700), x = v * (1 - Math.pow(1 - k, 3)); el.textContent = dec ? x.toFixed(dec) : fmt(Math.round(x)); if (k < 1) requestAnimationFrame(f); };
   requestAnimationFrame(f);
 }
 function rankOf(n) { return n === 10 ? '時代の生き字引' : n >= 8 ? 'かなりの事情通' : n >= 6 ? '人並みの時代感覚' : n >= 4 ? 'イメージで生きている' : '令和に生まれたばかり'; }
 function end() {
   const n = marks.filter(m => m).length;
+  if (mode === 'daily' && !daily()) localStorage.setItem(dkey, JSON.stringify({ ids: set.map(q => ALL.indexOf(q)), marks }));
   $('#endScore').textContent = n; $('#rank').textContent = rankOf(n);
   $('#emo').textContent = marks.map(m => m ? '🟩' : '🟥').join('');
-  $('#list').innerHTML = set.map((s, k) => `<li class="${marks[k] ? 'o' : 'x'}"><b>${marks[k] ? '○' : '×'} ${s[0]}</b><span>${fmt(s[2][1])} → ${fmt(s[3][1])}${s[1]}</span></li>`).join('');
+  $('#dailyNote').textContent = mode === 'daily' ? `今日の10問 第${dayNo}回・${streak()}日連続で挑戦中。次のお題は明日の0時に。` : '';
+  $('#list').innerHTML = set.map((q, k) => `<li class="${marks[k] ? 'o' : 'x'}"><b>${marks[k] ? '○' : '×'} ${q.t}</b><span>${fmt(q.ov)} → ${fmt(q.nv)}${q.u}</span></li>`).join('');
   show('s-end');
 }
-$('#startBtn').onclick = start; $('#againBtn').onclick = start;
+const shareText = () => { const n = marks.filter(m => m).length; return (mode === 'daily' ? `昔と今、増えた？減った？ 今日の10問 第${dayNo}回\n` : `昔と今、増えた？減った？\n`) + `${n}/10問正解「${rankOf(n)}」\n${marks.map(m => m ? '🟩' : '🟥').join('')}\n#増えた減った`; };
+$('#startBtn').onclick = () => start('daily'); $('#randBtn').onclick = () => start('rand'); $('#againBtn').onclick = () => start('rand');
 $('#btns').onclick = e => { const a = e.target.dataset.a; if (a) answer(a); };
-$('#shareBtn').onclick = () => {
-  const n = marks.filter(m => m).length;
-  window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(`昔と今、増えた？減った？\n${n}/10問正解「${rankOf(n)}」\n${marks.map(m => m ? '🟩' : '🟥').join('')}\n#増えた減った`), '_blank');
-};
+$('#shareBtn').onclick = () => window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(shareText()), '_blank');
+if (daily()) $('#startBtn').textContent = `今日の10問（第${dayNo}回）の結果を見る`; else $('#startBtn').textContent = `今日の10問に挑戦（第${dayNo}回）`;
+$('#qCount').textContent = `全${ALL.length}問から出題`;
 </script>
 </body>
 </html>
