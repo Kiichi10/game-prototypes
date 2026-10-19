@@ -4,12 +4,16 @@ const X_MIN = 1950, X_MAX = 2010;
 let lang = pickLang(), L = STR[lang], P = PACK[lang];
 let prior = null, asked = [], pool = [], result = null;
 // ── データ送信（Cloudflare）。API が空のあいだは何も送らない ──
-const API = new URLSearchParams(location.search).get('api') || ''; // 本番の窓口アドレスは接続後に設定する
-const VER = 'a2', STAT_MIN = +(new URLSearchParams(location.search).get('statmin') || 30);
+const QS = new URLSearchParams(location.search);
+// 本番の窓口（2026-10-19 公開）。?api=off で送信しない。?api=URL で別の窓口。
+const API = QS.get('api') === 'off' ? '' : (QS.get('api') || 'https://instinct-year-api.omoide-games.workers.dev');
+const VER = QS.get('test') ? 'TEST' : 'a2', STAT_MIN = +(QS.get('statmin') || 30); // ?test=1 の記録は後で消せる印を付ける
 let playId = null, STATS = null;
 // 質問の文面から作る固定ID（文面を変えたら別の質問として扱う）
 const qid = Q => { let h = 0x811c9dc5; for (const ch of Q.q) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
-const apiPost = (path, body) => API ? fetch(API + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).then(r => r.json()).catch(() => null) : Promise.resolve(null);
+const apiPost1 = (path, body) => fetch(API + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).then(r => r.json()).catch(() => null);
+// 失敗したら1.5秒待って1回だけ送り直す（2026-10-19 公開直後に一時的なサーバーエラーが続いたため）
+const apiPost = (path, body) => !API ? Promise.resolve(null) : apiPost1(path, body).then(r => r && r.ok ? r : new Promise(ok => setTimeout(ok, 1500)).then(() => apiPost1(path, body)));
 function loadStats() { if (!API) return; fetch(`${API}/api/stats?lang=${lang}`).then(r => r.json()).then(d => { STATS = d; }).catch(() => { }); }
 // この答えを選んだ人の、一番多い生まれ年代と割合（STAT_MIN人以上いる時だけ）
 function realEra(a) {
