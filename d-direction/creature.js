@@ -1,6 +1,6 @@
 // 方向性C：日記から生まれる生き物 — 暮らし方で体の作りが変わる（ドット絵・左右対称を基本に）
-function drawCreature(cv, D, seed) {
-  const c = cv.getContext('2d'), W = cv.width, H = cv.height, r = rng(seed), N = 44, S = Math.floor(Math.min(W, H - 90) / N);
+function drawCreature(cv, D, seed, sprite = false) { // sprite=true：背景と文字なし（地図の上に置く用）
+  const c = cv.getContext('2d'), W = cv.width, H = cv.height, r = rng(seed), N = 44, S = Math.max(1, Math.floor(Math.min(W, sprite ? H : H - 90) / N));
   const R = t => tagRate(D, t), mood = D.reduce((s, e) => s + e.mood, 0) / D.length;
   // 色の系統：いちばん多くしたことで決め、気分で少しずらす（人によって色がはっきり分かれるように）
   const BASE = { work: 215, cook: 28, rest: 95, out: 140, make: 275, meet: 335, move: 5, learn: 48, early: 160 };
@@ -35,16 +35,22 @@ function drawCreature(cv, D, seed) {
   mir(ex, ey, 'e'); mir(ex, ey + 1, 'e'); if (big) { mir(ex + 1, ey, 'e'); mir(ex + 1, ey + 1, 'e'); mir(ex + 1, ey, 'l'); }
   set(Math.round(cx), ey + 3, 'm'); set(Math.round(cx) - 1, ey + 3, 'm');
   // 描く：背景・輪郭・色
-  c.fillStyle = `hsl(${hue},30%,95%)`; c.fillRect(0, 0, W, H);
+  if (!sprite) { c.fillStyle = `hsl(${hue},30%,95%)`; c.fillRect(0, 0, W, H); }
   const pal = { b: col(62), d: col(36), w: col(78, 40), h: '#f2e3b3', a: '#e2483d', s: col(78), e: '#1d1b22', l: '#ffffff', m: '#1d1b22' };
-  const ox = Math.floor((W - N * S) / 2), oy = 34;
+  const ox = Math.floor((W - N * S) / 2), oy = sprite ? 0 : 34;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { if (g[y][x]) continue; const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => g[y + b] && g[y + b][x + a] && !'eml'.includes(g[y + b][x + a])); if (nb) { c.fillStyle = col(22, 40); c.fillRect(ox + x * S, oy + y * S, S, S); } }
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const v = g[y][x]; if (!v) continue; c.fillStyle = pal[v]; c.fillRect(ox + x * S, oy + y * S, S, S); }
   c.fillStyle = 'rgba(0,0,0,.08)'; c.beginPath(); c.ellipse(W / 2, oy + (by + legLen + 2) * S, rx * S * .9, 5, 0, 0, 7); c.fill();
+  if (sprite) return;
   // 名前と特徴
   const name = wordFreq(D)[0][0] + 'の子';
   c.fillStyle = '#2a2730'; c.font = '700 18px "Hiragino Mincho ProN", serif'; c.textAlign = 'center'; c.fillText(name, W / 2, H - 46);
   const feats = [['move', '脚'], ['out', '翼'], ['learn', '角'], ['meet', '模様'], ['make', 'しっぽ'], ['work', 'アンテナ']].filter(([t]) => R(t) > .3).map(([, n]) => n);
   c.font = '11px sans-serif'; c.fillStyle = '#6b6672'; c.fillText(feats.length ? feats.join('・') + 'が育った' : 'まるくて、のんびり', W / 2, H - 26);
   c.textAlign = 'left'; c.font = '600 15px "Hiragino Mincho ProN", serif'; c.fillStyle = '#2a2730'; c.fillText(`${D.length}日分の日記から生まれた`, 16, 26);
+}
+
+// 地図に置く用：透明な背景に生き物だけを描いたキャンバスを返す
+function creatureSprite(D, seed, px = 2) {
+  const cv = document.createElement('canvas'); cv.width = 44 * px; cv.height = 44 * px + 50 * 0; drawCreature(cv, D, seed, true); return cv;
 }

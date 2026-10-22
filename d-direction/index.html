@@ -24,7 +24,11 @@ canvas{width:100%;display:block;border-radius:10px}
   <h1>見た目の方向性 — 3つのスケッチ</h1>
   <p class="lead">どれも画像生成は使わず、<b>日記のデータからプログラムで描いています</b>。暮らし方の違う3人（約90日分の架空の日記）を同じ仕組みで描いて、「人によって形そのものが変わるか」を見比べるためのものです。完成品の絵ではなく、方向を決めるためのスケッチです。</p>
 
-  <h2>A. 冒険の地図</h2>
+  <h2>A＋C. あなたの地図と、そこに住む生き物（改良版・2026-10-23）</h2>
+  <p class="desc">何度も通った場所が「町」になり、町と町を道でつなぐ。よく通る道ほど太く、直近7日の道は赤い点線。陸地は町を包むように広がり、等高線が入る。今日いる町には、あなたの日記から生まれた生き物が立っている。</p>
+  <div class="row" id="rowAC"></div>
+
+  <h2>A. 冒険の地図（最初の版）</h2>
   <p class="desc">1日ごとに道が1本延びる。出かける日はまっすぐ遠くへ、休む日はぐるっと回り、仕事の日は家と職場を行き来する。気分の良い日ほど陸が広がり、よく書く言葉が「◯◯岬」「◯◯村」などの地名になる。</p>
   <div class="row" id="rowA"></div>
 
@@ -42,12 +46,13 @@ canvas{width:100%;display:block;border-radius:10px}
 <script src="map.js"></script>
 <script src="words.js"></script>
 <script src="creature.js"></script>
+<script src="map2.js"></script>
 <script>
-const rows = { rowA: drawMap, rowB: drawWords, rowC: drawCreature };
+const rows = { rowAC: drawMap2, rowA: drawMap, rowB: drawWords, rowC: drawCreature };
 for (const [id, fn] of Object.entries(rows)) {
   PERSONAS.forEach(P => {
     const D = diary(P), card = document.createElement('div'); card.className = 'card';
-    const cv = document.createElement('canvas'); cv.width = 360; cv.height = 460; card.appendChild(cv);
+    const cv = document.createElement('canvas'); cv.width = 360; cv.height = id === 'rowAC' ? 540 : 460; card.appendChild(cv);
     card.insertAdjacentHTML('beforeend', `<div class="who">${P.name}<small>よく書く言葉：${wordFreq(D).slice(0, 3).map(x => x[0]).join('・')}</small></div>`);
     document.getElementById(id).appendChild(card); fn(cv, D, P.seed);
   });
