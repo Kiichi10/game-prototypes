@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>日記で育つ — 見た目の方向性スケッチ</title>
+<style>
+body{margin:0;background:#ebe5da;color:#2a2620;font-family:"Hiragino Sans",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:34px 22px 60px}
+h1{font-family:"Hiragino Mincho ProN",serif;font-size:30px;margin:0 0 8px}
+.lead{color:#5d554b;line-height:1.85;max-width:780px}
+h2{font-family:"Hiragino Mincho ProN",serif;font-size:22px;margin:40px 0 4px}
+.desc{color:#5d554b;font-size:14px;line-height:1.8;margin:0 0 14px;max-width:820px}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+.card{background:#fff;border-radius:16px;padding:10px;box-shadow:0 10px 24px -14px rgba(0,0,0,.35)}
+canvas{width:100%;display:block;border-radius:10px}
+.who{font-size:13px;font-weight:700;margin:8px 4px 2px}.who small{font-weight:400;color:#7b736a;display:block;font-size:11px}
+.note{background:#fff8ec;border:1px solid #ecd9b8;border-radius:12px;padding:12px 16px;margin-top:30px;line-height:1.8;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>見た目の方向性 — 3つのスケッチ</h1>
+  <p class="lead">どれも画像生成は使わず、<b>日記のデータからプログラムで描いています</b>。暮らし方の違う3人（約90日分の架空の日記）を同じ仕組みで描いて、「人によって形そのものが変わるか」を見比べるためのものです。完成品の絵ではなく、方向を決めるためのスケッチです。</p>
+
+  <h2>A. 冒険の地図</h2>
+  <p class="desc">1日ごとに道が1本延びる。出かける日はまっすぐ遠くへ、休む日はぐるっと回り、仕事の日は家と職場を行き来する。気分の良い日ほど陸が広がり、よく書く言葉が「◯◯岬」「◯◯村」などの地名になる。</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B. 言葉で建つ町</h2>
+  <p class="desc">よく書く言葉が、縦書きの看板のビルになる。書いた回数が多いほど高い。料理が多い人は煙突の煙、出かける人は旗、休む人は屋上の木。気分の良い日が多いほど窓が灯る。</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C. 日記から生まれる生き物</h2>
+  <p class="desc">暮らし方で体ができる。運動→長い脚、外出→翼、学び→角、人に会う→模様、創作→しっぽ、仕事→角ばった体とアンテナ、料理・休み→丸い体。色は気分の平均。名前はいちばん書いた言葉から。</p>
+  <div class="row" id="rowC"></div>
+
+  <div class="note">見比べる時のポイント：<b>3人の絵を並べた時に、「誰のものか」が形だけで分かれるか</b>。色や数の違いだけなら、人に見せたくなる力は弱い、という前回のご指摘を基準にしています。</div>
+</div>
+<script src="personas.js"></script>
+<script src="map.js"></script>
+<script src="words.js"></script>
+<script src="creature.js"></script>
+<script>
+const rows = { rowA: drawMap, rowB: drawWords, rowC: drawCreature };
+for (const [id, fn] of Object.entries(rows)) {
+  PERSONAS.forEach(P => {
+    const D = diary(P), card = document.createElement('div'); card.className = 'card';
+    const cv = document.createElement('canvas'); cv.width = 360; cv.height = 460; card.appendChild(cv);
+    card.insertAdjacentHTML('beforeend', `<div class="who">${P.name}<small>よく書く言葉：${wordFreq(D).slice(0, 3).map(x => x[0]).join('・')}</small></div>`);
+    document.getElementById(id).appendChild(card); fn(cv, D, P.seed);
+  });
+}
+</script>
+</body>
+</html>
