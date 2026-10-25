@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>日々のカード（おもちゃ版）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <section id="title" class="title">
+    <div style="font-size:12px;color:var(--sub);letter-spacing:.15em">おもちゃ版 · 絵はまだありません</div>
+    <h1 class="mincho">あなたの毎日が、<br><em>カード</em>になる。</h1>
+    <p>書いた1日が、1枚のカードに。仕事の日は攻撃、休んだ日は回復、人に会った日は一緒に戦う仲間。しんどかった日も「糧」になる。<br>その束で、3つの試練に挑みます。1回3分。</p>
+    <div id="deckInfo" style="font-size:13px;color:var(--sub);margin-top:6px"></div>
+    <div class="minideck" id="preview"></div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+      <button class="btn gold" id="go">冒険に出る</button>
+      <button class="btn ghost" id="write">今日を書く（カードを1枚増やす）</button>
+    </div>
+  </section>
+
+  <section id="battle" class="battle" hidden>
+    <div class="top"><span id="floor"></span><span id="turn"></span></div>
+    <div class="enemy" id="enemy">
+      <div class="glyph mincho" id="glyph"></div>
+      <div class="ename" id="ename"></div>
+      <div class="intent" id="intent"></div>
+      <div class="hp"><i id="ehp"></i></div><div class="hpnum" id="ehpn"></div>
+    </div>
+    <div class="allies" id="allies"></div>
+    <div class="me" id="me">
+      <div class="merow"><b>あなた</b><span class="str" id="str"></span><div class="nrg" id="nrg"></div></div>
+      <div class="hp me"><i id="mhp"></i></div><div class="hpnum" id="mhpn"></div>
+    </div>
+    <div class="hand" id="hand"></div>
+    <div class="bar"><span class="pile" id="pile"></span><button class="btn" id="end">ターン終了</button></div>
+  </section>
+</div>
+<script src="cards.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
