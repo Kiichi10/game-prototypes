@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex"><title>ことば帖（試作）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Old+Mincho:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<div class="app" id="app">
+  <header>
+    <div class="logo">ことば帖</div>
+    <div class="counts"><span>発見 <b id="nAll">0</b></span><span class="wf">世界初 <b id="nWf">0</b></span></div>
+  </header>
+  <div class="desk" id="desk">
+    <div class="deskhint" id="deskhint">下の紙片をタップして机に出し、<br>紙片を<b>別の紙片に重ねる</b>と、混ざります。</div>
+    <button class="sweep" id="sweep" title="机を片付ける">片付ける</button>
+  </div>
+  <div class="tray">
+    <div class="tabs" id="tabs"><button data-t="all" class="on">すべて</button><button data-t="today">今日の素材</button><button data-t="wf">世界初</button><input id="q" placeholder="さがす"></div>
+    <div class="slips" id="slips"></div>
+  </div>
+  <footer><button class="write" id="write">✎ 今日の日記を書く <small>素材が3つ増える</small></button></footer>
+</div>
+<script src="sound.js"></script>
+<script src="app.js"></script>
+</body></html>
