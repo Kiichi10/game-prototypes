@@ -45,7 +45,7 @@ async function battle(foe, boss) {
   const hits = boss ? 4 : 3;
   $('#stage').innerHTML = `<div class="ev">${boss ? 'ボス戦' : '戦い'}</div><div class="glyph mincho" id="fg">${foe[0]}</div><h2 class="mincho">${foe[1]}</h2><div class="foehp"><i id="fh" style="width:100%"></i></div>`;
   await wait(600);
-  const need = boss ? 6 + Math.floor(S.day / DAYS_PER_AREA) * 25 : 0;
+  const need = boss ? Math.floor(S.day / DAYS_PER_AREA) * 22 : 0;
   const win = power() >= need;
   for (let i = 1; i <= hits; i++) {
     const fg = $('#fg'); fg.classList.remove('shake'); void fg.offsetWidth; fg.classList.add('shake');
