@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex"><title>書いて進む冒険（おもちゃ版）</title>
+<style>
+:root{--bg:#191a22;--panel:#23252f;--ink:#f3eee3;--sub:#9ea0ae;--line:#33364a;--gold:#f6c453;--red:#ff6b5a;--blue:#5aa9ff;--green:#5fd39a;--purple:#b48cff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP",sans-serif;overscroll-behavior:none}
+.app{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:14px 14px calc(14px + env(safe-area-inset-bottom));gap:10px}
+.mincho{font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+.top{display:flex;justify-content:space-between;font-size:13px;color:var(--sub)}.top b{color:var(--ink)}
+.road{display:flex;gap:4px}.road i{flex:1;height:8px;border-radius:4px;background:#2c2e3b}.road i.done{background:var(--gold)}.road i.boss{outline:1.5px solid var(--red)}
+.hero{background:var(--panel);border-radius:16px;padding:12px 14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hp{height:8px;background:#11121a;border-radius:4px;overflow:hidden;margin-top:6px}.hp i{display:block;height:100%;background:linear-gradient(90deg,#5fd39a,#9be3b8);transition:width .4s}
+.exp{height:4px;background:#11121a;border-radius:3px;overflow:hidden;margin-top:4px}.exp i{display:block;height:100%;background:var(--blue);transition:width .4s}
+.small{font-size:12px;color:var(--sub)}
+.allies{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.ally{background:#3a2f22;border:1px solid #6b5230;color:#ffd9a3;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:700}
+.stage{flex:1;background:#14151c;border:1px solid var(--line);border-radius:18px;min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px;position:relative;overflow:hidden}
+.stage .ev{font-size:13px;color:var(--sub);letter-spacing:.1em}
+.stage h2{margin:6px 0;font-size:26px}
+.stage .glyph{font-size:84px;line-height:1;margin:8px 0}
+.stage p{color:var(--sub);line-height:1.7;margin:6px 0}
+.foehp{width:70%;height:8px;background:#000;border-radius:4px;overflow:hidden;margin:8px auto}.foehp i{display:block;height:100%;background:var(--red);transition:width .3s}
+.loot{border-radius:16px;padding:14px 18px;margin-top:10px;animation:pop .5s;min-width:220px}
+.loot .rar{font-size:11px;font-weight:900;letter-spacing:.2em}.loot b{display:block;font-size:22px;margin:4px 0}.loot small{color:#cfcabc}
+.N{background:#2a2c38}.R{background:#1f3352;box-shadow:0 0 18px rgba(90,169,255,.4)}.SR{background:#3b2a52;box-shadow:0 0 24px rgba(180,140,255,.55)}.SSR{background:linear-gradient(135deg,#5a4214,#2a1e08);box-shadow:0 0 34px rgba(246,196,83,.8)}
+.N .rar{color:#aaa}.R .rar{color:var(--blue)}.SR .rar{color:var(--purple)}.SSR .rar{color:var(--gold)}
+.chest{font-size:80px;animation:wob .5s infinite}@keyframes wob{25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes pop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+.float{position:absolute;font-weight:900;font-size:26px;color:#fff;animation:up .8s forwards;pointer-events:none}
+@keyframes up{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-50px);opacity:0}}
+.shake{animation:sh .3s}@keyframes sh{25%{transform:translateX(-7px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+.banner{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:var(--gold);color:#2a2010;font-weight:900;padding:4px 14px;border-radius:99px;animation:pop .4s;white-space:nowrap}
+.tap{position:absolute;bottom:10px;left:0;right:0;font-size:11px;color:#5d6072}
+.btn{border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:800;background:var(--gold);color:#2a2010;font-family:inherit;width:100%}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);font-size:14px;padding:11px}
+.btns{display:flex;flex-direction:column;gap:8px}
+.sheet{position:fixed;inset:0;background:rgba(14,15,21,.97);z-index:9;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:22px;max-width:460px;margin:0 auto;overflow:auto}
+.sheet h2{margin:0;font-size:24px}
+textarea{width:100%;height:80px;border-radius:12px;border:0;padding:12px;font-size:16px;font-family:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:7px}.chip{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:99px;padding:7px 12px;font-size:14px;font-family:inherit}.chip.on{background:var(--ink);color:var(--bg)}
+.list{background:var(--panel);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.8}
+.list .it{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:3px 0}.list .it small{color:var(--sub);text-align:right}
+</style></head><body>
+<div class="app">
+  <div class="top"><span id="area"></span><span id="day"></span></div>
+  <div class="road" id="road"></div>
+  <div class="hero">
+    <div class="row"><b>勇者（あなた）　Lv <span id="lv"></span></b><span class="small" id="stat"></span></div>
+    <div class="hp"><i id="hpb"></i></div><div class="exp"><i id="expb"></i></div>
+    <div class="allies" id="allies"></div>
+  </div>
+  <div class="stage" id="stage"></div>
+  <div class="btns" id="btns">
+    <button class="btn" id="write">今日を書いて、冒険に出る</button>
+    <div class="row"><button class="btn ghost" id="sample">見本の日記で1日進める</button><button class="btn ghost" id="bag" style="flex:none;width:auto;white-space:nowrap;padding:11px 16px">持ち物</button></div>
+  </div>
+</div>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body></html>
