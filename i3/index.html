@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex"><title>勝手に育つ1匹（30秒の核）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}[hidden]{display:none!important}
+body{margin:0;background:#eae3cf;color:#3a3226;font-family:"M PLUS Rounded 1c","Hiragino Sans",sans-serif;overscroll-behavior:none;touch-action:none}
+.app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.hud{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;font-size:13px;font-weight:800}
+.hud b{font-size:20px}
+.bar{height:8px;margin:2px 14px 6px;background:#d6ccb2;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:#e8833a;transition:width .15s}
+.hpb i{background:#d8443a}
+#cv{flex:1;width:100%;display:block;border-top:2px solid #d6ccb2;border-bottom:2px solid #d6ccb2;background:#f4efe0}
+.foot{padding:8px 14px calc(10px + env(safe-area-inset-bottom));font-size:12px;color:#8a7e66;text-align:center}
+.sheet{position:absolute;inset:0;background:rgba(244,239,224,.95);display:flex;flex-direction:column;justify-content:center;gap:12px;padding:20px;z-index:5;overflow:auto}
+.sheet h2{margin:0;text-align:center;font-size:26px}
+.sheet p{margin:0;text-align:center;line-height:1.7}
+.btn{font-family:inherit;font-weight:800;font-size:17px;padding:13px;border:0;border-radius:14px;background:#3a3226;color:#f4efe0}
+.btn.sub{background:transparent;color:#3a3226;border:2px solid #3a3226;font-size:15px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{font-family:inherit;border:3px solid #3a3226;background:#fff;border-radius:16px;padding:8px;text-align:center;animation:pop .3s both}
+.opt:nth-child(2){animation-delay:.08s}
+.opt canvas{width:100%;aspect-ratio:1;display:block}
+.opt b{display:block;font-size:17px}.opt small{color:#8a7e66}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.portrait{width:100%;max-width:340px;margin:0 auto;aspect-ratio:1;background:#fff;border:3px solid #3a3226;border-radius:18px;display:block}
+.gal{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.gal img{width:100%;border-radius:8px;border:2px solid #d6ccb2;background:#fff}
+</style></head><body>
+<div class="app" id="app">
+  <div class="hud"><span>第<b id="stage">1</b>形態</span><span>のこり <b id="time">30</b>秒</span><span>倒した <b id="kills">0</b></span></div>
+  <div class="bar"><i id="xp" style="width:0"></i></div>
+  <div class="bar hpb" style="height:5px"><i id="hp" style="width:100%"></i></div>
+  <canvas id="cv"></canvas>
+  <div class="foot">指でなぞった方へ進む。武器（ツノ・トゲ・ツメ…）でぶつかると倒せる。体に当たると痛い。</div>
+
+  <div class="sheet" id="title">
+    <h2>勝手に育つ1匹</h2>
+    <p>卵から1匹が生まれる。<br>敵を倒すと育ち、<b>どう育てるかを2つから選ぶ</b>。<br>同じ形には、まずならない。</p>
+    <canvas class="portrait" id="egg" width="400" height="400" style="max-width:200px"></canvas>
+    <button class="btn" id="start">卵をかえす</button>
+    <div id="galWrap" hidden><p style="font-size:13px;margin-bottom:6px">これまでに育てた子</p><div class="gal" id="gal"></div></div>
+  </div>
+  <div class="sheet" id="growSheet" hidden><h2>そだつ！</h2><p>どっちに育てる？</p><div class="opts" id="opts"></div></div>
+  <div class="sheet" id="formSheet" hidden>
+    <h2 id="formT"></h2>
+    <canvas class="portrait" id="portrait" width="600" height="600"></canvas>
+    <p id="formP"></p>
+    <button class="btn" id="cont">次の形態へ育てる</button>
+    <button class="btn sub" id="savePng">画像を保存</button>
+    <button class="btn sub" id="newEgg">新しい卵から</button>
+  </div>
+</div>
+<script src="game.js"></script>
+</body></html>
