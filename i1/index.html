@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="robots" content="noindex"><title>閃き道場（30秒の核）</title>
+<meta name="robots" content="noindex"><title>閃き道場</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
@@ -9,56 +9,80 @@
 body{margin:0;background:#0b0c18;color:#fff;font-family:"DotGothic16","Hiragino Sans",sans-serif;overscroll-behavior:none}
 .app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative}
 .top{display:flex;justify-content:space-between;padding:8px 12px 4px;font-size:15px}
-.top span b{color:#ffd75e}
-canvas{width:100%;aspect-ratio:240/250;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.top b{color:#ffd75e}.top u{cursor:pointer}
+canvas#cv{width:100%;aspect-ratio:240/200;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .win{margin:6px 8px;border:3px solid #fff;border-radius:6px;background:linear-gradient(#2a3a9a,#101a5a);box-shadow:0 0 0 2px #0b0c18,inset 0 0 0 2px #1a2470;padding:8px}
-.msg{min-height:44px;font-size:16px;line-height:1.45;padding:2px 4px}
+.msg{min-height:50px;font-size:16px;line-height:1.45;padding:2px 4px}
 .cmds{flex:1;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start;margin-bottom:calc(8px + env(safe-area-inset-bottom))}
-.cmd{font-family:inherit;font-size:16px;color:#fff;background:transparent;border:0;text-align:left;padding:8px 6px 8px 22px;position:relative;border-radius:4px}
+.cmd{font-family:inherit;font-size:15px;color:#fff;background:transparent;border:0;text-align:left;padding:8px 4px;position:relative;border-radius:4px;display:flex;align-items:center;gap:5px}
 .cmd:active,.cmd:hover{background:rgba(255,255,255,.12)}
-.cmd:before{content:"";position:absolute;left:6px;top:50%;margin-top:-5px;border:5px solid transparent;border-left-color:#fff;opacity:.35}
-.cmd:hover:before{opacity:1}
-.cmd small{font-size:11px;color:#9fb0ff;margin-left:4px}
-.cmd.hint:after{content:"💡";font-size:11px;position:absolute;right:4px;top:4px;opacity:.55}
+.cmd small{font-size:10px;color:#9fb0ff}
+.cmd.hint:after{content:"💡";font-size:10px;position:absolute;right:3px;top:3px;opacity:.55}
 .cmd[disabled]{opacity:.45}
-.sheet{position:absolute;inset:0;background:rgba(5,6,16,.92);display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:12px;padding:22px;z-index:5;overflow:auto}
-.sheet h2{margin:0;text-align:center;font-size:30px;color:#ffd75e;font-weight:400}
+.cmd em{font-style:normal;font-size:13px;margin-left:auto;margin-right:12px}.cmd em.w{color:#ffe14a}.cmd em.r{color:#8a90a8}
+.ty{display:inline-block;min-width:18px;text-align:center;font-size:11px;color:#111;border-radius:3px;padding:1px 2px;line-height:1.3}
+.hpline{grid-column:1/3;font-size:13px;color:#cfd5ff;padding:4px 6px}
+.sheet{position:absolute;inset:0;background:rgba(5,6,16,.93);display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:12px;padding:22px;z-index:5;overflow:auto}
+.sheet h2{margin:0;text-align:center;font-size:28px;color:#ffd75e;font-weight:400}
+.sheet h3{margin:16px 0 6px;font-weight:400;color:#ff9ad0;font-size:17px}
 .sheet p{margin:0;text-align:center;line-height:1.7;color:#cfd5ff}
 .btn{font-family:inherit;font-size:19px;padding:13px;border:3px solid #fff;border-radius:6px;background:#1a2470;color:#fff}
 .btn.sub{font-size:15px;border-width:2px;background:transparent}
 .newt{border:2px solid #ffd75e;border-radius:6px;padding:8px 10px;text-align:center;font-size:20px;color:#ffd75e;animation:pop .4s both}
+.newt.combo{border-color:#ff9ad0;color:#ff9ad0}
 @keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+.path{font-family:inherit;display:flex;gap:12px;align-items:center;text-align:left;padding:10px;border:3px solid #fff;border-radius:8px;background:linear-gradient(#2a3a9a,#101a5a);color:#fff;animation:pop .35s both}
+.path canvas{width:72px;height:72px;image-rendering:pixelated;background:rgba(0,0,0,.3);border-radius:4px;flex:none}
+.path b{display:block;font-size:19px;font-weight:400;color:#ffd75e;margin-bottom:2px}.path span{font-size:13px;line-height:1.6;color:#cfd5ff}.path i{font-style:normal}
 .tree{font-size:15px;line-height:1.9}
-.tree ul{list-style:none;margin:0;padding-left:16px;border-left:1px dashed #4a5aa0}
-.tree>ul{border:0;padding:0}
-.tree li{position:relative}.tree .u{color:#56608f}.tree .k{color:#fff}.tree .k i{font-style:normal;font-size:11px;color:#9fb0ff;margin-left:4px}
+.tree ul{list-style:none;margin:0;padding-left:16px;border-left:1px dashed #4a5aa0}.tree>ul{border:0;padding:0}
+.tree .u{color:#56608f}.tree .k i{font-style:normal;font-size:11px;color:#9fb0ff;margin-left:4px}
+.tree .ty{margin-right:4px}
+.cbs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cb{border:1px solid #4a5aa0;border-radius:4px;padding:5px 8px;font-size:14px}.cb.k{border-color:#ff9ad0;color:#fff}.cb.u{color:#56608f}
+.cb small{display:block;font-size:10px;color:#cfa0c0}
+#shareImg{width:100%;border-radius:6px}
 </style></head><body>
 <div class="app">
-  <div class="top"><span>第 <b id="floor">1</b> 戦</span><span>覚えた技 <b id="cnt">1</b> / <span id="all">27</span></span><span id="treeBtn" style="text-decoration:underline">系図</span></div>
-  <canvas id="cv" width="240" height="250"></canvas>
-  <div class="win"><div class="msg" id="msg">敵があらわれた！</div></div>
+  <div class="top"><span>第 <b id="floor">1</b> 戦 <span id="area" style="font-size:12px;color:#9fb0ff"></span></span><span>技 <b id="cnt">1</b> / <span id="all">39</span></span><u id="treeBtn">系図</u></div>
+  <canvas id="cv" width="240" height="200"></canvas>
+  <div class="win"><div class="msg" id="msg">　</div></div>
   <div class="win cmds" id="cmds"></div>
 
   <div class="sheet" id="title">
-    <h2>閃き道場</h2>
+    <h2 style="font-size:34px">閃き道場</h2>
     <p>技を選んでたたかう。<br>ときどき <b style="color:#ffd75e">💡 閃いて</b>、新しい技を覚える。</p>
     <button class="btn" id="start">はじめる</button>
-    <p style="font-size:12px;color:#7a84b8">30秒の試作です（音が出ます）</p>
+    <p style="font-size:12px;color:#7a84b8">試作 v2（音が出ます）</p>
   </div>
   <div class="sheet" id="win" hidden>
     <h2 id="winT">勝利！</h2>
     <div id="winList" style="display:flex;flex-direction:column;gap:8px"></div>
     <p id="winSub"></p>
-    <button class="btn" id="next">次の敵へ</button>
+    <button class="btn" id="next">先へ進む</button>
     <button class="btn sub" id="treeBtn2">技の系図を見る</button>
+  </div>
+  <div class="sheet" id="pathSheet" hidden>
+    <h2 id="pathT" style="font-size:22px"></h2>
+    <p id="pathHp" style="font-size:14px"></p>
+    <div id="paths" style="display:flex;flex-direction:column;gap:10px"></div>
   </div>
   <div class="sheet" id="treeSheet" hidden style="justify-content:flex-start">
     <h2 style="font-size:22px">技の系図</h2>
     <p style="font-size:13px">使った技から、次の技が閃く。<br>どの枝が伸びるかは、あなたの戦い方しだい。</p>
     <div class="tree" id="tree"></div>
-    <button class="btn" id="treeClose">もどる</button>
-    <button class="btn sub" id="reset">最初からやり直す</button>
+    <button class="btn" id="shareBtn">系図を画像にする</button>
+    <button class="btn sub" id="treeClose">もどる</button>
+    <button class="btn sub" id="reset" style="border-color:#5a2a3a;color:#c08090">最初からやり直す</button>
+  </div>
+  <div class="sheet" id="shareSheet" hidden style="justify-content:flex-start">
+    <img id="shareImg" alt="技の系図">
+    <p style="font-size:13px">画像を長押しで保存できます</p>
+    <button class="btn" id="shareDl">画像を保存</button>
+    <button class="btn sub" id="shareClose">もどる</button>
   </div>
 </div>
+<script src="data.js"></script>
 <script src="game.js"></script>
+<script src="battle.js"></script>
 </body></html>
