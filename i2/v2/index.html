@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex"><title>めくって降りる地下</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Old+Mincho:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}[hidden]{display:none!important}
+body{margin:0;color:#f2e6c8;font-family:"DotGothic16","Hiragino Sans",sans-serif;overscroll-behavior:none;
+ background:#1b1712 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='40'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='.35' stroke-width='2'%3E%3Cpath d='M0 20h64M32 0v20M0 20v20M64 20v20M16 20v20M48 20v20'/%3E%3C/g%3E%3C/svg%3E")}
+.app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden;
+ background:radial-gradient(ellipse at 50% 30%,rgba(255,170,60,.16),rgba(0,0,0,.55) 75%)}
+.top{display:flex;justify-content:space-between;align-items:center;padding:10px 12px 2px;font-size:15px}
+.top b{color:#ffcf5a;font-size:20px}
+.relics{display:flex;gap:6px;padding:2px 12px;min-height:30px;flex-wrap:wrap}
+.relic{font-size:12px;background:rgba(0,0,0,.4);border:1px solid #7a5a2a;border-radius:6px;padding:3px 6px}
+.relic.use{border-color:#ffcf5a;color:#ffcf5a}.relic.spent{opacity:.35}.relic.armed{background:#ffcf5a;color:#2a1c0e}
+.board{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:8px 8px 0;position:relative}
+.col{position:relative}
+.card{position:absolute;left:0;right:0;aspect-ratio:5/7;border-radius:6px;background:linear-gradient(160deg,#fff7e2,#e9d7ae);border:1px solid #6a4a20;
+ box-shadow:0 2px 0 #3a2810;color:#222;font-family:"Zen Old Mincho",serif;transition:transform .25s, opacity .25s, top .2s}
+.card .r{position:absolute;left:4px;top:1px;font-size:17px;line-height:1.1}.card .s{position:absolute;left:5px;top:19px;font-size:13px}
+.card .big{position:absolute;right:3px;bottom:2px;font-size:22px;opacity:.85}
+.card.red{color:#b0201a}
+.card .loot{position:absolute;right:2px;top:2px;font-size:15px;filter:drop-shadow(0 1px 0 #fff)}
+.card.ok{box-shadow:0 0 0 2px #ffcf5a,0 0 14px #ffcf5a;cursor:pointer;animation:bob 1.2s ease-in-out infinite}
+.card.flip{animation:flip .35s ease-out}
+@keyframes bob{50%{transform:translateY(-3px)}}
+@keyframes flip{0%{transform:rotateY(90deg) scale(1.1)}100%{transform:rotateY(0)}}
+.back{background:repeating-linear-gradient(45deg,#6a2a1a 0 6px,#7e3622 6px 12px)!important;border:2px solid #e9c070!important}
+.back .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ffe0a0;font-family:"DotGothic16";font-size:20px;text-shadow:0 2px 0 #000}
+.back .bl{position:absolute;left:0;right:0;top:1px;text-align:center;font-size:17px;line-height:1.2;filter:drop-shadow(0 1px 0 #000)}
+.joker{background:linear-gradient(160deg,#ffe6f4,#d8b0ff)!important;border-color:#8a3aa0!important}
+.joker .jk{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px}
+.bottom{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 12px 6px}
+.pile{width:76px;aspect-ratio:5/7;position:relative}
+.pile .card{position:absolute;inset:0}
+.hand{display:flex;flex-direction:column;gap:6px;align-items:center}
+.hand .slot{width:48px;aspect-ratio:5/7;border:2px dashed #5a4020;border-radius:6px;position:relative}
+.hand .slot .card{position:absolute;inset:-2px;cursor:pointer}
+.hand small{font-size:10px;color:#a08a60}
+.chainbar{margin:4px 18px 0;height:22px;position:relative;background:rgba(0,0,0,.45);border:1px solid #5a4020;border-radius:11px;overflow:visible}
+.chainbar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#c87a20,#ffcf5a);border-radius:11px;transition:width .2s}
+.chainbar span{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:14px;filter:drop-shadow(0 1px 0 #000)}
+.chainbar span.got{opacity:.3}
+.chainbar b{position:absolute;left:8px;top:2px;font-size:13px;color:#fff;text-shadow:0 1px 0 #000;font-weight:400}
+.depth{margin:12px 12px calc(10px + env(safe-area-inset-bottom));padding:8px;background:rgba(0,0,0,.4);border:1px solid #5a4020;border-radius:10px}
+.depth .row{display:flex;gap:2px}
+.depth .cell{flex:1;text-align:center;font-size:10px;color:#7a6a4a;padding:4px 0 2px;border-radius:4px;position:relative;min-height:46px}
+.depth .cell.done{background:rgba(255,207,90,.12);color:#c8a860}.depth .cell.now{background:rgba(255,207,90,.35);color:#fff}
+.depth .cell .ic{display:block;font-size:15px;height:20px}
+.depth .note{font-size:11px;color:#a08a60;text-align:center;margin-top:4px}
+.fly{position:fixed;z-index:9;pointer-events:none;font-size:20px;transition:all .6s cubic-bezier(.2,.8,.3,1)}
+.sheet{position:absolute;inset:0;background:rgba(10,7,4,.92);display:flex;flex-direction:column;justify-content:center;gap:12px;padding:22px;z-index:5;overflow:auto}
+.sheet h2{margin:0;text-align:center;font-size:28px;color:#ffcf5a;font-weight:400}
+.sheet p{margin:0;text-align:center;line-height:1.7}
+.btn{font-family:inherit;font-size:18px;padding:13px;border:2px solid #ffcf5a;border-radius:8px;background:#3a2410;color:#ffe9b0}
+.btn.sub{font-size:14px;background:transparent;border-color:#7a5a2a}
+.pick{font-family:inherit;text-align:left;padding:12px 14px;border:2px solid #7a5a2a;border-radius:10px;background:#2a1c0e;color:#f2e6c8;font-size:15px;animation:pop .35s both}
+.pick b{font-size:18px;color:#ffcf5a;display:block}.pick:nth-child(2){animation-delay:.1s}.pick:nth-child(3){animation-delay:.2s}.pick:nth-child(4){animation-delay:.3s}
+.pick[disabled]{opacity:.4}.pick .cost{float:right;color:#ffcf5a}
+.newunlock{border:2px solid #ff9ad0;border-radius:10px;padding:10px;text-align:center;color:#ffb8e0;animation:pop .5s both}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.toast{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:28px;color:#ffcf5a;text-shadow:0 3px 0 #000;pointer-events:none;z-index:6;animation:toast 1s both;white-space:nowrap}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
+.grid{font-size:26px;text-align:center;letter-spacing:2px}
+</style></head><body>
+<div class="app" id="app">
+  <div class="top"><span>地下 <b id="fl">1</b> 階</span><span>💰 <b id="gold">0</b></span><span id="left" style="font-size:13px"></span></div>
+  <div class="relics" id="relics"></div>
+  <div class="board" id="board"></div>
+  <div class="bottom">
+    <div class="pile" id="stock"></div>
+    <div class="pile" id="waste"></div>
+    <div class="hand"><div class="slot" id="j0"></div><div class="slot" id="j1"></div><small>ジョーカー</small></div>
+  </div>
+  <div class="chainbar" id="chainbar"><i id="chainfill"></i><b id="chaintxt"></b></div>
+  <div class="depth" id="depth"></div>
+
+  <div class="sheet" id="title">
+    <h2>めくって降りる地下</h2>
+    <p>右下のカードと<b style="color:#ffcf5a">数字が1つちがう</b>カードを取る。<br>それだけ。<br><br>伏せたカードの下には 💰 🎁 🪜。<br>🪜 を取れば、もっと深くへ。<br><span style="font-size:13px;color:#c8a860">山札を引かずに続けて取ると、連鎖のごほうび</span></p>
+    <button class="btn" id="start">今日のダンジョンに入る</button>
+    <button class="btn sub" id="shopBtn0">宿屋（💰で強くなる）</button>
+    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v2・音が出ます）</p>
+  </div>
+  <div class="sheet" id="pickSheet" hidden><h2>🎁 宝箱！</h2><p>ひとつ選ぶ</p><div id="picks" style="display:flex;flex-direction:column;gap:8px"></div></div>
+  <div class="sheet" id="endSheet" hidden>
+    <h2 id="endT"></h2><p id="endP"></p>
+    <div id="endExtra" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="btn" id="endBtn"></button>
+    <button class="btn sub" id="shopBtn" hidden>宿屋へ</button>
+    <button class="btn sub" id="shareBtn" hidden>結果をコピー</button>
+  </div>
+  <div class="sheet" id="shopSheet" hidden style="justify-content:flex-start">
+    <h2>🏠 宿屋</h2>
+    <p>持ち帰った 💰 <b id="bank" style="color:#ffcf5a;font-size:22px"></b><br><span style="font-size:12px;color:#a08a60">ここで買ったものは、ずっと効く</span></p>
+    <div id="shopList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <p style="font-size:13px;margin-top:8px">宝箱に入る道具 <span id="pool"></span></p>
+    <button class="btn" id="shopClose">もどる</button>
+  </div>
+</div>
+<script src="game.js"></script>
+</body></html>

@@ -61,12 +61,27 @@ body{margin:0;color:#f2e6c8;font-family:"DotGothic16","Hiragino Sans",sans-serif
 .pick[disabled]{opacity:.4}.pick .cost{float:right;color:#ffcf5a}
 .newunlock{border:2px solid #ff9ad0;border-radius:10px;padding:10px;text-align:center;color:#ffb8e0;animation:pop .5s both}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.hearts{font-size:13px;letter-spacing:1px}.bgm{background:none;border:0;font-size:18px;padding:0 0 0 4px;cursor:pointer}
+.spark{position:fixed;border-radius:50%;pointer-events:none;z-index:9;box-shadow:0 0 6px #ffcf5a}
+.card.deal{animation:deal .38s cubic-bezier(.2,.8,.3,1.2) both}
+@keyframes deal{0%{transform:translateY(-70px) rotate(-10deg);opacity:0}100%{transform:none;opacity:1}}
+.card .cnt{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);background:#c8201a;color:#fff;font-family:DotGothic16;font-size:13px;border-radius:9px;min-width:18px;text-align:center;padding:0 3px}
+.card.mon{box-shadow:0 0 0 2px #ff3a2a,0 0 16px #ff3a2a;animation:monp .9s ease-in-out infinite}
+.card.mon.ok{box-shadow:0 0 0 2px #ffcf5a,0 0 0 5px #ff3a2a,0 0 18px #ff3a2a}
+@keyframes monp{50%{transform:scale(1.05)}}
+.descend{position:absolute;inset:0;z-index:7;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0}
+.descend b{font-size:34px;color:#ffcf5a;font-weight:400}.descend span{margin-top:10px;font-size:18px;color:#c8a860}
+.hint{position:absolute;z-index:6;width:220px;background:#fff3c8;color:#3a2410;border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.5;text-align:center;pointer-events:none;box-shadow:0 4px 0 rgba(0,0,0,.4);animation:hintb 1s ease-in-out infinite}
+.hint:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:#fff3c8}
+@keyframes hintb{50%{transform:translateY(-4px)}}
+.app[data-zone="1"]{background:radial-gradient(ellipse at 50% 30%,rgba(60,170,255,.2),rgba(0,10,30,.7) 75%)}
+.app[data-zone="2"]{background:radial-gradient(ellipse at 50% 70%,rgba(255,80,30,.3),rgba(30,0,0,.7) 75%)}
 .toast{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:28px;color:#ffcf5a;text-shadow:0 3px 0 #000;pointer-events:none;z-index:6;animation:toast 1s both;white-space:nowrap}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
 .grid{font-size:26px;text-align:center;letter-spacing:2px}
 </style></head><body>
 <div class="app" id="app">
-  <div class="top"><span>地下 <b id="fl">1</b> 階</span><span>💰 <b id="gold">0</b></span><span id="left" style="font-size:13px"></span></div>
+  <div class="top"><span>地下 <b id="fl">1</b> 階</span><span id="hearts" class="hearts"></span><span>💰 <b id="gold">0</b></span><span id="left" style="font-size:12px"></span><button id="bgmBtn" class="bgm">🔊</button></div>
   <div class="relics" id="relics"></div>
   <div class="board" id="board"></div>
   <div class="bottom">
@@ -82,8 +97,11 @@ body{margin:0;color:#f2e6c8;font-family:"DotGothic16","Hiragino Sans",sans-serif
     <p>右下のカードと<b style="color:#ffcf5a">数字が1つちがう</b>カードを取る。<br>それだけ。<br><br>伏せたカードの下には 💰 🎁 🪜。<br>🪜 を取れば、もっと深くへ。<br><span style="font-size:13px;color:#c8a860">山札を引かずに続けて取ると、連鎖のごほうび</span></p>
     <button class="btn" id="start">今日のダンジョンに入る</button>
     <button class="btn sub" id="shopBtn0">宿屋（💰で強くなる）</button>
-    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v2・音が出ます）</p>
+    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v3・音が出ます）</p>
   </div>
+  <div class="descend" id="descend" hidden><b id="descendT"></b><span id="descendZ"></span></div>
+  <div class="hint" id="hint" hidden></div>
+  <div class="sheet" id="monSheet" hidden><h2>👹 魔物が出た</h2><p>地下4階から、カードの中に魔物がひそんでいる。<br><br><b style="color:#ff8a7a">魔物が見えている間は、山札を3回めくるごとに攻撃してくる（❤-1）。</b><br>残り回数は魔物のカードに出る。<br>❤が0になると力尽きる。<br><br>魔物のカードを取れば退治できて、💰がもらえる。<br><span style="font-size:13px;color:#c8a860">全部取って階を出ると ❤が1つ戻る</span></p><button class="btn" id="monOk">わかった</button></div>
   <div class="sheet" id="pickSheet" hidden><h2>🎁 宝箱！</h2><p>ひとつ選ぶ</p><div id="picks" style="display:flex;flex-direction:column;gap:8px"></div></div>
   <div class="sheet" id="endSheet" hidden>
     <h2 id="endT"></h2><p id="endP"></p>
@@ -100,5 +118,6 @@ body{margin:0;color:#f2e6c8;font-family:"DotGothic16","Hiragino Sans",sans-serif
     <button class="btn" id="shopClose">もどる</button>
   </div>
 </div>
+<script src="fx.js"></script>
 <script src="game.js"></script>
 </body></html>
