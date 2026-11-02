@@ -21,6 +21,7 @@ function newRace(){resize();CO=COURSES[CUP.race];L=CO.L;const r=rng(CUP.race*101
     else if(x<.9){OB.push({t:'pad',lane:Math.floor(r()*3),d});}
     else if(sand){const l=Math.floor(r()*3);OB.push({t:'sand',lane:l,d,len:200});}
     d+=200+r()*170;}
+  const cs=carStats();P.st=cs.s;P.sp=cs.sp;
   PJ=[];fx=[];confetti=[];state='count';cd=180;t0=0;P.slip=0;$('course').textContent=`${CO.ic} ${CO.n}　${CUP.race+1}/4`;renderSlot();}
 const allKarts=()=>[P,...RV];
 function rank(){return 1+RV.filter(v=>v.fin?(!P.fin||v.fin<P.fin):v.d>P.d).length;}
@@ -32,12 +33,12 @@ function renderSlot(){const s=$('slot'),s2=$('slot2');s.className='slot'+(P&&P.r
   else s.textContent=P.items[0]?ITEMS[P.items[0].k].ic+(P.items[0].u>1?P.items[0].u:''):'';
   s2.textContent=P.items[1]?ITEMS[P.items[1].k].ic:'';if(P.roll>0&&P.items[0]){s.textContent=ITEMS[P.items[0].k].ic;s2.textContent=ITEMS[SV.have[Math.floor(P.roll/4)%SV.have.length]].ic;}
   const it=P.items[0];$('use').disabled=!it;$('use').textContent=it?ITEMS[it.k].n:'つかう';$('coins').textContent=P.coins;}
-function rollItem(rk){const pool=[],lk=lv('luck');for(const k of SV.have){let w=1;if(rk===1&&DEF.includes(k))w=3;if(rk>=3&&CATCH.includes(k))w=3+lk;if(rk===2&&CATCH.includes(k))w=1+lk*.5;if(rk===1&&CATCH.includes(k))w=.2+lk*.15;if(k==='dash')w=rk>=2?2:1;for(let i=0;i<w*10;i++)pool.push(k);}return pool[Math.floor(Math.random()*pool.length)];}
+function rollItem(rk){const pool=[],lk=lv('luck')+(P.st.luck||0);for(const k of SV.have){let w=1;if(rk===1&&DEF.includes(k))w=3;if(rk>=3&&CATCH.includes(k))w=3+lk;if(rk===2&&CATCH.includes(k))w=1+lk*.5;if(rk===1&&CATCH.includes(k))w=.2+lk*.15;if(k==='dash')w=rk>=2?2:1;for(let i=0;i<w*10;i++)pool.push(k);}return pool[Math.floor(Math.random()*pool.length)];}
 
 // ===== 操作 =====
 function move(dl){if(state!=='race'||P.spin)return;P.lane=Math.max(0,Math.min(2,P.lane+dl));tone(400,.04,'square',.02);}
 function useItem(){if(state!=='race'||!P.items.length)return;const it=P.items[0],k=it.k;
-  if(k==='dash'||k==='dash3'){P.boost=75;sfx.dash();}
+  if(k==='dash'||k==='dash3'){P.boost=P.sp.muffler?105:75;sfx.dash();}
   if(k==='bomb'){PJ.push({t:'bomb',own:P,lane:P.lane,x:P.x,d:P.d+30,v:13});tone(300,.1);}
   if(k==='homing'){const tg=RV.filter(v=>v.d>P.d&&!v.fin).sort((a,b)=>a.d-b.d)[0];PJ.push({t:'homing',own:P,tg,lane:P.lane,x:P.x,d:P.d+30,v:14});tone(500,.1);}
   if(k==='shield'){P.shield=true;sfx.shield();}
@@ -56,7 +57,7 @@ window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')move(-1);if(e.key==
 // ===== 更新 =====
 const near=(x,d,o,len)=>Math.abs(x-laneX(o.lane))<24&&(len?(d>o.d-10&&d<o.d+len):Math.abs(d-o.d)<20);
 function spin(k){if(k===P){if(P.star||P.ghost||P.giant)return false;if(P.shield){P.shield=false;sfx.shield();toast('🛡️ ふせいだ');return false;}
-    P.spin=Math.round(60*(1-.15*lv('tire')));shakeV=9;sfx.crash();P.boost=0;const lost=Math.min(3,P.coins);P.coins-=lost;if(lost)toast(`🪙-${lost}`);renderSlot();return true;}
+    P.spin=Math.max(20,Math.round(60*(1-.15*lv('tire'))*(1-P.st.tough*.08)));shakeV=9;sfx.crash();P.boost=0;const lost=Math.min(P.st.tough>=3?2:3,P.coins);P.coins-=lost;if(lost)toast(`🪙-${lost}`);renderSlot();return true;}
   if(k.shield){k.shield=false;return false;}k.spin=60;return true;}
 function rivalAI(v){v.icd--;if(!v.item||v.icd>0||v.fin)return;
   const ahead=allKarts().filter(k=>k!==v&&k.d>v.d&&k.d-v.d<450&&Math.abs(k.x-v.x)<30);
@@ -71,13 +72,13 @@ function update(){
   const ice=CO.gim.includes('ice');
   // プレイヤー
   tutTick();
-  if(!P.fin){let tv=6.2*CLASSES[CUP.cls].k*(1+lv('engine')*.03)*(1+P.coins*.008);if(P.boost>0){tv*=1.6;P.boost--;}
+  if(!P.fin){let tv=6.2*CLASSES[CUP.cls].k*(1+lv('engine')*.03)*(1+P.coins*.008)*(1+P.st.spd*.015);if(P.boost>0){tv*=1.6;P.boost--;}
     if(P.magnet>0){P.magnet--;const tg=RV.filter(v=>v.d>P.d).sort((a,b)=>a.d-b.d)[0];if(tg&&tg.d-P.d>30)tv*=1.7;}
-    if(!P.jump&&!P.star&&OB.some(o=>o.t==='sand'&&near(P.x,P.d,o,o.len)))tv*=.55;
-    if(P.spin>0){tv*=.25;P.spin--;}P.v+=(tv-P.v)*.06;P.d+=P.v;}
+    if(!P.jump&&!P.star&&OB.some(o=>o.t==='sand'&&near(P.x,P.d,o,o.len)))tv*=P.sp.snow?.82:P.sp.slick?.45:.55;
+    if(P.spin>0){tv*=.25;P.spin--;}P.v+=(tv-P.v)*Math.max(.03,.06+P.st.acc*.006);P.d+=P.v;}
   else P.d+=P.v*.97;
-  const lead=RV.find(v=>Math.abs(v.x-P.x)<18&&v.d-P.d>25&&v.d-P.d<120&&!v.fin);if(lead&&!P.fin&&!P.spin){P.slip++;if(P.slip>=95){P.slip=0;P.boost=Math.max(P.boost,38);sfx.pad();toast('スリップストリーム！');}}else P.slip=Math.max(0,P.slip-2);
-  P.x+=(laneX(P.lane)-P.x)*(ice?.07:.22+lv('tire')*.04);if(ice&&Math.random()<.01&&!P.spin)P.x+=(Math.random()-.5)*10;
+  const lead=RV.find(v=>Math.abs(v.x-P.x)<18&&v.d-P.d>25&&v.d-P.d<120&&!v.fin);if(lead&&!P.fin&&!P.spin){P.slip++;if(P.slip>=(P.sp.wing?60:95)){P.slip=0;P.boost=Math.max(P.boost,38);sfx.pad();toast('スリップストリーム！');}}else P.slip=Math.max(0,P.slip-2);
+  P.x+=(laneX(P.lane)-P.x)*Math.max(.05,(ice&&!P.sp.snow?(P.sp.slick?.05:.07):.22+lv('tire')*.04+P.st.turn*.02));if(ice&&!P.sp.snow&&Math.random()<.01&&!P.spin)P.x+=(Math.random()-.5)*10;
   ['jump','ghost','giant','star'].forEach(k=>{if(P[k]>0)P[k]--;});
   if(P.roll>0){P.roll--;if(P.roll%4===0)sfx.tick();if(P.roll===0){const k=rollItem(rank());P.items.push({k,u:k==='dash3'?3:1});sfx.get();}renderSlot();}
   // ライバル
@@ -90,7 +91,7 @@ function update(){
     const ah=v.d>P.d;if(ah&&!v.ahead&&!P.fin)say(v,'pass');v.ahead=ah;if(v.say&&--v.say.l<=0)v.say=null;}
   // 物
   for(const o of OB){if(o.gone||o.t==='sand')continue;
-    if(near(P.x,P.d,o)&&!P.fin){
+    if((near(P.x,P.d,o)||(o.t==='coin'&&P.sp.magnet&&Math.abs(P.d-o.d)<20&&Math.abs(P.x-laneX(o.lane))<RW/3+6))&&!P.fin){
       if(o.t==='box'){o.gone=true;burst(laneX(o.lane),o.d,'#ffd84a');if(P.items.length<2&&!P.roll){P.roll=56;renderSlot();}else tone(700,.05);}
       else if(o.t==='coin'){o.gone=true;if(P.coins<10)P.coins++;P.got++;sfx.coin();renderSlot();}
       else if(o.t==='pad'){if(!o.cool||o.cool<t0){o.cool=t0+30;P.boost=Math.max(P.boost,45);sfx.pad();}}
@@ -133,6 +134,7 @@ function finish(rk){state='end';if(engG)engG.gain.value=0;bgmStop();
     (unlocked?`<div class="unl">新アイテム ${ITEMS[unlocked].ic} ${ITEMS[unlocked].n}<br><small>次からくじ玉に入る</small></div>`:rk>3?'<br><small>3位以内で新しいアイテムがくじ玉に入る</small>':'');
   $('again').textContent=last?'グランプリの結果へ':`次のレース（${COURSES[CUP.race+1].ic} ${COURSES[CUP.race+1].n}）`;
   $('again').onclick=()=>{$('endSheet').hidden=true;if(last)cupResult();else{CUP.race++;newRace();}};
+  $('endGar').onclick=()=>{openGarage();};
   $('endSheet').hidden=false;}
 function cupResult(){const ord=[0,1,2,3].sort((a,b)=>CUP.pts[b]-CUP.pts[a]);const pl=ord.indexOf(0)+1;const tr=['🥇','🥈','🥉',''][pl-1];
   let opened=null;if(tr){SV.trophies.push(tr);SV.tro=SV.tro||{};SV.tro[CUP.cls]=SV.tro[CUP.cls]||[];SV.tro[CUP.cls].push(tr);if(CUP.cls<2&&(SV.clsOpen||1)<CUP.cls+2){SV.clsOpen=CUP.cls+2;opened=CLASSES[CUP.cls+1].n;}}SV.cups++;saveSV();sfx.cup();
@@ -144,7 +146,7 @@ function cupResult(){const ord=[0,1,2,3].sort((a,b)=>CUP.pts[b]-CUP.pts[a]);cons
   $('cupSheet').hidden=false;}
 
 // ===== ガレージ =====
-function openGarage(){$('gcoins').textContent=SV.coins;const L=$('glist');L.innerHTML='';
+function openGarage(){$('gcoins').textContent=SV.coins;renderCarUI();const L=$('glist');L.innerHTML='';
   for(const k in PARTS){const p=PARTS[k],l=lv(k),mx=p.cost.length,c=p.cost[l];const b=document.createElement('button');b.className='gp';
     b.innerHTML=`<b>${p.ic} ${p.n}　Lv${l}/${mx}<span>${l<mx?'🪙'+c:'最大'}</span></b>${p.d}`;b.disabled=l>=mx||SV.coins<c;
     b.onclick=()=>{SV.coins-=c;SV.parts[k]=l+1;saveSV();sfx.buy();openGarage();};L.appendChild(b);}
@@ -156,7 +158,7 @@ function openGarage(){$('gcoins').textContent=SV.coins;const L=$('glist');L.inne
 
 // ===== 描画 =====
 function kart(x,y,col,o){g.save();g.translate(Math.round(x),Math.round(y));const sc=o.big?1.7:o.jump?1+Math.sin(o.jump/55*Math.PI)*.35:1;g.scale(sc,sc);if(o.spin)g.rotate(o.spin*.35);if(o.alpha)g.globalAlpha=o.alpha;
-  g.fillStyle='rgba(0,0,0,.3)';g.fillRect(-12,-12,28,34);g.imageSmoothingEnabled=false;g.drawImage(kartCanvas(col,o.helm||'#fff8e8'),-14,-17,28,34);
+  g.fillStyle='rgba(0,0,0,.25)';g.fillRect(-11,-11,26,30);g.imageSmoothingEnabled=false;g.drawImage(o.cv,-20,-24,40,48);
   if(o.star){g.strokeStyle=`hsl(${t0*20%360},100%,60%)`;g.lineWidth=3;g.beginPath();g.arc(0,0,26,0,7);g.stroke();}
   if(o.shield){g.strokeStyle='rgba(120,200,255,.9)';g.lineWidth=3;g.beginPath();g.arc(0,0,24,0,7);g.stroke();}
   if(o.item)drawSp(g,emoSp(ITEMS[o.item].ic),0,-27,1.5);
@@ -180,10 +182,10 @@ function draw(){g.setTransform(DPR,0,0,DPR,0,0);if(shakeV>.3){g.translate((Math.
     if(o.t==='cone')drawSp(g,'cone',x,y,2);
     if(o.t==='oil')drawSp(g,'puddle',x,y,2);}
   for(const p of PJ)drawSp(g,p.t==='homing'?'target':'bomb',p.x,sy(p.d),2);
-  for(const v of RV){const y=sy(v.d);if(y>-40&&y<H+40){kart(v.x,y,v.col,{spin:v.spin,helm:'#ffe',shield:v.shield,item:v.item});if(v.say)drawSay(v.x,y,v.say.s);}}
+  for(const v of RV){const y=sy(v.d);if(y>-40&&y<H+40){kart(v.x,y,v.col,{cv:makeCar(v.col,'#fff8e8',RIVAL_CAR[v.who-1]),spin:v.spin,shield:v.shield,item:v.item});if(v.say)drawSay(v.x,y,v.say.s);}}
   if(P.slip>15){g.strokeStyle=`rgba(255,255,255,${Math.min(.8,P.slip/70)})`;g.lineWidth=2;for(let i=0;i<4;i++){const xx=P.x-14+i*9+(Math.random()-.5)*3;g.beginPath();g.moveTo(xx,py-40-Math.random()*20);g.lineTo(xx,py-10);g.stroke();}}
   if(P.boost>0)for(let i=0;i<5;i++){g.fillStyle='rgba(255,220,120,.7)';g.fillRect(P.x-10+Math.random()*20,py+20+Math.random()*30,2,14);}
-  kart(P.x,py,COLORS[SV.color][0],{spin:P.spin,big:P.giant>0,jump:P.jump,star:P.star>0,shield:P.shield,alpha:P.ghost?.4:0,helm:SV.color===4?'#e8402c':'#fff'});
+  kart(P.x,py,COLORS[SV.color][0],{cv:makeCar(COLORS[SV.color][0],SV.color===4?'#e8402c':'#fff8e8',myCar()),spin:P.spin,big:P.giant>0,jump:P.jump,star:P.star>0,shield:P.shield,alpha:P.ghost?.4:0,helm:SV.color===4?'#e8402c':'#fff'});
   g.fillStyle='#ffd84a';g.beginPath();g.moveTo(P.x,py-34);g.lineTo(P.x-6,py-42);g.lineTo(P.x+6,py-42);g.fill();
   for(const f of fx){f.x+=f.vx;f.d+=f.vd;f.l--;g.fillStyle=f.c;g.globalAlpha=f.l/25;g.fillRect(f.x,sy(f.d),4,4);g.globalAlpha=1;}fx=fx.filter(f=>f.l>0);
   if(co.gim.includes('dark')){const gr=g.createRadialGradient(P.x,py-60,40,P.x,py-60,Math.max(W,H)*.55);gr.addColorStop(0,'rgba(0,0,10,0)');gr.addColorStop(1,'rgba(0,0,10,.86)');g.fillStyle=gr;g.fillRect(0,0,W,H);}
@@ -201,4 +203,5 @@ $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;
 $('gBtn').onclick=()=>{ac();openGarage();};$('gClose').onclick=()=>{$('garage').hidden=true;titleInfo();};
 $('cupAgain').onclick=()=>{$('cupSheet').hidden=true;$('title').hidden=false;titleInfo();};
 $('cupGarage').onclick=()=>{openGarage();};
+$('cardBtn').onclick=openCarCard;$('cardClose').onclick=()=>{$('cardSheet').hidden=true;};$('cardDl').onclick=()=>{const a=document.createElement('a');a.download='車検証.png';a.href=$('cardImg').src;a.click();};
 window.addEventListener('resize',resize);resize();titleInfo();requestAnimationFrame(frame);
