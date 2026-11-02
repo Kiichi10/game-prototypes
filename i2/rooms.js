@@ -16,7 +16,7 @@ const TYPES={
   vault:{n:'宝物庫',d:'💰と🎁が多い。そのぶん山札が少ない'},
   chain:{n:'連鎖の間',d:'連鎖のごほうびが2倍'},
 };
-function floorType(f){if(f%5===0)return 'boss';if(f<3)return 'normal';const r=rng(DKEY+'t'+f);r();const v=r();return v<.2?'dark':v<.35?'vault':v<.5?'chain':'normal';}
+function floorType(f){if(f%5===0)return 'boss';if(f<3)return 'normal';const r=rng(((typeof R!=='undefined'&&R&&R.dkey)||DKEY)+'t'+f);r();const v=r();return v<.2?'dark':v<.35?'vault':v<.5?'chain':'normal';}
 const CLS={
   exp:{n:'探検家',d:'ふつう。まずはここから',heart:0},
   thief:{n:'盗賊',unlock:3,d:'💰が1.5倍。そのかわり❤-1',heart:-1},

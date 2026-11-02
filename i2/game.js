@@ -55,9 +55,9 @@ const has=k=>R.relics.includes(k);
 let R,F,busy=false;
 const CHAIN=[{n:4,ic:'💰'},{n:7,ic:'🃏'},{n:10,ic:'🎁'}];
 const maxHearts=()=>3+(M.perks.heart||0)+(R?CLS[R.cls].heart:0);
-function newRun(){const cls=M.cls&&CLS[M.cls]&&(M.best>=(CLS[M.cls].unlock||0))?M.cls:'exp';R={cls,floor:1,gold:0,relics:[],jokers:M.perks.joker?1:0,log:[],maxChain:0,hearts:0,trip:[]};R.hearts=maxHearts();if(cls==='mage')R.relics.push('wild','undo');bgmStart(0);if(M.perks.lamp&&!has('lantern'))R.relics.push('lantern');M.runs++;saveM();startFloor();}
+function newRun(){const cls=M.cls&&CLS[M.cls]&&(M.best>=(CLS[M.cls].unlock||0))?M.cls:'exp';R={dkey:DKEY,cls,floor:1,gold:0,relics:[],jokers:M.perks.joker?1:0,log:[],maxChain:0,hearts:0,trip:[]};R.hearts=maxHearts();if(cls==='mage')R.relics.push('wild','undo');bgmStart(0);if(M.perks.lamp&&!has('lantern'))R.relics.push('lantern');M.runs++;saveM();startFloor();}
 function startFloor(){
-  const rand=rng(DKEY+'-'+R.floor),type=floorType(R.floor);
+  const rand=rng((R.dkey||DKEY)+'-'+R.floor),type=floorType(R.floor);
   const deck=[];for(let s=0;s<4;s++)for(let r=1;r<=13;r++)deck.push({r,s});
   for(let i=deck.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
   const cols=[];for(let c=0;c<7;c++)cols.push(deck.splice(0,5));
@@ -109,7 +109,7 @@ function render(){
   const rl=$('relics');rl.innerHTML='';R.relics.forEach(k=>{const r=RELICS[k];const e=document.createElement('span');
     e.className='relic'+(r.act?(F.used[k]?' spent':F.armed===k?' armed':' use'):'');e.textContent=r.ic+' '+r.n;
     if(r.act&&!F.used[k])e.onclick=()=>useRelic(k);rl.appendChild(e);});
-  renderDepth();setTimeout(tutorial,30);}
+  renderDepth();setTimeout(tutorial,30);saveRun();}
 function renderDepth(){const cur=R?R.floor:1,dayBest=M.day[DKEY]||0,start=Math.max(1,Math.min(cur-3,M.best-6)),cells=[];
   for(let f=start;f<start+9;f++){const unl=Object.keys(RELICS).find(k=>RELICS[k].unlock===f&&!M.unlocked.includes(k));
     let ic=f===cur&&R?'🧍':unl?'🔒':f===M.best?'👑':f===dayBest?'🚩':'';
@@ -143,7 +143,7 @@ function take(ci,el){if(busy)return;const col=F.cols[ci],c=col[col.length-1];
   if(c.loot==='chest'){sfx.chest();chest=true;}
   if(c.loot==='monster'){const k=c.mon,mk=MON[k];F.ev.mon++;F.ev.kinds.push(k);M.dex=M.dex||{};M.dex[k]=(M.dex[k]||0)+1;const a=gainGold(mk.gold(R.floor));sfx.slay();toast(`${mk.n}を退治！ 💰+${a}`);
     if(k==='mimic')chest=true;if(k==='boss'){F.bossDead=true;F.stairs=true;F.ev.boss=1;chest=true;shake(12);sfx.stairs();}}
-  c.loot=null;reveal(ci);render();setTimeout(seeMon,350);
+  if(chest)F.pendingChest=true;c.loot=null;reveal(ci);render();setTimeout(seeMon,350);
   if(c0){const ch=F.chain;flyToWaste(c0,wr=>sparks(wr,Math.min(3+ch*2,22),ch>=7));}
   if(chest){busy=true;setTimeout(()=>{busy=false;openChest();},450);return;}
   checkEnd();}
@@ -163,11 +163,11 @@ function useRelic(k){if(k==='wild'||k==='hammer'){F.armed=F.armed===k?null:k;ren
     else if(h.t==='joker'){F.waste.pop();R.jokers++;}
     else{const col=F.cols[h.ci];if(col.length)col[col.length-1].up=false;if(h.t==='take')F.waste.pop();h.c.up=true;col.push(h.c);}
     F.chain=0;render();}}
-function openChest(){F.ev.chest++;const p=pool().filter(k=>!has(k));const box=$('picks');box.innerHTML='';
-  if(!p.length){gainGold(10);toast('💰+10');checkEnd();return;}
-  for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
-  p.slice(0,has('bell')?4:3).forEach(k=>{const r=RELICS[k];const b=document.createElement('button');b.className='pick';b.innerHTML=`<b>${r.ic} ${r.n}</b>${r.d}`;
-    b.onclick=()=>{R.relics.push(k);F.ev.relics.push(k);$('pickSheet').hidden=true;sfx.coin();if(k==='candle')for(let i=0;i<2;i++)F.stock.push({r:1+Math.floor(Math.random()*13),s:Math.floor(Math.random()*4)});render();checkEnd();};box.appendChild(b);});
+function openChest(){if(!F.chestCounted){F.ev.chest++;F.chestCounted=true;}const p=pool().filter(k=>!has(k));const box=$('picks');box.innerHTML='';
+  if(!p.length){F.pendingChest=false;F.chestCounted=false;saveRun();gainGold(10);toast('💰+10');checkEnd();return;}
+  if(!F.pickOpts){for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}F.pickOpts=p.slice(0,has('bell')?4:3);}saveRun();
+  F.pickOpts.forEach(k=>{const r=RELICS[k];const b=document.createElement('button');b.className='pick';b.innerHTML=`<b>${r.ic} ${r.n}</b>${r.d}`;
+    b.onclick=()=>{F.pendingChest=false;F.chestCounted=false;F.pickOpts=null;R.relics.push(k);F.ev.relics.push(k);$('pickSheet').hidden=true;sfx.coin();if(k==='candle')for(let i=0;i<2;i++)F.stock.push({r:1+Math.floor(Math.random()*13),s:Math.floor(Math.random()*4)});render();checkEnd();};box.appendChild(b);});
   $('pickSheet').hidden=false;}
 function checkEnd(){const left=F.cols.reduce((a,c)=>a+c.length,0);
   if(left===0){sfx.clear();gainGold(10);F.stairs=true;if(R.hearts<maxHearts()&&R.floor%2===0){R.hearts++;toast('全部取った！ ❤+1');}return endFloor(true);}
@@ -180,15 +180,15 @@ function endFloor(cleared,why){if(F.ended)return;hint(null);recordFloor(cleared,
     $('endT').textContent=cleared?'全部取った！':`地下${R.floor}階 突破`;
     $('endP').innerHTML=`このフロアで 💰${F.goldF}${cleared?'（全取り +10）':''}<br>のこり ${left} 枚<br><br>持ち物 ${R.relics.map(k=>RELICS[k].ic).join(' ')||'なし'}${R.jokers?'　🃏×'+R.jokers:''}`;
     $('endBtn').textContent=`🪜 地下${R.floor+1}階へ降りる`;$('endBtn').onclick=()=>{$('endSheet').hidden=true;sfx.stairs();const nf=R.floor+1,nz=zoneOf(nf)!==zoneOf(R.floor),ty=TYPES[floorType(nf)];descend(nf,[nz?`― ${ZONES[zoneOf(nf)].n} ―`:'',ty.n?`<b style="font-size:22px">${ty.n}</b><br><small>${ty.d}</small>`:''].filter(Boolean).join('<br>'),()=>{R.floor=nf;startFloor();if(nz)bgmStart(zoneOf(nf));});};
-    $('shareBtn').hidden=true;$('shopBtn').hidden=true;
-  }else{R.log.push(why==='dead'?'👹':'💀');
-    M.bank+=R.gold;M.best=Math.max(M.best,R.floor);M.day[DKEY]=Math.max(M.day[DKEY]||0,R.floor);
+    $('shareBtn').hidden=true;$('shopBtn').hidden=true;saveRun();
+  }else{R.log.push(why==='dead'?'👹':'💀');clearRun();const rd=R.dkey||DKEY;
+    M.bank+=R.gold;M.best=Math.max(M.best,R.floor);M.day[rd]=Math.max(M.day[rd]||0,R.floor);
     const newU=Object.keys(RELICS).filter(k=>RELICS[k].unlock&&RELICS[k].unlock<=R.floor&&!M.unlocked.includes(k));newU.forEach(k=>M.unlocked.push(k));saveM();
     $('endT').textContent=why==='dead'?'力尽きた…':'ここまで…';
-    $('endP').innerHTML=`${why==='dead'?'👹 魔物にやられた':`${F.type==='boss'?'番人を倒せなかった':'🪜 階段を取れなかった'}（あと ${left} 枚）`}<br><br>到達 <b style="color:#ffcf5a;font-size:22px">地下${R.floor}階</b><br><span class="grid">${R.log.join('')}</span><br>💰${R.gold} を宿屋に持ち帰った（合計 ${M.bank}）<br><span style="font-size:12px;color:#a08a60">最大 ${R.maxChain} 連鎖 ／ 今日の最高 B${M.day[DKEY]} ／ 自己最高 B${M.best}</span>`;
+    $('endP').innerHTML=`${why==='dead'?'👹 魔物にやられた':`${F.type==='boss'?'番人を倒せなかった':'🪜 階段を取れなかった'}（あと ${left} 枚）`}<br><br>到達 <b style="color:#ffcf5a;font-size:22px">地下${R.floor}階</b><br><span class="grid">${R.log.join('')}</span><br>💰${R.gold} を宿屋に持ち帰った（合計 ${M.bank}）<br><span style="font-size:12px;color:#a08a60">最大 ${R.maxChain} 連鎖 ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}</span>`;
     newU.forEach(k=>{const d=document.createElement('div');d.className='newunlock';d.innerHTML=`🔓 新しい道具が宝箱に入るようになった<br><b style="font-size:18px">${RELICS[k].ic} ${RELICS[k].n}</b><br><span style="font-size:12px">${RELICS[k].d}</span>`;ex.appendChild(d);});
     const jr=saveJournal();const jb=document.createElement('button');jb.className='btn';jb.textContent=`探検記を見る（${jr.title}）`;jb.onclick=()=>openJournal(jr);ex.appendChild(jb);
-    $('endBtn').textContent='もう一度もぐる';$('endBtn').onclick=()=>{$('endSheet').hidden=true;$('title').hidden=false;renderCls();};
+    $('endBtn').textContent='もう一度もぐる';$('endBtn').onclick=()=>{$('endSheet').hidden=true;$('title').hidden=false;renderCls();renderResume();};
     $('shopBtn').hidden=false;$('shareBtn').hidden=false;
     $('shareBtn').onclick=()=>{const t=`めくって降りる地下 ${today.getMonth()+1}/${today.getDate()}\n地下${R.floor}階 ${R.log.join('')}\n最大${R.maxChain}連鎖 ${R.relics.map(k=>RELICS[k].ic).join('')}\n${location.href}`;navigator.clipboard&&navigator.clipboard.writeText(t);toast('コピーした');};}
   $('endSheet').hidden=false;renderDepth();}
@@ -203,7 +203,21 @@ $('jBtn0').onclick=()=>{ac();openJournalList();};$('jListClose').onclick=()=>{$(
 $('shopBtn0').onclick=()=>{ac();openShop();};$('shopBtn').onclick=openShop;$('shopClose').onclick=()=>{$('shopSheet').hidden=true;};
 function renderCls(){const b=$('clsPick');b.innerHTML='';for(const k in CLS){const c=CLS[k],open=M.best>=(c.unlock||0),e=document.createElement('button');e.className='clsb'+((M.cls||'exp')===k?' on':'');e.disabled=!open;e.innerHTML=`${ic(open?HERO_OF[k]:'lock',2)}<b>${c.n}</b><small>${open?c.d:`地下${c.unlock}階で解禁`}</small>`;e.onclick=()=>{M.cls=k;saveM();renderCls();};b.appendChild(e);}}
 renderCls();
-$('start').onclick=()=>{ac();$('title').hidden=true;newRun();};
+// ===== 途中セーブ =====
+const RUNKEY='mekuri_run';
+function saveRun(){if(!R||!F)return;try{const f=Object.assign({},F);delete f.rand;f.dealing=false;localStorage.setItem(RUNKEY,JSON.stringify({R,F:f}));}catch(e){}}
+function clearRun(){localStorage.removeItem(RUNKEY);}
+function loadRun(){try{return JSON.parse(localStorage.getItem(RUNKEY));}catch(e){return null;}}
+function resumeRun(){const sv=loadRun();if(!sv){return;}R=sv.R;F=sv.F;F.rand=rng((R.dkey||DKEY)+'-'+R.floor+'-r'+F.hist.length);busy=false;bgmStart(zoneOf(R.floor));
+  if(F.ended){R.floor++;startFloor();bgmStart(zoneOf(R.floor));return;}
+  $('app').dataset.zone=zoneOf(R.floor);$('board').dataset.type=F.type;$('fl').textContent=R.floor;render();
+  if(R.hearts<=0){endFloor(false,'dead');return;}
+  if(F.pendingChest){openChest();return;}
+  setTimeout(seeMon,500);checkEnd();}
+function renderResume(){const sv=loadRun(),b=$('resume');b.hidden=!sv;if(sv)b.innerHTML=`つづきから（地下${sv.R.floor}階・❤${sv.R.hearts}）`;$('start').textContent=sv?'最初から潜り直す':'今日のダンジョンに入る';}
+$('resume').onclick=()=>{ac();$('title').hidden=true;resumeRun();};
+renderResume();
+$('start').onclick=()=>{if(loadRun()&&!confirm('今の探検は消えます。よろしいですか？'))return;clearRun();ac();$('title').hidden=true;newRun();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('monOk').onclick=()=>{$('monSheet').hidden=true;};
 if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v6）`;
 window.addEventListener('resize',()=>F&&render());

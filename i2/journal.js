@@ -6,7 +6,7 @@ function epithet(j){const fl=j.floors,sum=k=>fl.reduce((a,f)=>a+(f[k]||0),0),mon
   // 遊び方ごとの点数を比べて、いちばん目立つものを称号にする
   const c=[[mon/Math.max(1,deep)*3,'魔物狩り'],[j.maxChain/6,'連鎖使い'],[chest/Math.max(1,deep)*2.4,'宝さがし'],[clears/Math.max(1,deep)*3,'根こそぎ'],[j.gold/Math.max(1,deep)/28,'金の亡者'],[deep/5,'深淵行き'],[fl.reduce((a,f)=>a+(f.boss||0),0)*1.2,'番人殺し']].sort((a,b)=>b[0]-a[0]);
   const who=CLS[j.cls||'exp'].n;if(c[0][0]<.8)return `駆け出しの${who}`;return `${c[0][1]}の${who}`;}
-function saveJournal(){const j={cls:R.cls,id:Date.now(),date:DKEY,deep:R.floor,gold:R.gold,maxChain:R.maxChain,relics:R.relics.slice(),floors:R.trip,why:R.why||'lost'};j.title=epithet(j);
+function saveJournal(){const j={cls:R.cls,id:Date.now(),date:R.dkey||DKEY,deep:R.floor,gold:R.gold,maxChain:R.maxChain,relics:R.relics.slice(),floors:R.trip,why:R.why||'lost'};j.title=epithet(j);
   const L=loadJ();L.unshift(j);localStorage.setItem(JKEY,JSON.stringify(L.slice(0,20)));return j;}
 function journalCanvas(j){const W=720,HEAD=190,BAND=104,FOOT=60,c=document.createElement('canvas');c.width=W;c.height=HEAD+BAND*j.floors.length+FOOT;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
   const put=(n,cx,cy,sc=2)=>{const s=sprCanvas(n);const w=s.w*sc,h=s.h*sc;x.drawImage(s.c,Math.round(cx-w/2),Math.round(cy-h/2),w,h);return w;};

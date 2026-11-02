@@ -31,6 +31,7 @@ function newRace(){resize();const ci=cidx();CO=COURSES[ci];L=CO.L;const r=rng(ci
     else if(sand){const l=Math.floor(r()*3);OB.push({t:'sand',lane:l,d,len:200});}
     d+=200+r()*170;}
   const cs=carStats();P.st=cs.s;P.sp=cs.sp;P.track=[];GH=(CUP.ta&&SV.ghost&&SV.ghost[ci])||null;
+  if(!CUP.ta){SV.run=JSON.parse(JSON.stringify(CUP));saveSV();}
   PJ=[];fx=[];confetti=[];state='count';cd=180;t0=0;P.slip=0;$('course').textContent=CUP.ta?`${CO.ic} ${CO.n}　タイムアタック`:`${CO.ic} ${CO.n}　${CUP.race+1}/4`;renderSlot();storyLine();}
 const allKarts=()=>[P,...RV];
 function rank(){return 1+RV.filter(v=>v.fin?(!P.fin||v.fin<P.fin):v.d>P.d).length;}
@@ -136,7 +137,7 @@ function burst(x,d,c){for(let i=0;i<12;i++)fx.push({x,d,vx:(Math.random()-.5)*6,
 // ===== ゴール後 =====
 function finish(rk){state='end';if(engG)engG.gain.value=0;bgmStop();
   SV.rec=SV.rec||{};const rkey=CUP.cls+'-'+cidx(),tm=P.fin/60,old=SV.rec[rkey],newRec=!old||tm<old;if(newRec)SV.rec[rkey]=tm;
-  const ord=order();ord.forEach((k,i)=>{CUP.pts[k.who]+=POINTS[i];});CUP.marks.push(rk);
+  const ord=order();ord.forEach((k,i)=>{CUP.pts[k.who]+=POINTS[i];});CUP.marks.push(rk);SV.run=Object.assign(JSON.parse(JSON.stringify(CUP)),CUP.race===3?{showResult:true}:{race:CUP.race+1});
   const earned=P.got+[10,6,4,2][rk-1];SV.coins+=earned;
   let unlocked=null;if(rk<=3){const nx=UNLOCK.find(k=>!SV.have.includes(k));if(nx){SV.have.push(nx);unlocked=nx;}}saveSV();
   const names=['あなた',...RV.map(v=>v.nm)],cols=[COLORS[SV.color][0],...RV.map(v=>v.col)];
@@ -150,9 +151,9 @@ function finish(rk){state='end';if(engG)engG.gain.value=0;bgmStop();
   $('again').onclick=()=>{$('endSheet').hidden=true;if(last)cupResult();else{CUP.race++;newRace();}};
   $('endGar').onclick=()=>{openGarage();};
   $('endSheet').hidden=false;}
-function cupResult(){const ord=[0,1,2,3].sort((a,b)=>CUP.pts[b]-CUP.pts[a]);const pl=ord.indexOf(0)+1;const tr=['🥇','🥈','🥉',''][pl-1];
+function cupResult(){delete SV.run;saveSV();const ord=[0,1,2,3].sort((a,b)=>CUP.pts[b]-CUP.pts[a]);const pl=ord.indexOf(0)+1;const tr=['🥇','🥈','🥉',''][pl-1];
   let opened=null;if(tr){SV.trophies.push(tr);SV.tro=SV.tro||{};SV.tro[CUP.cls]=SV.tro[CUP.cls]||[];SV.tro[CUP.cls].push(tr);if(CUP.cls<2&&(SV.clsOpen||1)<CUP.cls+2){SV.clsOpen=CUP.cls+2;opened=CLASSES[CUP.cls+1].n;}}SV.cups++;saveSV();sfx.cup();
-  const names=['あなた',...RV.map(v=>v.nm)];
+  const names=['あなた',...(CUP.cup===1?[PERS[0],KURO,PERS[2]]:PERS).map(v=>v.nm)];
   $('cupT').textContent=(tr?`${tr} `:'')+`${CUPS[CUP.cup].n} ${CLASSES[CUP.cls].n} ${pl}位`+(tr?'！':'…');
   let extra='';if(tr&&!SV.cup2seen){SV.cup2seen=1;saveSV();extra+=`<div class="unl">🔓 ほしのカップ が走れるようになった<br><small>新しい4コース。最強のライバル「くろ」が待っている</small></div>`;}
   const kuroBeat=CUP.cup===1&&pl===1;if(kuroBeat&&!myCar().own.includes('body.kuro')){myCar().own.push('body.kuro');saveSV();extra+=`<div class="unl">くろ「…負けた。これを持っていけ」<br>新しいボディ「くろがね」を手に入れた<br><small>ガレージで付けられる</small></div>`;}
@@ -225,10 +226,12 @@ function finishTA(){state='end';if(engG)engG.gain.value=0;bgmStop();const ci=cid
   $('endT').textContent=`${CO.ic} ${CO.n}`;$('endRec').innerHTML=`タイム ${tm.toFixed(2)}秒　${nr?'<b>🎉 自己ベスト！</b>'+(old?`（前 ${old.toFixed(2)}秒）`:''):`ベスト ${old.toFixed(2)}秒（差 +${(tm-old).toFixed(2)}）`}`;
   $('endP').innerHTML=`半透明の車は、自己ベストの走りです<br>🪙 +${Math.min(P.got,8)}`;$('again').textContent='もう一度走る';$('again').onclick=()=>{$('endSheet').hidden=true;newTA(ci);};$('endGar').onclick=()=>openGarage();$('endTitle').hidden=false;$('endTitle').onclick=()=>{$('endSheet').hidden=true;$('endTitle').hidden=true;$('title').hidden=false;titleInfo();};$('endSheet').hidden=false;}
 function openTA(){const b=$('taList');b.innerHTML='';COURSES.forEach((c,i)=>{const open=i<4||cupOpen(),rec=SV.rec&&SV.rec['ta-'+i],e=document.createElement('button');e.className='gp';e.disabled=!open;e.innerHTML=`<b>${open?c.ic:'🔒'} ${open?c.n:'？？？'}<span>${rec?rec.toFixed(2)+'秒':''}</span></b>${open?(c.tip||'基本のコース'):'トロフィーを取ると走れる'}`;e.onclick=()=>{$('taSheet').hidden=true;$('title').hidden=true;ac();newTA(i);};b.appendChild(e);});$('taSheet').hidden=false;}
-function titleInfo(){const co=cupOpen();$('cups').innerHTML=CUPS.map((c,i)=>`<button class="clb${(SV.cupSel||0)===i&&(co||!i)?' on':''}" ${i&&!co?'disabled':''} data-c="${i}">${i&&!co?'🔒':c.ic}${c.n}</button>`).join('');$('cups').querySelectorAll('button').forEach(b=>b.onclick=()=>{SV.cupSel=+b.dataset.c;saveSV();titleInfo();});$('tinfo').innerHTML=`🪙 ${SV.coins}　トロフィー ${SV.trophies.slice(-8).join('')||'まだなし'}`;const o=SV.clsOpen||1;
+function titleInfo(){renderResume();const co=cupOpen();$('cups').innerHTML=CUPS.map((c,i)=>`<button class="clb${(SV.cupSel||0)===i&&(co||!i)?' on':''}" ${i&&!co?'disabled':''} data-c="${i}">${i&&!co?'🔒':c.ic}${c.n}</button>`).join('');$('cups').querySelectorAll('button').forEach(b=>b.onclick=()=>{SV.cupSel=+b.dataset.c;saveSV();titleInfo();});$('tinfo').innerHTML=`🪙 ${SV.coins}　トロフィー ${SV.trophies.slice(-8).join('')||'まだなし'}`;const o=SV.clsOpen||1;
   $('cls').innerHTML=CLASSES.map((c,i)=>`<button class="clb${(SV.clsSel||0)===i?' on':''}" ${i>=o?'disabled':''} data-i="${i}">${i>=o?'🔒':''}${c.n}<small>${(SV.tro&&SV.tro[i]||[]).slice(-3).join('')}</small></button>`).join('');
   $('cls').querySelectorAll('button').forEach(b=>b.onclick=()=>{SV.clsSel=+b.dataset.i;saveSV();titleInfo();});}
-$('start').onclick=()=>{ac();$('title').hidden=true;newCup();};
+function renderResume(){const r=SV.run,b=$('resume');b.hidden=!r;if(r){const c=COURSES[r.cup*4+r.race];b.innerHTML=r.showResult?'つづきから（グランプリの結果へ）':`つづきから（${c.ic} ${c.n} ${r.race+1}/4）`;}$('start').textContent=r?'グランプリを最初から':'グランプリ スタート';}
+$('resume').onclick=()=>{ac();$('title').hidden=true;const r=SV.run;CUP=JSON.parse(JSON.stringify(r));if(r.showResult){delete CUP.showResult;cupResult();}else newRace();};
+$('start').onclick=()=>{if(SV.run&&!confirm('今のグランプリは消えます。よろしいですか？'))return;delete SV.run;ac();$('title').hidden=true;newCup();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('taBtn').onclick=()=>{ac();openTA();};$('taClose').onclick=()=>{$('taSheet').hidden=true;};
 $('gBtn').onclick=()=>{ac();openGarage();};$('gClose').onclick=()=>{$('garage').hidden=true;titleInfo();};
 $('cupAgain').onclick=()=>{$('cupSheet').hidden=true;$('title').hidden=false;titleInfo();};
