@@ -20,7 +20,7 @@ function floorType(f){if(f%5===0)return 'boss';if(f<3)return 'normal';const r=rn
 const CLS={
   exp:{n:'探検家',d:'ふつう。まずはここから',heart:0},
   thief:{n:'盗賊',unlock:3,d:'💰が1.5倍。そのかわり❤-1',heart:-1},
-  knight:{n:'騎士',unlock:5,d:'❤+2。そのかわり毎階の山札-3',heart:2},
+  knight:{n:'騎士',unlock:5,d:'❤+1。そのかわり毎階の山札-3',heart:1},
   mage:{n:'魔術師',unlock:7,d:'最初から万能の鍵と時の砂を持つ。そのかわり❤-1',heart:-1},
 };
 const HERO_OF={exp:'hero',thief:'hero_thief',knight:'hero_knight',mage:'hero_mage'};
