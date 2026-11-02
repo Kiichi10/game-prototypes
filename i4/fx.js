@@ -1,12 +1,13 @@
 'use strict';
 // ===== クラス・ライバルの個性 =====
 const CLASSES=[{n:'50cc',k:1},{n:'100cc',k:1.07},{n:'150cc',k:1.14}];
+const KURO={nm:'くろ',col:'#2a2a30',style:'最強',items:['bomb','dash','bomb','shield'],v:.2,pass:['遅い','それが全力か'],hit:['終わりだ','甘い'],ouch:['…ほう','やるな'],car:{body:'kuro',tire:'big',acc:'none'}};
 const PERS=[
   {nm:'あお',col:'#3a8cff',style:'攻撃型',items:['bomb','bomb','oil','dash'],v:0,pass:['どいてどいて！','じゃまだよ！'],hit:['えいっ！','命中〜！'],ouch:['いったぁ！','なにすんの！']},
   {nm:'みどり',col:'#3fbf5a',style:'守り型',items:['shield','oil','shield','dash'],v:0,pass:['お先に〜','ごめんね〜'],hit:['ふふっ','すべった？'],ouch:['あらら…','やるわね']},
   {nm:'きいろ',col:'#ffb02e',style:'スピード型',items:['dash','dash','bomb','shield'],v:.12,pass:['おっそーい！','ついてこれる？'],hit:['どーん！','遅いよ！'],ouch:['ちぇっ！','まだまだ！']},
 ];
-function say(v,kind){if(!v||v===P||v.sayCd>t0)return;const L=PERS[v.who-1][kind];v.say={s:L[Math.floor(Math.random()*L.length)],l:80};v.sayCd=t0+180;}
+function say(v,kind){if(!v||v===P||v.sayCd>t0)return;const L=v.p[kind];v.say={s:L[Math.floor(Math.random()*L.length)],l:80};v.sayCd=t0+180;}
 function drawSay(x,y,s){g.font='13px DotGothic16';const w=g.measureText(s).width+14;g.fillStyle='#fff';g.strokeStyle='#000';g.lineWidth=2;
   g.beginPath();g.roundRect(x-w/2,y-48,w,22,8);g.fill();g.stroke();g.beginPath();g.moveTo(x-4,y-26);g.lineTo(x,y-20);g.lineTo(x+4,y-26);g.fill();g.fillStyle='#000';g.textAlign='center';g.textBaseline='middle';g.fillText(s,x,y-37);}
 // ===== 画面の揺れ・紙吹雪 =====
@@ -29,6 +30,10 @@ const SONGS=[
   {ms:200,ch:[[2,5,9],[-2,2,5],[0,4,7],[-3,0,4]],bass:'square'},      // さばく：Dm Bb C Am
   {ms:190,ch:[[0,4,7],[-3,0,4],[5,9,12],[7,11,14]],bass:'triangle'},  // ゆきやま：C Am F G
   {ms:165,ch:[[-3,0,4],[-7,-3,0],[-5,-1,2],[-8,-4,-1]],bass:'sawtooth'}, // よるのまち：Am F G E 速く
+  {ms:210,ch:[[0,4,7],[-3,0,4],[-7,-3,0],[-5,-1,2]],bass:'triangle'},  // うみべ：C Am F G
+  {ms:170,ch:[[-3,0,3],[-3,0,3],[-5,-2,2],[-1,2,5]],bass:'square'},   // こうじょう
+  {ms:185,ch:[[5,9,12],[7,11,14],[4,7,11],[9,12,16]],bass:'triangle'}, // そらのみち
+  {ms:155,ch:[[-5,-2,2],[-9,-5,-2],[-7,-3,0],[-4,0,3]],bass:'sawtooth'}, // かざん
 ];
 const BGM={on:localStorage.getItem('itembox_bgm')!=='0',timer:null,step:0,song:0};
 function bgmStart(i){BGM.song=i;bgmStop();BGM.step=0;if(!BGM.on)return;const S=SONGS[i];
@@ -37,4 +42,9 @@ function bgmStart(i){BGM.song=i;bgmStop();BGM.step=0;if(!BGM.on)return;const S=S
     if(st%2===0)tone(root/2*Math.pow(2,ch[0]/12),S.ms/1000*1.6,S.bass,.02);
     if(st%4===2)noise(.04,.03);},S.ms);}
 function bgmStop(){if(BGM.timer)clearInterval(BGM.timer);BGM.timer=null;}
-function bgmToggle(){BGM.on=!BGM.on;localStorage.setItem('itembox_bgm',BGM.on?'1':'0');$('bgmBtn').textContent=BGM.on?'🔊':'🔇';if(BGM.on&&state==='race')bgmStart(CUP.race);else bgmStop();}
+function bgmToggle(){BGM.on=!BGM.on;localStorage.setItem('itembox_bgm',BGM.on?'1':'0');$('bgmBtn').textContent=BGM.on?'🔊':'🔇';if(BGM.on&&state==='race')bgmStart(cidx());else bgmStop();}
+
+// ===== ライバルとの物語（レース前のひと言） =====
+const STORY=[['きいろ「今日こそ負けないよ！」','あお「砂なんて関係ないね！」','みどり「ゆっくり行きましょ」','きいろ「夜はわたしの時間！」'],
+  ['くろ「お前が噂の新人か」','くろ「ベルトも読めないなら帰れ」','きいろ「くろさん、速すぎない…？」','くろ「ここで決着をつける」']];
+function storyLine(){if(CUP.ta)return;let s=STORY[CUP.cup][CUP.race];const ld=CUP.pts.indexOf(Math.max(...CUP.pts));if(CUP.race>0&&ld===0&&CUP.cup===1&&CUP.race<3)s='くろ「少しはやるようだな」';setTimeout(()=>{if(state==='count')toast2(s);},500);}

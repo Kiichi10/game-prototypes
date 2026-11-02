@@ -25,10 +25,15 @@ const DEF=['oil','shield','bomb'],CATCH=['dash3','star','thunder','homing','magn
 // ===== コース =====
 const COURSES=[
   {n:'はらっぱ',ic:'🌼',grass:['#4a8c3a','#55993f'],road:'#5a5a62',curb:['#e8402c','#fff'],deco:['#f2e86a','#ff8fb0'],gim:[],L:9200},
-  {n:'さばく',ic:'🌵',grass:['#d4aa58','#dcb666'],road:'#7a6a50',curb:['#c86a2a','#f0e0b0'],deco:['#4a8a3a','#a07a40'],gim:['sand'],L:9600},
-  {n:'ゆきやま',ic:'⛄',grass:['#e4eef8','#f2f7fc'],road:'#6a7c92',curb:['#3a7ad8','#fff'],deco:['#2a6a4a','#ffffff'],gim:['ice'],L:9600},
-  {n:'よるのまち',ic:'🌃',grass:['#161626','#1e1e34'],road:'#2a2a36',curb:['#ff3ab0','#3af0ff'],deco:['#ffd84a','#3af0ff'],gim:['dark'],L:10000},
+  {n:'さばく',ic:'🌵',grass:['#d4aa58','#dcb666'],road:'#7a6a50',curb:['#c86a2a','#f0e0b0'],deco:['#4a8a3a','#a07a40'],gim:['sand'],L:9600,tip:'砂で遅くなる'},
+  {n:'ゆきやま',ic:'⛄',grass:['#e4eef8','#f2f7fc'],road:'#6a7c92',curb:['#3a7ad8','#fff'],deco:['#2a6a4a','#ffffff'],gim:['ice'],L:9600,tip:'すべる'},
+  {n:'よるのまち',ic:'🌃',grass:['#161626','#1e1e34'],road:'#2a2a36',curb:['#ff3ab0','#3af0ff'],deco:['#ffd84a','#3af0ff'],gim:['dark'],L:10000,tip:'先が暗い'},
+  {n:'うみべ',ic:'🌊',grass:['#e6cf8e','#ddc47e'],road:'#6a7680',curb:['#3a8cff','#fff'],deco:['#3a8cff','#ffffff'],gim:['wave'],L:9800,tip:'波が道を横切る'},
+  {n:'こうじょう',ic:'⚙',grass:['#4a4a52','#55555e'],road:'#34343c',curb:['#ffcf3a','#1a1210'],deco:['#ffcf3a','#8a8a94'],gim:['belt'],L:9800,tip:'青は速い・赤は遅いベルト'},
+  {n:'そらのみち',ic:'☁',grass:['#8ad0f4','#9ad8f8'],road:'#7a7a8e',curb:['#fff','#ffcf3a'],deco:['#ffffff','#e8f8ff'],gim:['sky'],L:10000,tip:'穴に注意・ジャンプ台で越える'},
+  {n:'かざん',ic:'🌋',grass:['#2a120c','#34160e'],road:'#3a3030',curb:['#ff5a1a','#1a1210'],deco:['#ff5a1a','#ffcf3a'],gim:['lava'],L:10400,tip:'赤く光ると溶岩が噴く'},
 ];
+const CUPS=[{n:'はじまりのカップ',ic:'🌼'},{n:'ほしのカップ',ic:'⭐'}];
 const POINTS=[10,6,3,1];
 // ===== ガレージ =====
 const PARTS={

@@ -305,6 +305,73 @@ kwwwwkk.
 kwwkk...
 kkk.....
 k.......`,
+wave:`............
+...kkkk.....
+..kccwwk....
+.kcbbccwk...
+kcbbbkkcwk..
+kbbbk..kcwk.
+kbbbbk..kk..
+kbbbbbkkkk.k
+kcbbbbbccckc
+kbbcccbbbbbk
+kbbbbbbbbbbk
+kkkkkkkkkkkk`,
+gear:`.....kk.....
+..kk.ks.kk..
+..kskssksk..
+...kssssk...
+kkkssSSsskkk
+ksssSkkSsssk
+ksssSkkSsssk
+kkkssSSsskkk
+...kssssk...
+..kskssksk..
+..kk.ks.kk..
+.....kk.....`,
+cloud:`....kkkk....
+...kwwwwk...
+.kkkwwwwkkk.
+.kwwwwwwwwk.
+kkwwwwwwwwkk
+kwwwwwwwwwwk
+kwwwwwwwwssk
+kwwwwwwssssk
+.kkkkkkkkkk.`,
+volcano:`.....rkr....
+....kyork...
+....koyok...
+...kNorNk...
+...kNrrNk...
+..kNNNrNNk..
+..kNNNrNNk..
+.kNNNNrNNNk.
+.kNNNrrNNNk.
+kNNNNNrNNNNk
+kNNNNNNNNNNk
+kkkkkkkkkkkk`,
+ramp:`kkkkkkkkkkkkkk
+kyykyykyykyyyk
+kkkkkkkkkkkkkk
+kssssssssssssk
+kssSssssssSssk
+kssSSssssSSssk
+ksssSSSSSSsssk
+kssssSSSSssssk
+kSSSSSSSSSSSSk
+kkkkkkkkkkkkkk`,
+flame:`.....kk.....
+....kok.k...
+...koook.k..
+..kokooookk.
+..koyooyook.
+.koyyoyyyook
+.koyyyyyyyok
+.koyywwwyyok
+.koywwwwwyok
+..koywwwyok.
+...kooyook..
+....kkkkk...`,
 capsule:`....kkkkkk....
 ..kkppppppkk..
 .kppwwppppPPk.
@@ -451,7 +518,7 @@ const KC={};function kartCanvas(col,helm){const k=col+helm;if(KC[k])return KC[k]
   return KC[k]=paint('kart',{x:col,X:dark,h:helm});}
 // キャンバスに中心合わせで描く
 function drawSp(x,n,cx,cy,sc=2,sx=1){const s=sprCanvas(n);x.imageSmoothingEnabled=false;const w=s.w*sc*sx,h=s.h*sc;x.drawImage(s.c,Math.round(cx-w/2),Math.round(cy-h/2),w,h);}
-const EMO={'🚀':'rocket','💣':'bomb','🛡':'shield','🛢':'barrel','🦘':'spring','🔥':'fire','🎯':'target','🧲':'magnet','👻':'ghost','🐘':'weight','⭐':'star','⚡':'bolt','🌼':'flower','🌵':'cactus','⛄':'snow','🌃':'city','🔧':'wrench','🛞':'tire','🍀':'clover','🪙':'coin','🏆':'cup','🥇':'medal1','🥈':'medal2','🥉':'medal3','💥':'boom','🎉':'party','🔓':'unlock','🔒':'lock','🔊':'sound','🔇':'mute','⚠':'warn','◀':'left','▶':'right'};
+const EMO={'🚀':'rocket','💣':'bomb','🛡':'shield','🛢':'barrel','🦘':'spring','🔥':'fire','🎯':'target','🧲':'magnet','👻':'ghost','🐘':'weight','⭐':'star','⚡':'bolt','🌼':'flower','🌵':'cactus','⛄':'snow','🌃':'city','🔧':'wrench','🛞':'tire','🍀':'clover','🪙':'coin','🏆':'cup','🥇':'medal1','🥈':'medal2','🥉':'medal3','💥':'boom','🎉':'party','🔓':'unlock','🔒':'lock','🔊':'sound','🔇':'mute','⚠':'warn','◀':'left','▶':'right','🌊':'wave','⚙':'gear','☁':'cloud','🌋':'volcano'};
 const EMO_RE=new RegExp('['+Object.keys(EMO).join('')+']\\uFE0F?','gu');
 const emoSp=e=>EMO[e.replace('️','')];
 // 画面に出る絵文字を自動で置き換える（共有用にコピーする文章はDOMを通らないので絵文字のまま）

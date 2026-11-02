@@ -57,6 +57,7 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
 .sl{font-size:14px;color:#cfe0c4;text-align:left!important;margin:10px 0 4px!important}.cps{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .cp{font-family:inherit;text-align:left;padding:7px 8px;border:2px solid #3a5a30;border-radius:2px;background:#22331d;color:#fff;font-size:14px}.cp b{display:block;font-weight:400}.cp b span{float:right;color:#ffd84a;font-size:12px}.cp small{display:block;font-size:10px;line-height:1.35;color:#cfe0c4}.cp.on{border-color:#ffd84a;background:#3a4a1a}.cp[disabled]{opacity:.45}
 #garage,#cardSheet{background:#0c1409}
+#cups .clb{font-size:13px;display:flex;align-items:center;justify-content:center;gap:4px}
 </style></head><body>
 <div class="app" id="app">
   <canvas id="cv"></canvas>
@@ -68,16 +69,19 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
   <div class="sheet" id="title">
     <h2>アイテムボックス一本道</h2>
     <p>車は勝手に走る。<b style="color:#ffd84a">くじ玉</b>に当たるとアイテムが出る。<br>いいところで「つかう」。<br>◀ ▶（または画面の左右）で車線を変える。<br><span style="font-size:13px;color:#cfe0c4">4コースのグランプリ。ライバルもアイテムを使ってくる<br>真後ろに付くとスリップストリーム</span></p>
+    <div class="cls" id="cups"></div>
     <div class="cls" id="cls"></div>
     <button class="btn" id="start">グランプリ スタート</button>
+    <button class="btn sub" id="taBtn">タイムアタック（自分の影と競う）</button>
     <button class="btn sub" id="gBtn">ガレージ</button>
     <p id="tinfo" style="font-size:14px"></p>
-    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v5・音が出ます）</p>
+    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v6・音が出ます）</p>
   </div>
   <div class="sheet" id="endSheet" hidden>
     <h2 id="endT"></h2><p id="endRec" class="rec"></p><p id="endP"></p>
     <button class="btn" id="again">次のレースへ</button>
     <button class="btn sub" id="endGar">ガレージ（部品を付け替える）</button>
+    <button class="btn sub" id="endTitle" hidden>タイトルへ</button>
   </div>
   <div class="sheet" id="cupSheet" hidden>
     <h2 id="cupT"></h2><div id="cupOpen"></div><p id="cupP"></p>
@@ -85,6 +89,7 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <button class="btn sub" id="cupGarage">ガレージ</button>
     <button class="btn sub" id="cupShare">結果をコピー</button>
   </div>
+  <div class="sheet" id="taSheet" hidden style="justify-content:flex-start;background:#0c1409"><h2>タイムアタック</h2><p style="font-size:13px">ライバルもくじ玉もなし。自己ベストの影と競う</p><div id="taList" style="display:flex;flex-direction:column;gap:6px"></div><button class="btn" id="taClose">もどる</button></div>
   <div class="sheet" id="cardSheet" hidden style="justify-content:flex-start;z-index:6"><img id="cardImg" alt="車検証" style="width:100%"><p style="font-size:13px">画像を長押しで保存できます</p><button class="btn" id="cardDl">画像を保存</button><button class="btn sub" id="cardClose">もどる</button></div>
   <div class="sheet" id="garage" hidden style="justify-content:flex-start">
     <h2>🔧 ガレージ</h2><p>🪙 <b id="gcoins" style="color:#ffd84a;font-size:22px"></b></p>
