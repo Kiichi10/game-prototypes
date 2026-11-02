@@ -20,7 +20,7 @@ const sfx={
 // ===== 乱数（日付で全員同じ） =====
 const today=new Date();const DKEY=`${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
 function rng(seed){let s=0;for(const ch of String(seed))s=(s*31+ch.charCodeAt(0))>>>0;s=s||1;return()=>{s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
-const SUITS=['♠','♥','♦','♣'],RN=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const RN=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const LOOT={gold:'💰',chest:'🎁',stairs:'🪜',monster:'👹'};
 const ZONES=[{n:'石の回廊',from:1},{n:'水の洞',from:5},{n:'溶岩の底',from:10}];
 const zoneOf=f=>f>=10?2:f>=5?1:0;
@@ -80,11 +80,12 @@ function ok(card){if(F.armed==='wild'||F.armed==='hammer')return true;const w=wt
 function playable(){const out=[];F.cols.forEach((col,ci)=>{if(col.length&&ok(col[col.length-1]))out.push(ci);});return out;}
 
 // ===== 描画 =====
+function lootIc(l,sc){return ic(l==='gold'?'coin':l==='chest'?'chest':l==='stairs'?'stairs':curMon(),sc);}
 function cardEl(c,cls=''){const e=document.createElement('div');
-  if(c.joker){e.className='card joker '+cls;e.innerHTML='<span class="jk">🃏</span>';return e;}
-  if(!c.up){e.className='card back '+cls;e.innerHTML=c.loot?`<span class="bl">${LOOT[c.loot]}</span>`:'';return e;}
-  e.className='card '+cls+(c.s===1||c.s===2?' red':'')+(c.flipNow?' flip':'');c.flipNow=false;
-  e.innerHTML=`<span class="r">${RN[c.r]}</span><span class="s">${SUITS[c.s]}</span><span class="big">${SUITS[c.s]}</span>`+(c.loot?`<span class="loot">${LOOT[c.loot]}</span>`:'')+(c.loot==='monster'?`<span class="cnt">${c.cnt==null?3:c.cnt}</span>`:'');return e;}
+  if(c.joker){e.className='card joker '+cls;e.innerHTML=`<span class="jk">${ic('joker',3)}</span>`;return e;}
+  if(!c.up){e.className='card back '+cls;e.innerHTML=c.loot?`<span class="bl">${lootIc(c.loot,2)}</span>`:'';return e;}
+  e.className='card '+cls+(c.s===1||c.s===2?' red':'')+(c.flipNow?' flip':'');c.flipNow=false;const mon=c.loot==='monster';
+  e.innerHTML=`<span class="r">${RN[c.r]}</span><span class="s">${ic(SUIT_SP[c.s],1)}</span><span class="big${mon?' monb':''}">${mon?lootIc('monster',3):ic(SUIT_SP[c.s],3)}</span>`+(c.loot&&!mon?`<span class="loot">${lootIc(c.loot,2)}</span>`:'')+(mon?`<span class="cnt">${c.cnt==null?3:c.cnt}</span>`:'');return e;}
 function render(){
   const b=$('board');b.innerHTML='';const pl=playable();
   const cw=(b.clientWidth-16-6*4)/7,chh=cw*7/5,off=chh*.42;
@@ -192,6 +193,6 @@ function openShop(){$('bank').textContent=M.bank;const L=$('shopList');L.innerHT
 $('shopBtn0').onclick=()=>{ac();openShop();};$('shopBtn').onclick=openShop;$('shopClose').onclick=()=>{$('shopSheet').hidden=true;};
 $('start').onclick=()=>{ac();$('title').hidden=true;newRun();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('monOk').onclick=()=>{$('monSheet').hidden=true;};
-if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v3）`;
+if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v4）`;
 window.addEventListener('resize',()=>F&&render());
 renderDepth();

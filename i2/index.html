@@ -79,6 +79,19 @@ body{margin:0;color:#f2e6c8;font-family:"DotGothic16","Hiragino Sans",sans-serif
 .toast{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:28px;color:#ffcf5a;text-shadow:0 3px 0 #000;pointer-events:none;z-index:6;animation:toast 1s both;white-space:nowrap}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
 .grid{font-size:26px;text-align:center;letter-spacing:2px}
+.px{image-rendering:pixelated;display:block}.px.in{display:inline-block;vertical-align:-3px;margin:0 1px}
+body{background:#0c0a08}
+.app,.app[data-zone="0"]{background:radial-gradient(ellipse at 50% 34%,rgba(255,170,60,.13),rgba(0,0,0,.62) 78%),var(--z0);background-size:auto,64px 64px;image-rendering:pixelated}
+.app[data-zone="1"]{background:radial-gradient(ellipse at 50% 34%,rgba(90,190,255,.16),rgba(0,6,20,.66) 78%),var(--z1);background-size:auto,64px 64px}
+.app[data-zone="2"]{background:radial-gradient(ellipse at 50% 72%,rgba(255,90,30,.3),rgba(24,0,0,.66) 78%),var(--z2);background-size:auto,64px 64px}
+.card{border-radius:2px;background:#f6ecd0;border:2px solid #2a1c10;box-shadow:inset -2px -2px 0 #d8c498,inset 2px 2px 0 #fffaf0,0 2px 0 #000;font-family:"DotGothic16",sans-serif}
+.card .r{left:3px;top:1px;font-size:17px}.card .s{left:4px;top:20px}.card .big{right:2px;bottom:2px;opacity:1}.card .big.monb{right:50%;transform:translateX(50%);bottom:12px}
+.card .loot{right:1px;top:1px;filter:none}.back{background:var(--back)!important;background-size:16px 16px!important;image-rendering:pixelated;border:2px solid #e9c070!important;box-shadow:inset 0 0 0 1px #2a1208,0 2px 0 #000}
+.back .bl{top:1px;display:flex;justify-content:center;filter:drop-shadow(0 1px 0 #000)}.joker{background:#e8d0ff!important}
+.relic,.btn,.pick,.depth,.chainbar,.chainbar i,.hand .slot,.newunlock{border-radius:2px}
+.depth .cell .ic{display:flex;justify-content:center;align-items:flex-end;height:26px}.depth .cell .px.in{margin:0;width:auto;max-height:24px}.chainbar span .px{width:auto;height:18px}
+.hearts .px.in{margin:0}.bgm{display:flex;align-items:center}
+#titleArt{display:block;width:100%;max-width:360px;margin:0 auto;image-rendering:pixelated;border:2px solid #54341c}
 </style></head><body>
 <div class="app" id="app">
   <div class="top"><span>地下 <b id="fl">1</b> 階</span><span id="hearts" class="hearts"></span><span>💰 <b id="gold">0</b></span><span id="left" style="font-size:12px"></span><button id="bgmBtn" class="bgm">🔊</button></div>
@@ -93,11 +106,12 @@ body{margin:0;color:#f2e6c8;font-family:"DotGothic16","Hiragino Sans",sans-serif
   <div class="depth" id="depth"></div>
 
   <div class="sheet" id="title">
+    <canvas id="titleArt" width="120" height="60"></canvas>
     <h2>めくって降りる地下</h2>
     <p>右下のカードと<b style="color:#ffcf5a">数字が1つちがう</b>カードを取る。<br>それだけ。<br><br>伏せたカードの下には 💰 🎁 🪜。<br>🪜 を取れば、もっと深くへ。<br><span style="font-size:13px;color:#c8a860">山札を引かずに続けて取ると、連鎖のごほうび</span></p>
     <button class="btn" id="start">今日のダンジョンに入る</button>
     <button class="btn sub" id="shopBtn0">宿屋（💰で強くなる）</button>
-    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v3・音が出ます）</p>
+    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v4・音が出ます）</p>
   </div>
   <div class="descend" id="descend" hidden><b id="descendT"></b><span id="descendZ"></span></div>
   <div class="hint" id="hint" hidden></div>
@@ -118,6 +132,7 @@ body{margin:0;color:#f2e6c8;font-family:"DotGothic16","Hiragino Sans",sans-serif
     <button class="btn" id="shopClose">もどる</button>
   </div>
 </div>
+<script src="sprites.js"></script>
 <script src="fx.js"></script>
 <script src="game.js"></script>
 </body></html>
