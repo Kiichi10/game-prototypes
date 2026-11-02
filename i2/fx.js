@@ -14,8 +14,8 @@ function sparks(rect,n,big){const cx=rect.left+rect.width/2,cy=rect.top+rect.hei
     s.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(a)*d}px),calc(-50% + ${Math.sin(a)*d}px)) scale(.2)`,opacity:0}],{duration:420+Math.random()*250,easing:'cubic-bezier(.2,.8,.3,1)'}).onfinish=()=>s.remove();}}
 function shake(px){$('app').animate([{transform:`translate(${px}px,0)`},{transform:`translate(${-px}px,${px/2}px)`},{transform:`translate(${px/2}px,0)`},{transform:'none'}],{duration:260});}
 // 階段を降りる場面転換
-function descend(floor,zoneName,newZone,mid){const d=$('descend');$('descendT').textContent=`地下 ${floor} 階`;$('descendZ').textContent=newZone?`― ${zoneName} ―`:'';
-  d.hidden=false;d.animate([{opacity:0},{opacity:1}],{duration:260,fill:'forwards'}).onfinish=()=>{mid();setTimeout(()=>{d.animate([{opacity:1},{opacity:0}],{duration:320,fill:'forwards'}).onfinish=()=>{d.hidden=true;};},newZone?900:420);};}
+function descend(floor,sub,mid){const d=$('descend');$('descendT').textContent=`地下 ${floor} 階`;$('descendZ').innerHTML=sub||'';
+  d.hidden=false;d.animate([{opacity:0},{opacity:1}],{duration:260,fill:'forwards'}).onfinish=()=>{mid();setTimeout(()=>{d.animate([{opacity:1},{opacity:0}],{duration:320,fill:'forwards'}).onfinish=()=>{d.hidden=true;};},sub?1500:420);};}
 // 初回案内（吹き出し）
 let hintStep=localStorage.getItem('mekuri_tut')||'0';
 function hint(el,text){const h=$('hint');if(!el){h.hidden=true;return;}const r=el.getBoundingClientRect(),ar=$('app').getBoundingClientRect();

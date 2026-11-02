@@ -1,7 +1,7 @@
 'use strict';
 // ===== クラス・ライバルの個性 =====
 const CLASSES=[{n:'50cc',k:1},{n:'100cc',k:1.07},{n:'150cc',k:1.14}];
-const KURO={nm:'くろ',col:'#2a2a30',style:'最強',items:['bomb','dash','bomb','shield'],v:.2,pass:['遅い','それが全力か'],hit:['終わりだ','甘い'],ouch:['…ほう','やるな'],car:{body:'kuro',tire:'big',acc:'none'}};
+const KURO={nm:'くろ',col:'#2a2a30',style:'最強',items:['bomb','dash','bomb','shield'],v:.32,pass:['遅い','それが全力か'],hit:['終わりだ','甘い'],ouch:['…ほう','やるな'],car:{body:'kuro',tire:'big',acc:'none'}};
 const PERS=[
   {nm:'あお',col:'#3a8cff',style:'攻撃型',items:['bomb','bomb','oil','dash'],v:0,pass:['どいてどいて！','じゃまだよ！'],hit:['えいっ！','命中〜！'],ouch:['いったぁ！','なにすんの！']},
   {nm:'みどり',col:'#3fbf5a',style:'守り型',items:['shield','oil','shield','dash'],v:0,pass:['お先に〜','ごめんね〜'],hit:['ふふっ','すべった？'],ouch:['あらら…','やるわね']},

@@ -73,6 +73,41 @@ kook.kkkk.kook
 ...kRrrrrRk...
 ..kRRkkkkRRk..
 ...kk....kk...`,
+bat:`k............k
+kk..k....k..kk
+kek.kkkkkk.kek
+keekeeeeeekeek
+keeeeyeeyeeeek
+keeeeeeeeeeeek
+.keekewwekeek.
+.kek.keek.kek.
+..k...kk...k..`,
+mimic:`..kkkkkkkkkk..
+.knnnnnnnnnnk.
+knrrknnnnkrrnk
+knnNnnnnnnNnnk
+kkkkkkkkkkkkkk
+kwkwkwkwkwkwkk
+krrrrrrrrrrrrk
+kwkwkwkwkwkwkk
+knnNnnnnnnNnnk
+knnNnnnnnnNnnk
+kNNNNNNNNNNNNk
+.kkkkkkkkkkkk.`,
+boss:`...kkkkkkkk...
+..kssssssssk..
+.kssSssssSssk.
+.ksskkssskksk.
+.ksskrsssrksk.
+.ksssssssssSk.
+..ksskkkkssk..
+..kskwkwksk...
+.kkkkkkkkkkkk.
+kPPPPyyyyPPPPk
+kPPPyyyyyyPPPk
+kPPPPPyyPPPPPk
+.kPPPPPPPPPPk.
+..kkkkkkkkkk..`,
 joker:`...kk...kk...
 ..kpyk.kyrk..
 .kpppkkkrrrk.
@@ -416,8 +451,9 @@ document.documentElement.style.setProperty('--z2',`url(${stoneTile('#34140e','#4
 document.documentElement.style.setProperty('--back',`url(${backTile()})`);
 // 画面に出る絵文字を自動で置き換える（共有用にコピーする文章はDOMを通らないので絵文字のまま）
 const curMon=()=>(typeof R!=='undefined'&&R)?['goblin','wisp','demon'][zoneOf(R.floor)]:'goblin';
+const curHero=()=>(typeof R!=='undefined'&&R&&R.cls)?HERO_OF[R.cls]:'hero';
 function fixText(t){const v=t.nodeValue;EMO_RE.lastIndex=0;if(!EMO_RE.test(v))return;EMO_RE.lastIndex=0;const f=document.createDocumentFragment();let last=0,m;
-  while((m=EMO_RE.exec(v))){if(m.index>last)f.appendChild(document.createTextNode(v.slice(last,m.index)));const k=m[0].replace('\uFE0F','');const d=document.createElement('span');d.innerHTML=ic(k==='👹'?curMon():EMO[k],2,'in');f.appendChild(d.firstChild);last=m.index+m[0].length;}
+  while((m=EMO_RE.exec(v))){if(m.index>last)f.appendChild(document.createTextNode(v.slice(last,m.index)));const k=m[0].replace('\uFE0F','');const d=document.createElement('span');d.innerHTML=ic(k==='👹'?curMon():k==='🧍'?curHero():EMO[k],2,'in');f.appendChild(d.firstChild);last=m.index+m[0].length;}
   if(last<v.length)f.appendChild(document.createTextNode(v.slice(last)));t.replaceWith(f);}
 function fixTree(n){if(n.nodeType===3)return fixText(n);if(n.nodeType!==1)return;const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT),L=[];while(w.nextNode())L.push(w.currentNode);L.forEach(fixText);}
 fixTree(document.body);
