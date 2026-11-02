@@ -3,10 +3,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="robots" content="noindex"><title>アイテムボックス一本道</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}[hidden]{display:none!important}
-body{margin:0;background:#1d2b1a;color:#fff;font-family:"M PLUS Rounded 1c","Hiragino Sans",sans-serif;overscroll-behavior:none;touch-action:none}
+body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino Sans",sans-serif;overscroll-behavior:none;touch-action:none}
 .app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden}
 #cv{flex:1;width:100%;display:block}
 .hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;padding:10px 12px;pointer-events:none}
@@ -47,6 +47,11 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"M PLUS Rounded 1c","Hir
 @keyframes tipin{0%{opacity:0;transform:translate(-50%,20px)}10%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
 .toast{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-size:30px;text-shadow:0 3px 0 #000;pointer-events:none;z-index:4;white-space:nowrap;animation:toast .9s both}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}80%{opacity:1}100%{opacity:0}}
+.px{image-rendering:pixelated;display:block}.px.in{display:inline-block;vertical-align:-3px;margin:0 1px}
+.slot,.slot2,.btn,.ctrl button,.it,.gp,.gc,.clb,.tip,.unl,.bgm{border-radius:2px}
+.slot .px{width:auto;height:48px}.slot2 .px{width:auto;height:28px}.it .px{margin:0 auto 2px;width:auto;height:26px;display:block}
+.ctrl button{display:flex;align-items:center;justify-content:center}.ctrl .l .px,.ctrl .r .px{height:24px;width:auto}
+#cv{image-rendering:auto}
 </style></head><body>
 <div class="app" id="app">
   <canvas id="cv"></canvas>
@@ -57,12 +62,12 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"M PLUS Rounded 1c","Hir
 
   <div class="sheet" id="title">
     <h2>アイテムボックス一本道</h2>
-    <p>車は勝手に走る。<b style="color:#ffd84a">？の箱</b>に当たるとアイテムが出る。<br>いいところで「つかう」。<br>◀ ▶（または画面の左右）で車線を変える。<br><span style="font-size:13px;color:#cfe0c4">4コースのグランプリ。ライバルもアイテムを使ってくる<br>真後ろに付くとスリップストリーム</span></p>
+    <p>車は勝手に走る。<b style="color:#ffd84a">くじ玉</b>に当たるとアイテムが出る。<br>いいところで「つかう」。<br>◀ ▶（または画面の左右）で車線を変える。<br><span style="font-size:13px;color:#cfe0c4">4コースのグランプリ。ライバルもアイテムを使ってくる<br>真後ろに付くとスリップストリーム</span></p>
     <div class="cls" id="cls"></div>
     <button class="btn" id="start">グランプリ スタート</button>
     <button class="btn sub" id="gBtn">ガレージ</button>
     <p id="tinfo" style="font-size:14px"></p>
-    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v3・音が出ます）</p>
+    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v4・音が出ます）</p>
   </div>
   <div class="sheet" id="endSheet" hidden>
     <h2 id="endT"></h2><p id="endRec" class="rec"></p><p id="endP"></p>
@@ -82,6 +87,7 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"M PLUS Rounded 1c","Hir
     <button class="btn" id="gClose">もどる</button>
   </div>
 </div>
+<script src="sprites.js"></script>
 <script src="data.js"></script>
 <script src="fx.js"></script>
 <script src="game.js"></script>

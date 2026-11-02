@@ -34,7 +34,7 @@ const POINTS=[10,6,3,1];
 const PARTS={
   engine:{n:'エンジン',ic:'🔧',d:'最高速度 +3%',cost:[20,50,100]},
   tire:{n:'タイヤ',ic:'🛞',d:'車線変更が速い・スピンが短い',cost:[15,40,80]},
-  luck:{n:'ボックス運',ic:'🍀',d:'？の箱から強いアイテムが出やすい',cost:[25,60,120]},
+  luck:{n:'くじ運',ic:'🍀',d:'くじ玉から強いアイテムが出やすい',cost:[25,60,120]},
 };
 const COLORS=[['#e8402c','あか'],['#3a8cff','あお'],['#ff9ad0','ピンク'],['#9a5aff','むらさき'],['#ffffff','しろ'],['#2a2a2a','くろ'],['#ffb02e','オレンジ'],['#3fbf5a','みどり']];
 let SV=JSON.parse(localStorage.getItem('itembox_v2')||'null')||{have:START.slice(),coins:0,parts:{},color:0,colors:[0],trophies:[],cups:0};

@@ -7,7 +7,7 @@ const PERS=[
   {nm:'きいろ',col:'#ffb02e',style:'スピード型',items:['dash','dash','bomb','shield'],v:.12,pass:['おっそーい！','ついてこれる？'],hit:['どーん！','遅いよ！'],ouch:['ちぇっ！','まだまだ！']},
 ];
 function say(v,kind){if(!v||v===P||v.sayCd>t0)return;const L=PERS[v.who-1][kind];v.say={s:L[Math.floor(Math.random()*L.length)],l:80};v.sayCd=t0+180;}
-function drawSay(x,y,s){g.font='800 13px "M PLUS Rounded 1c"';const w=g.measureText(s).width+14;g.fillStyle='#fff';g.strokeStyle='#000';g.lineWidth=2;
+function drawSay(x,y,s){g.font='13px DotGothic16';const w=g.measureText(s).width+14;g.fillStyle='#fff';g.strokeStyle='#000';g.lineWidth=2;
   g.beginPath();g.roundRect(x-w/2,y-48,w,22,8);g.fill();g.stroke();g.beginPath();g.moveTo(x-4,y-26);g.lineTo(x,y-20);g.lineTo(x+4,y-26);g.fill();g.fillStyle='#000';g.textAlign='center';g.textBaseline='middle';g.fillText(s,x,y-37);}
 // ===== 画面の揺れ・紙吹雪 =====
 let shakeV=0,confetti=[];
