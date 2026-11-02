@@ -399,7 +399,7 @@ keeekeeek
 const SUIT_SP=['spade','sheart','diamond','club'];
 const SPC={};
 function sprCanvas(n){if(SPC[n])return SPC[n];const rows=SP[n].split('\n'),w=Math.max(...rows.map(r=>r.length)),h=rows.length,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');
-  rows.forEach((r,j)=>{for(let i=0;i<r.length;i++){const ch=r[i];if(ch==='.')continue;x.fillStyle=PAL[ch];x.fillRect(i,j,1,1);}});return SPC[n]={url:c.toDataURL(),w,h};}
+  rows.forEach((r,j)=>{for(let i=0;i<r.length;i++){const ch=r[i];if(ch==='.')continue;x.fillStyle=PAL[ch];x.fillRect(i,j,1,1);}});return SPC[n]={c,url:c.toDataURL(),w,h};}
 function ic(n,sc=2,cls=''){const s=sprCanvas(n);return `<img class="px ${cls}" alt="" src="${s.url}" width="${s.w*sc}" height="${s.h*sc}">`;}
 // 絵文字→ドット絵（文章の中の絵文字をそのまま置き換える）
 const EMO={'💰':'coin','🎁':'chest','🪜':'stairs','👹':'goblin','🃏':'joker','❤':'heart','🖤':'heart0','🧍':'hero','🔒':'lock','🔓':'unlock','👑':'crown','🚩':'flag','🗝':'key','⏳':'hour','🕯':'candle','💍':'ring','🧤':'glove','🏮':'lantern','👁':'eye','🗺':'map','⛏':'pick','🔔':'bell','🧿':'amulet','🎒':'bag','👃':'nose','🛡':'shield','🏠':'inn','🌟':'star','💀':'skull','🔊':'sound','🔇':'mute'};

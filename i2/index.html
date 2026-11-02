@@ -110,8 +110,9 @@ body{background:#0c0a08}
     <h2>めくって降りる地下</h2>
     <p>右下のカードと<b style="color:#ffcf5a">数字が1つちがう</b>カードを取る。<br>それだけ。<br><br>伏せたカードの下には 💰 🎁 🪜。<br>🪜 を取れば、もっと深くへ。<br><span style="font-size:13px;color:#c8a860">山札を引かずに続けて取ると、連鎖のごほうび</span></p>
     <button class="btn" id="start">今日のダンジョンに入る</button>
+    <button class="btn sub" id="jBtn0">これまでの探検記</button>
     <button class="btn sub" id="shopBtn0">宿屋（💰で強くなる）</button>
-    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v4・音が出ます）</p>
+    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v5・音が出ます）</p>
   </div>
   <div class="descend" id="descend" hidden><b id="descendT"></b><span id="descendZ"></span></div>
   <div class="hint" id="hint" hidden></div>
@@ -124,6 +125,8 @@ body{background:#0c0a08}
     <button class="btn sub" id="shopBtn" hidden>宿屋へ</button>
     <button class="btn sub" id="shareBtn" hidden>結果をコピー</button>
   </div>
+  <div class="sheet" id="jListSheet" hidden style="justify-content:flex-start"><h2>探検記</h2><div id="jList" style="display:flex;flex-direction:column;gap:8px"></div><button class="btn" id="jListClose">もどる</button></div>
+  <div class="sheet" id="jSheet" hidden style="justify-content:flex-start;z-index:6"><img id="jImg" alt="探検記" style="width:100%;image-rendering:auto"><p style="font-size:13px">画像を長押しで保存できます</p><button class="btn" id="jDl">画像を保存</button><button class="btn sub" id="jBack">もどる</button></div>
   <div class="sheet" id="shopSheet" hidden style="justify-content:flex-start">
     <h2>🏠 宿屋</h2>
     <p>持ち帰った 💰 <b id="bank" style="color:#ffcf5a;font-size:22px"></b><br><span style="font-size:12px;color:#a08a60">ここで買ったものは、ずっと効く</span></p>
@@ -134,5 +137,6 @@ body{background:#0c0a08}
 </div>
 <script src="sprites.js"></script>
 <script src="fx.js"></script>
+<script src="journal.js"></script>
 <script src="game.js"></script>
 </body></html>

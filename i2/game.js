@@ -55,7 +55,7 @@ const has=k=>R.relics.includes(k);
 let R,F,busy=false;
 const CHAIN=[{n:4,ic:'💰'},{n:7,ic:'🃏'},{n:10,ic:'🎁'}];
 const maxHearts=()=>3+(M.perks.heart||0);
-function newRun(){R={floor:1,gold:0,relics:[],jokers:M.perks.joker?1:0,log:[],maxChain:0,hearts:3+(M.perks.heart||0)};bgmStart(0);if(M.perks.lamp)R.relics.push('lantern');M.runs++;saveM();startFloor();}
+function newRun(){R={floor:1,gold:0,relics:[],jokers:M.perks.joker?1:0,log:[],maxChain:0,hearts:3+(M.perks.heart||0),trip:[]};bgmStart(0);if(M.perks.lamp)R.relics.push('lantern');M.runs++;saveM();startFloor();}
 function startFloor(){
   const rand=rng(DKEY+'-'+R.floor);
   const deck=[];for(let s=0;s<4;s++)for(let r=1;r<=13;r++)deck.push({r,s});
@@ -71,7 +71,7 @@ function startFloor(){
   const stock=deck;const want=16-Math.min(8,R.floor-1)+(M.perks.stock||0)+(has('candle')?3:0);
   while(stock.length>want+1)stock.shift();while(stock.length<want+1)stock.unshift({r:1+Math.floor(rand()*13),s:Math.floor(rand()*4)});
   const waste=[stock.pop()];waste[0].up=true;
-  F={cols,stock,waste,chain:0,got:{},stairs:false,hist:[],used:{},armed:null,goldF:0,rand,dealing:true};
+  F={cols,stock,waste,chain:0,got:{},stairs:false,hist:[],used:{},armed:null,goldF:0,rand,dealing:true,ev:{mon:0,chest:0,relics:[],chain:0,hurt:0,last:0}};
   $('app').dataset.zone=zoneOf(R.floor);$('fl').textContent=R.floor;render();F.dealing=false;
   if(R.floor===4&&!localStorage.getItem('mekuri_mon')){localStorage.setItem('mekuri_mon','1');setTimeout(()=>{$('monSheet').hidden=false;},900);}}
 const wtop=()=>F.waste[F.waste.length-1];
@@ -131,14 +131,15 @@ function chainReward(){const c=F.chain;R.maxChain=Math.max(R.maxChain,c);const x
   return false;}
 function take(ci,el){if(busy)return;const col=F.cols[ci],c=col[col.length-1];
   if(!ok(c)){sfx.no();el.animate([{transform:'translateX(-4px)'},{transform:'translateX(4px)'},{transform:'none'}],{duration:180});return;}
+  F.ev.last=ci;
   let chest=false,c0=null;
   if(F.armed==='hammer'){F.used.hammer=true;F.armed=null;col.pop();F.hist.push({t:'hammer',ci,c});tone(160,.15,'square',.07);toast('⛏ くだいた');}
   else{if(F.armed==='wild'){F.used.wild=true;F.armed=null;}
-    c0=cloneAt(el);tutDone('take');col.pop();F.waste.push(c);F.chain++;F.hist.push({t:'take',ci,c});sfx.take(F.chain);chest=chainReward();}
+    c0=cloneAt(el);tutDone('take');col.pop();F.waste.push(c);F.chain++;F.ev.chain=Math.max(F.ev.chain,F.chain);F.hist.push({t:'take',ci,c});sfx.take(F.chain);chest=chainReward();}
   if(c.loot==='gold')gainGold(c.amt,el);
   if(c.loot==='stairs'&&!F.stairs){F.stairs=true;sfx.stairs();toast('🪜 階段を見つけた！');}
   if(c.loot==='chest'){sfx.chest();chest=true;}
-  if(c.loot==='monster'){const a=gainGold(5+R.floor);sfx.slay();toast(`👹 退治！ 💰+${a}`);}
+  if(c.loot==='monster'){F.ev.mon++;const a=gainGold(5+R.floor);sfx.slay();toast(`👹 退治！ 💰+${a}`);}
   c.loot=null;reveal(ci);render();
   if(c0){const ch=F.chain;flyToWaste(c0,wr=>sparks(wr,Math.min(3+ch*2,22),ch>=7));}
   if(chest){busy=true;setTimeout(()=>{busy=false;openChest();},450);return;}
@@ -146,7 +147,7 @@ function take(ci,el){if(busy)return;const col=F.cols[ci],c=col[col.length-1];
 function monsterAttack(){const ms=F.cols.filter(col=>col.length&&col[col.length-1].up&&col[col.length-1].loot==='monster').map(col=>col[col.length-1]);let m=0;
   ms.forEach(c=>{c.cnt=(c.cnt==null?3:c.cnt)-1;if(c.cnt<=0){m++;c.cnt=3;}});if(!m)return false;
   if(has('amulet')&&!F.used.amulet){F.used.amulet=true;toast('🧿 お守りが防いだ');return false;}
-  R.hearts-=m;sfx.hurt();shake(9);toast(`👹 こうげき！ ❤-${m}`);if(R.hearts<=0){R.hearts=0;render();const f=F;setTimeout(()=>{if(F===f)endFloor(false,'dead');},600);return true;}return false;}
+  R.hearts-=m;F.ev.hurt+=m;sfx.hurt();shake(9);toast(`👹 こうげき！ ❤-${m}`);if(R.hearts<=0){R.hearts=0;render();const f=F;setTimeout(()=>{if(F===f)endFloor(false,'dead');},600);return true;}return false;}
 function draw(){if(busy||!F.stock.length)return;if(F.armed==='wild')F.armed=null;const c0=cloneAt($('stock').firstChild);const c=F.stock.pop();c.up=true;F.waste.push(c);F.hist.push({t:'draw',c});F.chain=0;sfx.draw();tutDone('draw');
   const dead=monsterAttack();render();flyToWaste(c0);if(!dead)checkEnd();}
 function useJoker(){if(busy||!R.jokers||wtop().joker)return;R.jokers--;F.waste.push({joker:true});F.hist.push({t:'joker'});sfx.joker();toast('🃏 どれでも取れる');render();}
@@ -156,18 +157,19 @@ function useRelic(k){if(k==='wild'||k==='hammer'){F.armed=F.armed===k?null:k;ren
     else if(h.t==='joker'){F.waste.pop();R.jokers++;}
     else{const col=F.cols[h.ci];if(col.length)col[col.length-1].up=false;if(h.t==='take')F.waste.pop();h.c.up=true;col.push(h.c);}
     F.chain=0;render();}}
-function openChest(){const p=pool().filter(k=>!has(k));const box=$('picks');box.innerHTML='';
+function openChest(){F.ev.chest++;const p=pool().filter(k=>!has(k));const box=$('picks');box.innerHTML='';
   if(!p.length){gainGold(10);toast('💰+10');checkEnd();return;}
   for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
   p.slice(0,has('bell')?4:3).forEach(k=>{const r=RELICS[k];const b=document.createElement('button');b.className='pick';b.innerHTML=`<b>${r.ic} ${r.n}</b>${r.d}`;
-    b.onclick=()=>{R.relics.push(k);$('pickSheet').hidden=true;sfx.coin();if(k==='candle')for(let i=0;i<3;i++)F.stock.push({r:1+Math.floor(Math.random()*13),s:Math.floor(Math.random()*4)});render();checkEnd();};box.appendChild(b);});
+    b.onclick=()=>{R.relics.push(k);F.ev.relics.push(k);$('pickSheet').hidden=true;sfx.coin();if(k==='candle')for(let i=0;i<3;i++)F.stock.push({r:1+Math.floor(Math.random()*13),s:Math.floor(Math.random()*4)});render();checkEnd();};box.appendChild(b);});
   $('pickSheet').hidden=false;}
 function checkEnd(){const left=F.cols.reduce((a,c)=>a+c.length,0);
   if(left===0){sfx.clear();gainGold(10);F.stairs=true;if(R.hearts<maxHearts()){R.hearts++;toast('全部取った！ ❤+1');}return endFloor(true);}
   if(F.stock.length===0&&playable().length===0){
     const can=R.jokers>0?'🃏 ジョーカーが使える':(has('wild')&&!F.used.wild)?'🗝 鍵が使える':(has('hammer')&&!F.used.hammer)?'⛏ つるはしが使える':(has('undo')&&!F.used.undo)?'⏳ 砂が使える':null;
     if(can){toast(can);return;}const f=F;setTimeout(()=>{if(F===f)endFloor(false);},500);}}
-function endFloor(cleared,why){if(F.ended)return;hint(null);F.ended=true;const left=F.cols.reduce((a,c)=>a+c.length,0);const ex=$('endExtra');ex.innerHTML='';
+function recordFloor(cleared,why){const e=F.ev,col=e.last||0;R.trip.push({f:R.floor,mon:e.mon,chest:e.chest,relics:e.relics,chain:e.chain,hurt:e.hurt,gold:F.goldF,col,end:why==='dead'?'dead':cleared?'clear':F.stairs?'stairs':'lost'});}
+function endFloor(cleared,why){if(F.ended)return;hint(null);recordFloor(cleared,why);F.ended=true;const left=F.cols.reduce((a,c)=>a+c.length,0);const ex=$('endExtra');ex.innerHTML='';
   if(F.stairs&&why!=='dead'){R.log.push(cleared?'🌟':'🪜');
     $('endT').textContent=cleared?'全部取った！':`地下${R.floor}階 突破`;
     $('endP').innerHTML=`このフロアで 💰${F.goldF}${cleared?'（全取り +10）':''}<br>のこり ${left} 枚<br><br>持ち物 ${R.relics.map(k=>RELICS[k].ic).join(' ')||'なし'}${R.jokers?'　🃏×'+R.jokers:''}`;
@@ -179,6 +181,7 @@ function endFloor(cleared,why){if(F.ended)return;hint(null);F.ended=true;const l
     $('endT').textContent=why==='dead'?'力尽きた…':'ここまで…';
     $('endP').innerHTML=`${why==='dead'?'👹 魔物にやられた':`🪜 階段を取れなかった（あと ${left} 枚）`}<br><br>到達 <b style="color:#ffcf5a;font-size:22px">地下${R.floor}階</b><br><span class="grid">${R.log.join('')}</span><br>💰${R.gold} を宿屋に持ち帰った（合計 ${M.bank}）<br><span style="font-size:12px;color:#a08a60">最大 ${R.maxChain} 連鎖 ／ 今日の最高 B${M.day[DKEY]} ／ 自己最高 B${M.best}</span>`;
     newU.forEach(k=>{const d=document.createElement('div');d.className='newunlock';d.innerHTML=`🔓 新しい道具が宝箱に入るようになった<br><b style="font-size:18px">${RELICS[k].ic} ${RELICS[k].n}</b><br><span style="font-size:12px">${RELICS[k].d}</span>`;ex.appendChild(d);});
+    const jr=saveJournal();const jb=document.createElement('button');jb.className='btn';jb.textContent=`探検記を見る（${jr.title}）`;jb.onclick=()=>openJournal(jr);ex.appendChild(jb);
     $('endBtn').textContent='もう一度もぐる';$('endBtn').onclick=()=>{$('endSheet').hidden=true;newRun();};
     $('shopBtn').hidden=false;$('shareBtn').hidden=false;
     $('shareBtn').onclick=()=>{const t=`めくって降りる地下 ${today.getMonth()+1}/${today.getDate()}\n地下${R.floor}階 ${R.log.join('')}\n最大${R.maxChain}連鎖 ${R.relics.map(k=>RELICS[k].ic).join('')}\n${location.href}`;navigator.clipboard&&navigator.clipboard.writeText(t);toast('コピーした');};}
@@ -190,9 +193,10 @@ function openShop(){$('bank').textContent=M.bank;const L=$('shopList');L.innerHT
     b.disabled=lv>=mx||M.bank<cost;b.onclick=()=>{M.bank-=cost;M.perks[k]=lv+1;saveM();sfx.buy();openShop();};L.appendChild(b);}
   $('pool').textContent=pool().map(k=>RELICS[k].ic).join(' ')+'　'+Object.keys(RELICS).filter(k=>!pool().includes(k)).map(()=>'🔒').join('');
   $('shopSheet').hidden=false;}
+$('jBtn0').onclick=()=>{ac();openJournalList();};$('jListClose').onclick=()=>{$('jListSheet').hidden=true;};
 $('shopBtn0').onclick=()=>{ac();openShop();};$('shopBtn').onclick=openShop;$('shopClose').onclick=()=>{$('shopSheet').hidden=true;};
 $('start').onclick=()=>{ac();$('title').hidden=true;newRun();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('monOk').onclick=()=>{$('monSheet').hidden=true;};
-if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v4）`;
+if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v5）`;
 window.addEventListener('resize',()=>F&&render());
 renderDepth();
