@@ -10,7 +10,7 @@ function saveJournal(){const j={cls:R.cls,id:Date.now(),date:R.dkey||DKEY,deep:R
   const L=loadJ();L.unshift(j);localStorage.setItem(JKEY,JSON.stringify(L.slice(0,20)));return j;}
 function journalCanvas(j){const W=720,HEAD=190,BAND=104,FOOT=60,c=document.createElement('canvas');c.width=W;c.height=HEAD+BAND*j.floors.length+FOOT;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
   const put=(n,cx,cy,sc=2)=>{const s=sprCanvas(n);const w=s.w*sc,h=s.h*sc;x.drawImage(s.c,Math.round(cx-w/2),Math.round(cy-h/2),w,h);return w;};
-  const text=(s,tx,ty,sz,col,al='left')=>{x.font=`${sz}px DotGothic16`;x.textAlign=al;x.fillStyle='#000';x.fillText(s,tx+2,ty+2);x.fillStyle=col;x.fillText(s,tx,ty);};
+  const text=(s,tx,ty,sz,col,al='left')=>{s=tr(s);x.font=`${sz}px DotGothic16`;x.textAlign=al;x.fillStyle='#000';x.fillText(s,tx+2,ty+2);x.fillStyle=col;x.fillText(s,tx,ty);};
   x.fillStyle='#120e0a';x.fillRect(0,0,W,c.height);
   text('めくって降りる地下　探検記',W/2,50,26,'#c8a860','center');text(j.title,W/2,104,44,'#ffcf5a','center');
   const [yy,mm,dd]=j.date.split('-');text(`${yy}年${mm}月${dd}日　到達 地下${j.deep}階　最大${j.maxChain}連鎖`,W/2,146,22,'#f2e6c8','center');

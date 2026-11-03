@@ -9,7 +9,7 @@ let GH=null,CUP,CO,P,RV,OB,PJ,state='title',cd=0,fx=[],flash=0,t0=0,L=9200;
 const cidx=()=>CUP.cup*4+CUP.race;
 const cupOpen=()=>(SV.trophies||[]).length>0;
 function newCup(){CUP={cup:cupOpen()?(SV.cupSel||0):0,race:0,pts:[0,0,0,0],marks:[],cls:SV.clsSel||0};newRace();}
-function newTA(i){CUP={ta:true,cup:Math.floor(i/4),race:i%4,pts:[0,0,0,0],marks:[],cls:SV.clsSel||0};newRace();}
+function newTA(i,ch){CUP={ta:true,ch:ch||null,cup:Math.floor(i/4),race:i%4,pts:[0,0,0,0],marks:[],cls:ch?ch.k:(SV.clsSel||0)};newRace();}
 function newRace(){resize();const ci=cidx();CO=COURSES[ci];L=CO.L;const r=rng(ci*101+7);
   P={who:0,lane:1,x:laneX(1),d:0,v:0,spin:0,boost:0,shield:false,jump:0,ghost:0,giant:0,star:0,items:[],roll:0,magnet:0,coins:0,got:0,fin:0,holeCd:0};
   const K=CLASSES[CUP.cls].k,per=CUP.cup===1?[PERS[0],KURO,PERS[2]]:PERS;
@@ -30,7 +30,7 @@ function newRace(){resize();const ci=cidx();CO=COURSES[ci];L=CO.L;const r=rng(ci
     else if(x<.9){OB.push({t:'pad',lane:Math.floor(r()*3),d});}
     else if(sand){const l=Math.floor(r()*3);OB.push({t:'sand',lane:l,d,len:200});}
     d+=200+r()*170;}
-  const cs=carStats();P.st=cs.s;P.sp=cs.sp;P.track=[];GH=(CUP.ta&&SV.ghost&&SV.ghost[ci])||null;
+  const cs=carStats();P.st=cs.s;P.sp=cs.sp;P.track=[];GH=CUP.ta?(CUP.ch?expandGhost(CUP.ch):(SV.ghost&&SV.ghost[CUP.cls+'-'+ci])||null):null;
   if(!CUP.ta){SV.run=JSON.parse(JSON.stringify(CUP));saveSV();}
   PJ=[];fx=[];confetti=[];state='count';cd=180;t0=0;P.slip=0;$('course').textContent=CUP.ta?`${CO.ic} ${CO.n}　タイムアタック`:`${CO.ic} ${CO.n}　${CUP.race+1}/4`;renderSlot();storyLine();}
 const allKarts=()=>[P,...RV];
@@ -130,12 +130,12 @@ function update(){
   if(eng)eng.frequency.value=50+P.v*9;
   if(t0%4===0&&P.track)P.track.push(Math.round(P.d),Math.round(P.x));
   if(!P.fin&&P.d>=L){P.fin=t0;state='finish';const rk=rank();sfx.fan();if(rk<=3)popConfetti();toast(rk===1?'🏆 1位！':`ゴール！ ${rk}位`);setTimeout(()=>CUP.ta?finishTA():finish(rk),1600);}
-  $('pos').innerHTML=`${rank()}<small>位</small>`;
+  $('pos').innerHTML=LANG==='ja'?`${rank()}<small>位</small>`:`${rank()}<small>${ordEn(rank()).slice(String(rank()).length)}</small>`;
   $('prog').innerHTML=[...RV.map(v=>[v.d,v.col]),[P.d,COLORS[SV.color][0]]].map(([d,c])=>`<i style="background:${c};bottom:${Math.min(100,d/L*100)}%;margin-bottom:-8px"></i>`).join('');}
 function burst(x,d,c){for(let i=0;i<12;i++)fx.push({x,d,vx:(Math.random()-.5)*6,vd:(Math.random()-.5)*6,c,l:25});}
 
 // ===== ゴール後 =====
-function finish(rk){state='end';if(engG)engG.gain.value=0;bgmStop();
+function finish(rk){$('endCh').hidden=true;$('endTitle').hidden=true;state='end';if(engG)engG.gain.value=0;bgmStop();
   SV.rec=SV.rec||{};const rkey=CUP.cls+'-'+cidx(),tm=P.fin/60,old=SV.rec[rkey],newRec=!old||tm<old;if(newRec)SV.rec[rkey]=tm;
   const ord=order();ord.forEach((k,i)=>{CUP.pts[k.who]+=POINTS[i];});CUP.marks.push(rk);SV.run=Object.assign(JSON.parse(JSON.stringify(CUP)),CUP.race===3?{showResult:true}:{race:CUP.race+1});
   const earned=P.got+[10,6,4,2][rk-1];SV.coins+=earned;
@@ -159,7 +159,7 @@ function cupResult(){delete SV.run;saveSV();const ord=[0,1,2,3].sort((a,b)=>CUP.
   const kuroBeat=CUP.cup===1&&pl===1;if(kuroBeat&&!myCar().own.includes('body.kuro')){myCar().own.push('body.kuro');saveSV();extra+=`<div class="unl">くろ「…負けた。これを持っていけ」<br>新しいボディ「くろがね」を手に入れた<br><small>ガレージで付けられる</small></div>`;}
   $('cupOpen').innerHTML=(opened?`<div class="unl">🔓 ${opened} が走れるようになった<br><small>ライバルがもっと速い</small></div>`:'')+extra;
   $('cupP').innerHTML=ord.map((w,i)=>`${i+1}位　${names[w]}　${CUP.pts[w]}pt`).join('<br>')+`<br><br>各レース ${CUP.marks.map(m=>'①②③④'[m-1]).join('')}<br>トロフィー ${SV.trophies.join('')||'まだなし'}`;
-  $('cupShare').onclick=()=>{const t=`アイテムボックス一本道 ${CUPS[CUP.cup].n} ${CLASSES[CUP.cls].n} ${tr||'4位'}\n${CUP.marks.map(m=>'①②③④'[m-1]).join('')} 合計${CUP.pts[0]}pt\n${location.href}`;navigator.clipboard&&navigator.clipboard.writeText(t);toast('コピーした');};
+  $('cupShare').onclick=()=>{const t=`アイテムボックス一本道 ${CUPS[CUP.cup].n} ${CLASSES[CUP.cls].n} ${tr||'4位'}\n${CUP.marks.map(m=>'①②③④'[m-1]).join('')} 合計${CUP.pts[0]}pt\n${location.href}`;copyText(tr(t),()=>toast('コピーした'));};
   $('cupSheet').hidden=false;}
 
 // ===== ガレージ =====
@@ -205,7 +205,7 @@ function draw(){g.setTransform(DPR,0,0,DPR,0,0);if(shakeV>.3){g.translate((Math.
     if(o.t==='ramp')drawSp(g,'ramp',x,y,2.5);
     if(o.t==='hole'){g.fillStyle='#000';g.fillRect(x-RW/6+4,y-22,RW/3-8,44);g.fillStyle='#8ad0f4';g.fillRect(x-RW/6+8,y-16,RW/3-16,32);g.fillStyle='#fff';g.fillRect(x-14,y-8,18,5);}
     if(o.t==='geyser'){const gg=gey(o);g.fillStyle=gg>=70&&gg<110&&t0%10<5?'#ff5a1a':'#5a1a0e';g.fillRect(x-20,y-12,40,24);g.fillStyle='#000';g.fillRect(x-14,y-7,28,14);if(gg>=110){drawSp(g,'flame',x,y-18,3+Math.sin(t0*.6)*.4);}}}
-  if(GH&&state!=='end'){const i=Math.floor(t0/4)*2;if(i<GH.length){g.globalAlpha=.45;kart(GH[i+1],sy(GH[i]),COLORS[SV.color][0],{cv:makeCar(COLORS[SV.color][0],'#fff8e8',myCar())});g.globalAlpha=1;}}
+  if(GH&&state!=='end'){const i=(Math.floor(t0/4)-1)*2;if(i>=0&&i<GH.length){const ch=CUP.ch,gc=ch?COLORS[ch.c][0]:COLORS[SV.color][0];g.globalAlpha=.45;kart(GH[i+1],sy(GH[i]),gc,{cv:makeCar(gc,'#fff8e8',ch?ch.car:myCar())});g.globalAlpha=1;}}
   for(const p of PJ)drawSp(g,p.t==='homing'?'target':'bomb',p.x,sy(p.d),2);
   for(const v of RV){const y=sy(v.d);if(y>-40&&y<H+40){kart(v.x,y,v.col,{cv:makeCar(v.col,'#fff8e8',v.car),spin:v.spin,jump:v.jump,shield:v.shield,item:v.item});if(v.say)drawSay(v.x,y,v.say.s);}}
   if(P.slip>15){g.strokeStyle=`rgba(255,255,255,${Math.min(.8,P.slip/70)})`;g.lineWidth=2;for(let i=0;i<4;i++){const xx=P.x-14+i*9+(Math.random()-.5)*3;g.beginPath();g.moveTo(xx,py-40-Math.random()*20);g.lineTo(xx,py-10);g.stroke();}}
@@ -217,21 +217,24 @@ function draw(){g.setTransform(DPR,0,0,DPR,0,0);if(shakeV>.3){g.translate((Math.
   if(P.warn&&t0%10<6)drawSp(g,'warn',P.warn.x,H-28,2.5);
   drawConfetti();
   if(state==='count'){drawLights();g.fillStyle='#fff';g.strokeStyle='#000';g.textAlign='center';g.textBaseline='middle';
-    g.font='26px DotGothic16';g.lineWidth=4;const s=`${co.n}`+(co.tip?'　'+co.tip:'');g.strokeText(s,W/2,H*.55);g.fillText(s,W/2,H*.55);drawSp(g,emoSp(co.ic),W/2,H*.55-40,2.5);}
+    g.font='26px DotGothic16';g.lineWidth=4;const s=tr(`${co.n}`+(co.tip?'　'+co.tip:''));g.strokeText(s,W/2,H*.55);g.fillText(s,W/2,H*.55);drawSp(g,emoSp(co.ic),W/2,H*.55-40,2.5);}
   if(flash>0){g.fillStyle=`rgba(255,255,200,${flash/14})`;g.fillRect(0,0,W,H);flash--;}}
 let acc=0,lt=0;function frame(t){const dt=Math.min(100,t-(lt||t));lt=t;acc+=dt;while(acc>=16.67){update();acc-=16.67;}draw();requestAnimationFrame(frame);}
 function terrain(k){let f=1;for(const o of OB){if(o.t==='belt'&&near(k.x,k.d,o,o.len))f*=o.dir>0?1.35:.7;if(o.t==='wave'&&k.d>o.d&&k.d<o.d+o.len&&Math.abs(k.x-laneX((o.ph+Math.floor(t0/45))%3))<30)f*=k===P&&P.sp.snow?.8:.6;}return k===P&&P.star&&f<1?1:f;}
 const gey=o=>(t0+o.ph)%150;
-function finishTA(){state='end';if(engG)engG.gain.value=0;bgmStop();const ci=cidx(),tm=P.fin/60;SV.rec=SV.rec||{};const k='ta-'+ci,old=SV.rec[k],nr=!old||tm<old;if(nr){SV.rec[k]=tm;SV.ghost=SV.ghost||{};SV.ghost[ci]=P.track;}SV.coins+=Math.min(P.got,8);saveSV();
-  $('endT').textContent=`${CO.ic} ${CO.n}`;$('endRec').innerHTML=`タイム ${tm.toFixed(2)}秒　${nr?'<b>🎉 自己ベスト！</b>'+(old?`（前 ${old.toFixed(2)}秒）`:''):`ベスト ${old.toFixed(2)}秒（差 +${(tm-old).toFixed(2)}）`}`;
-  $('endP').innerHTML=`半透明の車は、自己ベストの走りです<br>🪙 +${Math.min(P.got,8)}`;$('again').textContent='もう一度走る';$('again').onclick=()=>{$('endSheet').hidden=true;newTA(ci);};$('endGar').onclick=()=>openGarage();$('endTitle').hidden=false;$('endTitle').onclick=()=>{$('endSheet').hidden=true;$('endTitle').hidden=true;$('title').hidden=false;titleInfo();};$('endSheet').hidden=false;}
-function openTA(){const b=$('taList');b.innerHTML='';COURSES.forEach((c,i)=>{const open=i<4||cupOpen(),rec=SV.rec&&SV.rec['ta-'+i],e=document.createElement('button');e.className='gp';e.disabled=!open;e.innerHTML=`<b>${open?c.ic:'🔒'} ${open?c.n:'？？？'}<span>${rec?rec.toFixed(2)+'秒':''}</span></b>${open?(c.tip||'基本のコース'):'トロフィーを取ると走れる'}`;e.onclick=()=>{$('taSheet').hidden=true;$('title').hidden=true;ac();newTA(i);};b.appendChild(e);});$('taSheet').hidden=false;}
+function finishTA(){state='end';if(engG)engG.gain.value=0;bgmStop();const ci=cidx(),tm=P.fin/60,n=Math.floor(P.fin/4)*2,ch=CUP.ch;P.track=P.track.slice(0,n);SV.rec=SV.rec||{};const k='ta'+CUP.cls+'-'+ci,old=SV.rec[k];let nr=false;
+  if(!ch){nr=!old||tm<old;if(nr){SV.rec[k]=tm;SV.ghost=SV.ghost||{};SV.ghost[CUP.cls+'-'+ci]=P.track;}}SV.coins+=Math.min(P.got,8);saveSV();
+  $('endT').textContent=`${CO.ic} ${CO.n}　${CLASSES[CUP.cls].n}`;
+  if(ch){const yo=ch.t/100,w=tm<yo;$('endRec').innerHTML=`<b>${w?'挑戦状に勝った！':'挑戦状に負けた…'}</b><br>タイム ${tm.toFixed(2)}秒 ／ 相手 ${yo.toFixed(2)}秒`;}
+  else $('endRec').innerHTML=`タイム ${tm.toFixed(2)}秒　${nr?'<b>🎉 自己ベスト！</b>'+(old?`（前 ${old.toFixed(2)}秒）`:''):`ベスト ${old.toFixed(2)}秒（差 +${(tm-old).toFixed(2)}）`}`;
+  $('endP').innerHTML=`${ch?'':'半透明の車は、自己ベストの走りです<br>'}🪙 +${Math.min(P.got,8)}`;$('again').textContent=ch?'もう一度挑む':'もう一度走る';$('again').onclick=()=>{$('endSheet').hidden=true;$('endCh').hidden=true;$('endTitle').hidden=true;newTA(ci,ch);};$('endGar').onclick=()=>openGarage();$('endCh').hidden=false;$('endCh').onclick=makeChallenge;$('endTitle').hidden=false;$('endTitle').onclick=()=>{$('endSheet').hidden=true;$('endTitle').hidden=true;$('endCh').hidden=true;$('title').hidden=false;titleInfo();};$('endSheet').hidden=false;}
+function openTA(){const b=$('taList');b.innerHTML='';COURSES.forEach((c,i)=>{const open=i<4||cupOpen(),rec=SV.rec&&SV.rec['ta'+(SV.clsSel||0)+'-'+i],e=document.createElement('button');e.className='gp';e.disabled=!open;e.innerHTML=`<b>${open?c.ic:'🔒'} ${open?c.n:'？？？'}<span>${rec?rec.toFixed(2)+'秒':''}</span></b>${open?(c.tip||'基本のコース'):'トロフィーを取ると走れる'}`;e.onclick=()=>{$('taSheet').hidden=true;$('title').hidden=true;ac();newTA(i);};b.appendChild(e);});$('taSheet').hidden=false;}
 function titleInfo(){renderResume();const co=cupOpen();$('cups').innerHTML=CUPS.map((c,i)=>`<button class="clb${(SV.cupSel||0)===i&&(co||!i)?' on':''}" ${i&&!co?'disabled':''} data-c="${i}">${i&&!co?'🔒':c.ic}${c.n}</button>`).join('');$('cups').querySelectorAll('button').forEach(b=>b.onclick=()=>{SV.cupSel=+b.dataset.c;saveSV();titleInfo();});$('tinfo').innerHTML=`🪙 ${SV.coins}　トロフィー ${SV.trophies.slice(-8).join('')||'まだなし'}`;const o=SV.clsOpen||1;
   $('cls').innerHTML=CLASSES.map((c,i)=>`<button class="clb${(SV.clsSel||0)===i?' on':''}" ${i>=o?'disabled':''} data-i="${i}">${i>=o?'🔒':''}${c.n}<small>${(SV.tro&&SV.tro[i]||[]).slice(-3).join('')}</small></button>`).join('');
   $('cls').querySelectorAll('button').forEach(b=>b.onclick=()=>{SV.clsSel=+b.dataset.i;saveSV();titleInfo();});}
 function renderResume(){const r=SV.run,b=$('resume');b.hidden=!r;if(r){const c=COURSES[r.cup*4+r.race];b.innerHTML=r.showResult?'つづきから（グランプリの結果へ）':`つづきから（${c.ic} ${c.n} ${r.race+1}/4）`;}$('start').textContent=r?'グランプリを最初から':'グランプリ スタート';}
 $('resume').onclick=()=>{ac();$('title').hidden=true;const r=SV.run;CUP=JSON.parse(JSON.stringify(r));if(r.showResult){delete CUP.showResult;cupResult();}else newRace();};
-$('start').onclick=()=>{if(SV.run&&!confirm('今のグランプリは消えます。よろしいですか？'))return;delete SV.run;ac();$('title').hidden=true;newCup();};
+$('start').onclick=()=>{if(SV.run&&!confirm(tr('今のグランプリは消えます。よろしいですか？')))return;delete SV.run;ac();$('title').hidden=true;newCup();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('taBtn').onclick=()=>{ac();openTA();};$('taClose').onclick=()=>{$('taSheet').hidden=true;};
 $('gBtn').onclick=()=>{ac();openGarage();};$('gClose').onclick=()=>{$('garage').hidden=true;titleInfo();};
 $('cupAgain').onclick=()=>{$('cupSheet').hidden=true;$('title').hidden=false;titleInfo();};

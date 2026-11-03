@@ -522,7 +522,7 @@ const EMO={'🚀':'rocket','💣':'bomb','🛡':'shield','🛢':'barrel','🦘':
 const EMO_RE=new RegExp('['+Object.keys(EMO).join('')+']\\uFE0F?','gu');
 const emoSp=e=>EMO[e.replace('️','')];
 // 画面に出る絵文字を自動で置き換える（共有用にコピーする文章はDOMを通らないので絵文字のまま）
-function fixText(t){const v=t.nodeValue;EMO_RE.lastIndex=0;if(!EMO_RE.test(v))return;EMO_RE.lastIndex=0;const f=document.createDocumentFragment();let last=0,m;
+function fixText(t){let v=t.nodeValue;const tv=tr(v);if(tv!==v){v=tv;t.nodeValue=v;}EMO_RE.lastIndex=0;if(!EMO_RE.test(v))return;EMO_RE.lastIndex=0;const f=document.createDocumentFragment();let last=0,m;
   while((m=EMO_RE.exec(v))){if(m.index>last)f.appendChild(document.createTextNode(v.slice(last,m.index)));const d=document.createElement('span');d.innerHTML=ic(emoSp(m[0]),2,'in');f.appendChild(d.firstChild);last=m.index+m[0].length;}
   if(last<v.length)f.appendChild(document.createTextNode(v.slice(last)));t.replaceWith(f);}
 function fixTree(n){if(n.nodeType===3)return fixText(n);if(n.nodeType!==1)return;const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT),L=[];while(w.nextNode())L.push(w.currentNode);L.forEach(fixText);}

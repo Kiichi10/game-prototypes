@@ -55,7 +55,7 @@ const has=k=>R.relics.includes(k);
 let R,F,busy=false;
 const CHAIN=[{n:4,ic:'💰'},{n:7,ic:'🃏'},{n:10,ic:'🎁'}];
 const maxHearts=()=>3+(M.perks.heart||0)+(R?CLS[R.cls].heart:0);
-function newRun(){const cls=M.cls&&CLS[M.cls]&&(M.best>=(CLS[M.cls].unlock||0))?M.cls:'exp';R={dkey:DKEY,cls,floor:1,gold:0,relics:[],jokers:M.perks.joker?1:0,log:[],maxChain:0,hearts:0,trip:[]};R.hearts=maxHearts();if(cls==='mage')R.relics.push('wild','undo');bgmStart(0);if(M.perks.lamp&&!has('lantern'))R.relics.push('lantern');M.runs++;saveM();startFloor();}
+function newRun(ch){const cls=M.cls&&CLS[M.cls]&&(M.best>=(CLS[M.cls].unlock||0))?M.cls:'exp';R={dkey:ch?ch.d:DKEY,ch:ch||null,cls,floor:1,gold:0,relics:[],jokers:M.perks.joker?1:0,log:[],maxChain:0,hearts:0,trip:[]};R.hearts=maxHearts();if(cls==='mage')R.relics.push('wild','undo');bgmStart(0);if(M.perks.lamp&&!has('lantern'))R.relics.push('lantern');M.runs++;saveM();startFloor();}
 function startFloor(){
   const rand=rng((R.dkey||DKEY)+'-'+R.floor),type=floorType(R.floor);
   const deck=[];for(let s=0;s<4;s++)for(let r=1;r<=13;r++)deck.push({r,s});
@@ -112,10 +112,10 @@ function render(){
   renderDepth();setTimeout(tutorial,30);saveRun();}
 function renderDepth(){const cur=R?R.floor:1,dayBest=M.day[DKEY]||0,start=Math.max(1,Math.min(cur-3,M.best-6)),cells=[];
   for(let f=start;f<start+9;f++){const unl=Object.keys(RELICS).find(k=>RELICS[k].unlock===f&&!M.unlocked.includes(k));
-    let ic=f===cur&&R?'🧍':unl?'🔒':f===M.best?'👑':f===dayBest?'🚩':'';
+    const chf=R&&R.ch&&R.ch.f;let ic=f===cur&&R?'🧍':f===chf?'🚩':unl?'🔒':f===M.best?'👑':f===dayBest?'🚩':'';
     cells.push(`<div class="cell${f<cur?' done':''}${f===cur&&R?' now':''}"><span class="ic">${ic}</span>B${f}${unl?`<br>${RELICS[unl].ic}`:''}</div>`);}
   const nx=Object.keys(RELICS).filter(k=>RELICS[k].unlock&&!M.unlocked.includes(k)).sort((a,b)=>RELICS[a].unlock-RELICS[b].unlock)[0];
-  $('depth').innerHTML=`<div class="row">${cells.join('')}</div><div class="note">今日の最高 B${dayBest||'-'}　自己最高 B${M.best||'-'}${nx?`　次の解禁 B${RELICS[nx].unlock} ${RELICS[nx].ic}${RELICS[nx].n}`:''}</div>`;}
+  $('depth').innerHTML=`<div class="row">${cells.join('')}</div><div class="note">${R&&R.ch?`挑戦中 B${R.ch.f}　`:''}今日の最高 B${dayBest||'-'}　自己最高 B${M.best||'-'}${nx?`　次の解禁 B${RELICS[nx].unlock} ${RELICS[nx].ic}${RELICS[nx].n}`:''}</div>`;}
 function toast(s){const t=document.createElement('div');t.className='toast';t.textContent=s;$('app').appendChild(t);setTimeout(()=>t.remove(),1000);}
 function flyTo(from,ic,targetId){const r=from.getBoundingClientRect(),tr=$(targetId).getBoundingClientRect();const f=document.createElement('div');f.className='fly';f.textContent=ic;
   f.style.left=r.left+r.width/2-10+'px';f.style.top=r.top+'px';document.body.appendChild(f);requestAnimationFrame(()=>{f.style.left=tr.left+'px';f.style.top=tr.top+'px';f.style.transform='scale(.6)';});setTimeout(()=>f.remove(),650);}
@@ -187,10 +187,11 @@ function endFloor(cleared,why){if(F.ended)return;hint(null);recordFloor(cleared,
     $('endT').textContent=why==='dead'?'力尽きた…':'ここまで…';
     $('endP').innerHTML=`${why==='dead'?'👹 魔物にやられた':`${F.type==='boss'?'番人を倒せなかった':'🪜 階段を取れなかった'}（あと ${left} 枚）`}<br><br>到達 <b style="color:#ffcf5a;font-size:22px">地下${R.floor}階</b><br><span class="grid">${R.log.join('')}</span><br>💰${R.gold} を宿屋に持ち帰った（合計 ${M.bank}）<br><span style="font-size:12px;color:#a08a60">最大 ${R.maxChain} 連鎖 ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}</span>`;
     newU.forEach(k=>{const d=document.createElement('div');d.className='newunlock';d.innerHTML=`🔓 新しい道具が宝箱に入るようになった<br><b style="font-size:18px">${RELICS[k].ic} ${RELICS[k].n}</b><br><span style="font-size:12px">${RELICS[k].d}</span>`;ex.appendChild(d);});
-    const jr=saveJournal();const jb=document.createElement('button');jb.className='btn';jb.textContent=`探検記を見る（${jr.title}）`;jb.onclick=()=>openJournal(jr);ex.appendChild(jb);
+    if(R.ch){const me=[R.floor,R.gold],yo=[R.ch.f,R.ch.g],w=me[0]>yo[0]||(me[0]===yo[0]&&me[1]>yo[1]),dr=me[0]===yo[0]&&me[1]===yo[1];const d=document.createElement('div');d.className='newunlock';d.textContent=`${dr?'引き分け':w?'挑戦状に勝った！':'挑戦状に負けた…'}（地下${me[0]}階 💰${me[1]} ／ 相手 地下${yo[0]}階 💰${yo[1]}）`;ex.appendChild(d);}
+    const jr=saveJournal();const cb=document.createElement('button');cb.className='btn sub';cb.textContent='挑戦状を作る';cb.onclick=makeChallenge;ex.appendChild(cb);const jb=document.createElement('button');jb.className='btn';jb.textContent=`探検記を見る（${jr.title}）`;jb.onclick=()=>openJournal(jr);ex.appendChild(jb);
     $('endBtn').textContent='もう一度もぐる';$('endBtn').onclick=()=>{$('endSheet').hidden=true;$('title').hidden=false;renderCls();renderResume();};
     $('shopBtn').hidden=false;$('shareBtn').hidden=false;
-    $('shareBtn').onclick=()=>{const t=`めくって降りる地下 ${today.getMonth()+1}/${today.getDate()}\n地下${R.floor}階 ${R.log.join('')}\n最大${R.maxChain}連鎖 ${R.relics.map(k=>RELICS[k].ic).join('')}\n${location.href}`;navigator.clipboard&&navigator.clipboard.writeText(t);toast('コピーした');};}
+    $('shareBtn').onclick=()=>{const t=`めくって降りる地下 ${today.getMonth()+1}/${today.getDate()}\n地下${R.floor}階 ${R.log.join('')}\n最大${R.maxChain}連鎖 ${R.relics.map(k=>RELICS[k].ic).join('')}\n${location.href}`;copyText(tr(t),()=>toast('コピーした'));};}
   $('endSheet').hidden=false;renderDepth();}
 // ===== 宿屋 =====
 function openShop(){$('bank').textContent=M.bank;const L=$('shopList');L.innerHTML='';
@@ -217,8 +218,8 @@ function resumeRun(){const sv=loadRun();if(!sv){return;}R=sv.R;F=sv.F;F.rand=rng
 function renderResume(){const sv=loadRun(),b=$('resume');b.hidden=!sv;if(sv)b.innerHTML=`つづきから（地下${sv.R.floor}階・❤${sv.R.hearts}）`;$('start').textContent=sv?'最初から潜り直す':'今日のダンジョンに入る';}
 $('resume').onclick=()=>{ac();$('title').hidden=true;resumeRun();};
 renderResume();
-$('start').onclick=()=>{if(loadRun()&&!confirm('今の探検は消えます。よろしいですか？'))return;clearRun();ac();$('title').hidden=true;newRun();};
+$('start').onclick=()=>{if(loadRun()&&!confirm(tr('今の探検は消えます。よろしいですか？')))return;clearRun();ac();$('title').hidden=true;newRun();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('monOk').onclick=()=>{$('monSheet').hidden=true;};
-if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v6）`;
+if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v7）`;
 window.addEventListener('resize',()=>F&&render());
 renderDepth();

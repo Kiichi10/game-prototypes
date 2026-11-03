@@ -2,6 +2,7 @@
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="robots" content="noindex"><title>アイテムボックス一本道</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#14200f"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="アイテムボックス一本道"><meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
@@ -60,6 +61,8 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
 #cups .clb{font-size:13px;display:flex;align-items:center;justify-content:center;gap:4px}
 .sheet{justify-content:flex-start!important}.sheet>:first-child{margin-top:auto}.sheet>:last-child{margin-bottom:auto}
 .sheet{touch-action:pan-y}@media(max-height:720px){#title>p:first-of-type{font-size:12px;line-height:1.45}#title h2{font-size:24px}#title{gap:8px}#title .btn{padding:10px}}
+.langs{display:grid;grid-template-columns:1fr 1fr;gap:6px}.langb.on{border-color:#ffd84a;color:#ffd84a}.sl2{font-size:14px;text-align:left!important;margin:8px 0 0!important;color:#ffd84a}.ta{width:100%;height:58px;background:#000;color:#ddd;border:1px solid #666;font-size:11px;font-family:monospace;word-break:break-all;user-select:text;-webkit-user-select:text;flex:none}
+.tiny{font-size:14px!important;padding:8px!important}
 </style></head><body>
 <div class="app" id="app">
   <canvas id="cv"></canvas>
@@ -77,13 +80,15 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <button class="btn" id="start">グランプリ スタート</button>
     <button class="btn sub" id="taBtn">タイムアタック（自分の影と競う）</button>
     <button class="btn sub" id="gBtn">ガレージ</button>
+    <button class="btn sub tiny" id="setBtn">設定（言語・セーブ・ホーム画面）</button>
     <p id="tinfo" style="font-size:14px"></p>
-    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v6・音が出ます）</p>
+    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v7・音が出ます）</p>
   </div>
   <div class="sheet" id="endSheet" hidden>
     <h2 id="endT"></h2><p id="endRec" class="rec"></p><p id="endP"></p>
     <button class="btn" id="again">次のレースへ</button>
     <button class="btn sub" id="endGar">ガレージ（部品を付け替える）</button>
+    <button class="btn sub" id="endCh" hidden>挑戦状を作る</button>
     <button class="btn sub" id="endTitle" hidden>タイトルへ</button>
   </div>
   <div class="sheet" id="cupSheet" hidden>
@@ -93,6 +98,15 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <button class="btn sub" id="cupShare">結果をコピー</button>
   </div>
   <div class="sheet" id="taSheet" hidden style="justify-content:flex-start;background:#0c1409"><h2>タイムアタック</h2><p style="font-size:13px">ライバルもくじ玉もなし。自己ベストの影と競う</p><div id="taList" style="display:flex;flex-direction:column;gap:6px"></div><button class="btn" id="taClose">もどる</button></div>
+  <div class="sheet" id="setSheet" hidden style="justify-content:flex-start;background:#0c1409;z-index:6">
+    <h2>設定</h2>
+    <p class="sl2">言語</p><div class="langs"><button class="btn sub langb" data-l="ja">日本語</button><button class="btn sub langb" data-l="en">English</button></div>
+    <div id="homeBox"><button class="btn sub" id="homeBtn" style="width:100%">ホーム画面に追加</button><p id="homeHelp" hidden style="font-size:13px;margin-top:6px">ブラウザの「共有」→「ホーム画面に追加」で、アプリのように開けます。</p></div>
+    <p class="sl2">セーブの書き出し</p><p style="font-size:12px">この文字列を保存しておくと、別の端末や別のブラウザに進み具合を移せます。</p><textarea id="saveOut" class="ta" readonly></textarea><button class="btn sub" id="saveCopy">コピーする</button>
+    <p class="sl2">セーブの読み込み</p><textarea id="saveIn" class="ta"></textarea><button class="btn sub" id="saveLoad">貼り付けて読み込む</button>
+    <button class="btn" id="setClose">もどる</button>
+  </div>
+  <div class="sheet" id="chSheet" hidden style="z-index:6;background:#0c1409"><h2>挑戦状！</h2><canvas id="chCar" class="carpv" width="160" height="192"></canvas><p id="chP" style="font-size:18px"></p><p style="font-size:13px">友だちの走りが半透明の車で出ます。</p><button class="btn" id="chGo">受けて立つ</button><button class="btn sub" id="chNo">今はやめる</button></div>
   <div class="sheet" id="cardSheet" hidden style="justify-content:flex-start;z-index:6"><img id="cardImg" alt="車検証" style="width:100%"><p style="font-size:13px">画像を長押しで保存できます</p><button class="btn" id="cardDl">画像を保存</button><button class="btn sub" id="cardClose">もどる</button></div>
   <div class="sheet" id="garage" hidden style="justify-content:flex-start">
     <h2>🔧 ガレージ</h2><p>🪙 <b id="gcoins" style="color:#ffd84a;font-size:22px"></b></p>
@@ -106,9 +120,11 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <button class="btn" id="gClose">もどる</button>
   </div>
 </div>
+<script src="i18n.js"></script>
 <script src="sprites.js"></script>
 <script src="data.js"></script>
 <script src="fx.js"></script>
 <script src="car.js"></script>
 <script src="game.js"></script>
+<script src="extras.js"></script>
 </body></html>

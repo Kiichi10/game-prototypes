@@ -115,7 +115,7 @@ function renderCarUI(){const c=myCar(),{s}=carStats();const pv=$('carPv'),x=pv.g
     box.appendChild(row);}}
 // 車検証：自分の車を1枚の画像にする
 function carCard(){const c=myCar(),{s}=carStats(),W=720,H=1040,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');x.imageSmoothingEnabled=false;
-  const text=(t,a,b,sz,cl,al='left')=>{x.font=`${sz}px DotGothic16`;x.textAlign=al;x.fillStyle=cl;x.fillText(t,a,b);};
+  const text=(t,a,b,sz,cl,al='left')=>{t=tr(t);x.font=`${sz}px DotGothic16`;x.textAlign=al;x.fillStyle=cl;x.fillText(t,a,b);};
   x.fillStyle='#f4ecd4';x.fillRect(0,0,W,H);x.strokeStyle='#2a1c10';x.lineWidth=8;x.strokeRect(16,16,W-32,H-32);x.lineWidth=2;x.strokeRect(28,28,W-56,H-56);
   text('自動車検査証',W/2,84,40,'#2a1c10','center');text('アイテムボックス一本道',W/2,120,20,'#7a6a4a','center');
   x.fillStyle='#55993f';x.fillRect(60,146,W-120,300);x.fillStyle='#5a5a62';x.fillRect(190,146,W-380,300);x.fillStyle='#fff8e8';for(let y=150;y<446;y+=44)x.fillRect(W/2-3,y,6,24);
