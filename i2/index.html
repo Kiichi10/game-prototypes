@@ -131,9 +131,9 @@ body{background:#0c0a08}
     <button class="btn" id="start">今日のダンジョンに入る</button>
     <button class="btn sub" id="jBtn0">これまでの探検記</button>
     <button class="btn sub" id="wordBtn">ふっかつのじゅもん</button>
-    <button class="btn sub tiny" id="setBtn">設定（言語・セーブ・ホーム画面）</button>
+    <button class="btn sub tiny" id="setBtn">設定（言語・ホーム画面）</button>
     <button class="btn sub" id="shopBtn0">宿屋（💰で強くなる）</button>
-    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v9・音が出ます）</p>
+    <p id="titleSub" style="font-size:12px;color:#a08a60">今日は全員が同じダンジョン（試作 v10・音が出ます）</p>
   </div>
   <div class="descend" id="descend" hidden><b id="descendT"></b><span id="descendZ"></span></div>
   <div class="hint" id="hint" hidden></div>
@@ -141,10 +141,8 @@ body{background:#0c0a08}
   <div class="sheet" id="setSheet" hidden style="justify-content:flex-start;background:#0c0a08;z-index:6">
     <h2>設定</h2>
     <p class="sl2">言語</p><div class="langs"><button class="btn sub langb" data-l="ja">日本語</button><button class="btn sub langb" data-l="en">English</button></div>
-    <button class="btn" id="setWord">ふっかつのじゅもん（おすすめ）</button>
+    <button class="btn" id="setWord">ふっかつのじゅもん</button>
     <div id="homeBox"><button class="btn sub" id="homeBtn" style="width:100%">ホーム画面に追加</button><p id="homeHelp" hidden style="font-size:13px;margin-top:6px">ブラウザの「共有」→「ホーム画面に追加」で、アプリのように開けます。</p></div>
-    <p class="sl2">セーブの書き出し（探検記も全部）</p><p style="font-size:12px">この文字列を保存しておくと、別の端末や別のブラウザに進み具合を移せます。</p><textarea id="saveOut" class="ta" readonly></textarea><button class="btn sub" id="saveCopy">コピーする</button>
-    <p class="sl2">セーブの読み込み</p><textarea id="saveIn" class="ta"></textarea><button class="btn sub" id="saveLoad">貼り付けて読み込む</button>
     <button class="btn" id="setClose">もどる</button>
   </div>
   <div class="sheet" id="chSheet" hidden style="z-index:6;background:#0c0a08"><h2>挑戦状！</h2><p id="chD" style="font-size:13px;color:#c8a860"></p><p id="chP" style="font-size:18px"></p><p style="font-size:13px">友だちが潜った記録です。同じダンジョンで勝負します。</p><button class="btn" id="chGo">受けて立つ</button><button class="btn sub" id="chNo">今はやめる</button></div>

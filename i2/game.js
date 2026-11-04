@@ -219,6 +219,6 @@ $('resume').onclick=()=>{ac();$('title').hidden=true;resumeRun();};
 renderResume();
 $('start').onclick=()=>{if(loadRun()&&!confirm(tr('今の探検は消えます。よろしいですか？')))return;clearRun();ac();$('title').hidden=true;newRun();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('monOk').onclick=()=>{$('monSheet').hidden=true;};
-if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v9）`;
+if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v10）`;
 window.addEventListener('resize',()=>F&&render());
 renderDepth();
