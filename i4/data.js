@@ -19,6 +19,7 @@ const ITEMS={
   dash:{ic:'🚀',n:'ダッシュ'},bomb:{ic:'💣',n:'まっすぐ爆弾'},shield:{ic:'🛡️',n:'バリア'},oil:{ic:'🛢️',n:'オイル'},
   jump:{ic:'🦘',n:'ジャンプ'},dash3:{ic:'🔥',n:'3連ダッシュ'},homing:{ic:'🎯',n:'追いかけ爆弾'},magnet:{ic:'🧲',n:'吸いよせ'},
   ghost:{ic:'👻',n:'すりぬけ'},giant:{ic:'🐘',n:'でっかくなる'},star:{ic:'⭐',n:'スター'},thunder:{ic:'⚡',n:'カミナリ'}};
+const ITIP={dash:'すぐ加速。前が空いている時に',bomb:'今の車線をまっすぐ飛ぶ。同じ車線の前の車を狙う。岩も壊せる',shield:'次の1回を防ぐ。⚠が出たらすぐ',oil:'真後ろに置く。後ろの車が近い時に',jump:'穴や岩を飛び越える。ぶつかる直前に',dash3:'ダッシュが3回。一気に差を詰めたい時に',homing:'すぐ前の車を追いかける。別の車線の相手にも当たる',magnet:'前の車に吸い寄せられる。離された時に',ghost:'しばらく何にも当たらない。障害物の多い所で',giant:'大きくなり、ぶつかった相手を飛ばす。混んでいる所で',star:'無敵で加速。順位が低い時に',thunder:'ライバル全員をスピンさせる。先頭に離された時に'};
 const START=['dash','bomb','shield','oil'],UNLOCK=['jump','dash3','homing','magnet','ghost','giant','star','thunder'];
 const DEF=['oil','shield','bomb'],CATCH=['dash3','star','thunder','homing','magnet','giant'];
 

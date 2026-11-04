@@ -1,6 +1,6 @@
 'use strict';
 // オフライン対応：自分のファイルは新しい物を優先し、つながらない時は保存した物を使う
-const V='mekuri-v7',CORE=["./", "index.html", "i18n.js", "sprites.js", "fx.js", "rooms.js", "journal.js", "game.js", "extras.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png"];
+const V='mekuri-v8',CORE=["./", "index.html", "i18n.js", "sprites.js", "fx.js", "rooms.js", "journal.js", "game.js", "extras.js", "jumon.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V&&k.startsWith(V.split('-')[0])).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);

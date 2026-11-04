@@ -63,6 +63,9 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
 .sheet{touch-action:pan-y}@media(max-height:720px){#title>p:first-of-type{font-size:12px;line-height:1.45}#title h2{font-size:24px}#title{gap:8px}#title .btn{padding:10px}}
 .langs{display:grid;grid-template-columns:1fr 1fr;gap:6px}.langb.on{border-color:#ffd84a;color:#ffd84a}.sl2{font-size:14px;text-align:left!important;margin:8px 0 0!important;color:#ffd84a}.ta{width:100%;height:58px;background:#000;color:#ddd;border:1px solid #666;font-size:11px;font-family:monospace;word-break:break-all;user-select:text;-webkit-user-select:text;flex:none}
 .tiny{font-size:14px!important;padding:8px!important}
+.wordout{font-size:20px;line-height:1.7;letter-spacing:1px;text-align:center;background:#000;border:2px solid #ffd84a;padding:10px;color:#fff;user-select:text;-webkit-user-select:text;word-break:break-all;font-family:"DotGothic16",monospace}
+.revived{position:absolute;left:50%;top:18px;transform:translateX(-50%);background:#ffd84a;color:#111;padding:8px 14px;z-index:9;white-space:nowrap;font-size:15px}
+.tip{white-space:normal!important;width:88%;max-width:400px;text-align:center}
 </style></head><body>
 <div class="app" id="app">
   <canvas id="cv"></canvas>
@@ -80,13 +83,15 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <button class="btn" id="start">グランプリ スタート</button>
     <button class="btn sub" id="taBtn">タイムアタック（自分の影と競う）</button>
     <button class="btn sub" id="gBtn">ガレージ</button>
+    <button class="btn sub" id="wordBtn">ふっかつのじゅもん</button>
     <button class="btn sub tiny" id="setBtn">設定（言語・セーブ・ホーム画面）</button>
     <p id="tinfo" style="font-size:14px"></p>
-    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v7・音が出ます）</p>
+    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v8・音が出ます）</p>
   </div>
   <div class="sheet" id="endSheet" hidden>
     <h2 id="endT"></h2><p id="endRec" class="rec"></p><p id="endP"></p>
     <button class="btn" id="again">次のレースへ</button>
+    <button class="btn sub tiny" onclick="openWord()">ふっかつのじゅもん</button>
     <button class="btn sub" id="endGar">ガレージ（部品を付け替える）</button>
     <button class="btn sub" id="endCh" hidden>挑戦状を作る</button>
     <button class="btn sub" id="endTitle" hidden>タイトルへ</button>
@@ -102,11 +107,23 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <h2>設定</h2>
     <p class="sl2">言語</p><div class="langs"><button class="btn sub langb" data-l="ja">日本語</button><button class="btn sub langb" data-l="en">English</button></div>
     <div id="homeBox"><button class="btn sub" id="homeBtn" style="width:100%">ホーム画面に追加</button><p id="homeHelp" hidden style="font-size:13px;margin-top:6px">ブラウザの「共有」→「ホーム画面に追加」で、アプリのように開けます。</p></div>
-    <p class="sl2">セーブの書き出し</p><p style="font-size:12px">この文字列を保存しておくと、別の端末や別のブラウザに進み具合を移せます。</p><textarea id="saveOut" class="ta" readonly></textarea><button class="btn sub" id="saveCopy">コピーする</button>
+    <p class="sl2">セーブの書き出し（記録と影も全部）</p><p style="font-size:12px">この文字列を保存しておくと、別の端末や別のブラウザに進み具合を移せます。</p><textarea id="saveOut" class="ta" readonly></textarea><button class="btn sub" id="saveCopy">コピーする</button>
     <p class="sl2">セーブの読み込み</p><textarea id="saveIn" class="ta"></textarea><button class="btn sub" id="saveLoad">貼り付けて読み込む</button>
     <button class="btn" id="setClose">もどる</button>
   </div>
   <div class="sheet" id="chSheet" hidden style="z-index:6;background:#0c1409"><h2>挑戦状！</h2><canvas id="chCar" class="carpv" width="160" height="192"></canvas><p id="chP" style="font-size:18px"></p><p style="font-size:13px">友だちの走りが半透明の車で出ます。</p><button class="btn" id="chGo">受けて立つ</button><button class="btn sub" id="chNo">今はやめる</button></div>
+  <div class="sheet" id="wordSheet" hidden style="justify-content:flex-start;background:#0c1409;z-index:7">
+    <h2>ふっかつのじゅもん</h2>
+    <p style="font-size:13px">書き留めておくと、別の端末でも続きから遊べます。</p>
+    <div id="wordOut" class="wordout"></div>
+    <button class="btn sub" id="wordCopy">コピーする</button>
+    <p class="sl2">じゅもんを となえる</p>
+    <textarea id="wordIn" class="ta" style="font-size:16px;height:70px" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
+    <p id="wordErr" hidden style="color:#ff8a7a">じゅもんが ちがいます</p>
+    <button class="btn" id="wordGo">となえる</button>
+    <p style="font-size:11px;color:#999">じゅもんに入るのは、コイン・部品・強化・車の色・トロフィー・グランプリの途中経過です。コース記録と影は入りません。</p>
+    <button class="btn sub" id="wordClose">もどる</button>
+  </div>
   <div class="sheet" id="cardSheet" hidden style="justify-content:flex-start;z-index:6"><img id="cardImg" alt="車検証" style="width:100%"><p style="font-size:13px">画像を長押しで保存できます</p><button class="btn" id="cardDl">画像を保存</button><button class="btn sub" id="cardClose">もどる</button></div>
   <div class="sheet" id="garage" hidden style="justify-content:flex-start">
     <h2>🔧 ガレージ</h2><p>🪙 <b id="gcoins" style="color:#ffd84a;font-size:22px"></b></p>
@@ -116,7 +133,7 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <div id="carParts"></div>
     <p class="sl">チューニング（ずっと効く）</p><div id="glist" style="display:flex;flex-direction:column;gap:8px"></div>
     <p style="font-size:13px;margin-top:6px">車の色</p><div class="gcs" id="gcolors"></div>
-    <p style="font-size:13px;margin-top:6px">集めたアイテム</p><div class="items" id="gitems"></div>
+    <p style="font-size:13px;margin-top:6px">集めたアイテム（押すと使いどころ）</p><div class="items" id="gitems"></div><p id="gtip" style="font-size:13px;min-height:40px;color:#ffd84a"></p>
     <button class="btn" id="gClose">もどる</button>
   </div>
 </div>
@@ -127,4 +144,5 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
 <script src="car.js"></script>
 <script src="game.js"></script>
 <script src="extras.js"></script>
+<script src="jumon.js"></script>
 </body></html>

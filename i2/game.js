@@ -106,9 +106,8 @@ function render(){
   $('gold').textContent=R.gold;$('hearts').textContent='❤'.repeat(R.hearts)+'🖤'.repeat(Math.max(0,maxHearts()-R.hearts));
   const left=F.cols.reduce((a,c)=>a+c.length,0);
   $('left').textContent=(has('lantern')&&F.stock.length?'次 '+F.stock.slice(-3).reverse().map(c=>RN[c.r]).join(' ')+'　':'')+(F.type==='boss'&&!F.bossDead?`番人あと${F.bossCnt}　`:'')+`のこり${left}`+(F.stairs?' 🪜':'');
-  const rl=$('relics');rl.innerHTML='';R.relics.forEach(k=>{const r=RELICS[k];const e=document.createElement('span');
-    e.className='relic'+(r.act?(F.used[k]?' spent':F.armed===k?' armed':' use'):'');e.textContent=r.ic+' '+r.n;
-    if(r.act&&!F.used[k])e.onclick=()=>useRelic(k);rl.appendChild(e);});
+  const rl=$('relics');rl.innerHTML='';const stuck=!pl.length&&!F.stock.length;const bag=document.createElement('button');bag.className='bagb';bag.id='bagBtn';bag.textContent=`🎒 道具袋 ${R.relics.length}`;bag.onclick=openBag;rl.appendChild(bag);
+  R.relics.filter(k=>RELICS[k].act).forEach(k=>{const r=RELICS[k],e=document.createElement('button');e.className='relic'+(F.used[k]?' spent':F.armed===k?' armed':' use')+(stuck&&!F.used[k]?' pulse':'');e.textContent=r.ic+' '+({wild:'鍵',undo:'砂',hammer:'つるはし'}[k]||r.n);if(!F.used[k])e.onclick=()=>useRelic(k);rl.appendChild(e);});
   renderDepth();setTimeout(tutorial,30);saveRun();}
 function renderDepth(){const cur=R?R.floor:1,dayBest=M.day[DKEY]||0,start=Math.max(1,Math.min(cur-3,M.best-6)),cells=[];
   for(let f=start;f<start+9;f++){const unl=Object.keys(RELICS).find(k=>RELICS[k].unlock===f&&!M.unlocked.includes(k));
@@ -157,7 +156,7 @@ function monsterAttack(){let dead=false;
 function draw(){if(busy||!F.stock.length)return;if(F.armed==='wild')F.armed=null;const c0=cloneAt($('stock').firstChild);const c=F.stock.pop();c.up=true;F.waste.push(c);F.hist.push({t:'draw',c});F.chain=0;sfx.draw();tutDone('draw');
   const dead=monsterAttack();render();flyToWaste(c0);if(!dead)checkEnd();}
 function useJoker(){if(busy||!R.jokers||wtop().joker)return;R.jokers--;F.waste.push({joker:true});F.hist.push({t:'joker'});sfx.joker();toast('🃏 どれでも取れる');render();}
-function useRelic(k){if(k==='wild'||k==='hammer'){F.armed=F.armed===k?null:k;render();return;}
+function useRelic(k){if(k==='wild'||k==='hammer'){F.armed=F.armed===k?null:k;if(F.armed)toast(k==='wild'?'次のカードはどれでも取れる':'くだくカードを押す');render();return;}
   if(k==='undo'){const h=F.hist.pop();if(!h){sfx.no();return;}F.used.undo=true;
     if(h.t==='draw'){F.stock.push(F.waste.pop());}
     else if(h.t==='joker'){F.waste.pop();R.jokers++;}
@@ -166,7 +165,7 @@ function useRelic(k){if(k==='wild'||k==='hammer'){F.armed=F.armed===k?null:k;ren
 function openChest(){if(!F.chestCounted){F.ev.chest++;F.chestCounted=true;}const p=pool().filter(k=>!has(k));const box=$('picks');box.innerHTML='';
   if(!p.length){F.pendingChest=false;F.chestCounted=false;saveRun();gainGold(10);toast('💰+10');checkEnd();return;}
   if(!F.pickOpts){for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}F.pickOpts=p.slice(0,has('bell')?4:3);}saveRun();
-  F.pickOpts.forEach(k=>{const r=RELICS[k];const b=document.createElement('button');b.className='pick';b.innerHTML=`<b>${r.ic} ${r.n}</b>${r.d}`;
+  F.pickOpts.forEach(k=>{const r=RELICS[k];const b=document.createElement('button');b.className='pick';const ri=RINFO[k];b.innerHTML=`<b>${r.ic} ${r.n} <span class="st">${stars(ri.star)}</span></b><span class="tg">${r.act?'押して使う':'持っているだけで効く'}</span> <span class="tg">${ri.tag}</span><br>${r.d}<br><small>使いどころ：${ri.tip}</small>`;
     b.onclick=()=>{F.pendingChest=false;F.chestCounted=false;F.pickOpts=null;R.relics.push(k);F.ev.relics.push(k);$('pickSheet').hidden=true;sfx.coin();if(k==='candle')for(let i=0;i<2;i++)F.stock.push({r:1+Math.floor(Math.random()*13),s:Math.floor(Math.random()*4)});render();checkEnd();};box.appendChild(b);});
   $('pickSheet').hidden=false;}
 function checkEnd(){const left=F.cols.reduce((a,c)=>a+c.length,0);
@@ -209,7 +208,7 @@ const RUNKEY='mekuri_run';
 function saveRun(){if(!R||!F)return;try{const f=Object.assign({},F);delete f.rand;f.dealing=false;localStorage.setItem(RUNKEY,JSON.stringify({R,F:f}));}catch(e){}}
 function clearRun(){localStorage.removeItem(RUNKEY);}
 function loadRun(){try{return JSON.parse(localStorage.getItem(RUNKEY));}catch(e){return null;}}
-function resumeRun(){const sv=loadRun();if(!sv){return;}R=sv.R;F=sv.F;F.rand=rng((R.dkey||DKEY)+'-'+R.floor+'-r'+F.hist.length);busy=false;bgmStart(zoneOf(R.floor));
+function resumeRun(){const sv=loadRun();if(!sv){return;}R=sv.R;F=sv.F;if(!F){startFloor();bgmStart(zoneOf(R.floor));return;}F.rand=rng((R.dkey||DKEY)+'-'+R.floor+'-r'+F.hist.length);busy=false;bgmStart(zoneOf(R.floor));
   if(F.ended){R.floor++;startFloor();bgmStart(zoneOf(R.floor));return;}
   $('app').dataset.zone=zoneOf(R.floor);$('board').dataset.type=F.type;$('fl').textContent=R.floor;render();
   if(R.hearts<=0){endFloor(false,'dead');return;}
@@ -220,6 +219,6 @@ $('resume').onclick=()=>{ac();$('title').hidden=true;resumeRun();};
 renderResume();
 $('start').onclick=()=>{if(loadRun()&&!confirm(tr('今の探検は消えます。よろしいですか？')))return;clearRun();ac();$('title').hidden=true;newRun();};
 $('bgmBtn').textContent=BGM.on?'🔊':'🔇';$('bgmBtn').onclick=bgmToggle;$('monOk').onclick=()=>{$('monSheet').hidden=true;};
-if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v7）`;
+if(M.runs)$('titleSub').innerHTML=`宿屋の💰 ${M.bank} ／ 今日の最高 B${M.day[DKEY]||'-'} ／ 自己最高 B${M.best}<br>今日は全員が同じダンジョン（試作 v8）`;
 window.addEventListener('resize',()=>F&&render());
 renderDepth();

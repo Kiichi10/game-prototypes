@@ -91,7 +91,7 @@ function update(){
   const lead=RV.find(v=>Math.abs(v.x-P.x)<18&&v.d-P.d>25&&v.d-P.d<120&&!v.fin);if(lead&&!P.fin&&!P.spin){P.slip++;if(P.slip>=(P.sp.wing?60:95)){P.slip=0;P.boost=Math.max(P.boost,38);sfx.pad();toast('スリップストリーム！');}}else P.slip=Math.max(0,P.slip-2);
   P.x+=(laneX(P.lane)-P.x)*Math.max(.05,(ice&&!P.sp.snow?(P.sp.slick?.05:.07):.22+lv('tire')*.04+P.st.turn*.02));if(ice&&!P.sp.snow&&Math.random()<.01&&!P.spin)P.x+=(Math.random()-.5)*10;
   ['jump','ghost','giant','star'].forEach(k=>{if(P[k]>0)P[k]--;});
-  if(P.roll>0){P.roll--;if(P.roll%4===0)sfx.tick();if(P.roll===0){const k=rollItem(rank());P.items.push({k,u:k==='dash3'?3:1});sfx.get();}renderSlot();}
+  if(P.roll>0){P.roll--;if(P.roll%4===0)sfx.tick();if(P.roll===0){const k=rollItem(rank());P.items.push({k,u:k==='dash3'?3:1});sfx.get();SV.tipN=SV.tipN||{};if((SV.tipN[k]||0)<3){SV.tipN[k]=(SV.tipN[k]||0)+1;toast2(`${ITEMS[k].ic} ${ITEMS[k].n}：${ITIP[k]}`);}}renderSlot();}
   // ライバル
   for(const v of RV){let tv=v.v0;const gap=v.d-P.d;if(gap>350)tv*=.93;if(gap<-200)tv*=1.13;if(v.boost>0){tv*=1.5;v.boost--;}
     if(OB.some(o=>o.t==='sand'&&near(v.x,v.d,o,o.len)))tv*=.6;if(!v.jump)tv*=terrain(v);if(v.jump>0)v.jump--;if(v.spin>0){tv*=.25;v.spin--;}if(v.fin)tv*=.97;
@@ -170,7 +170,7 @@ function openGarage(){$('gcoins').textContent=SV.coins;renderCarUI();const L=$('
   $('gcolors').innerHTML='';COLORS.forEach((c,i)=>{const b=document.createElement('button');b.className='gc'+(SV.color===i?' on':'');const own=SV.colors.includes(i);
     b.innerHTML=`<i style="background:${c[0]}"></i>${own?c[1]:'🪙10'}`;b.disabled=!own&&SV.coins<10;
     b.onclick=()=>{if(!own){SV.coins-=10;SV.colors.push(i);sfx.buy();}SV.color=i;saveSV();openGarage();};$('gcolors').appendChild(b);});
-  $('gitems').innerHTML=[...START,...UNLOCK].map(k=>{const h=SV.have.includes(k);return `<div class="it${h?'':' lock'}">${h?ITEMS[k].ic:'？'}<small>${h?ITEMS[k].n:'？？？'}</small></div>`;}).join('');
+  $('gitems').innerHTML=[...START,...UNLOCK].map(k=>{const h=SV.have.includes(k);return `<div class="it${h?'':' lock'}" data-k="${h?k:''}">${h?ITEMS[k].ic:'？'}<small>${h?ITEMS[k].n:'？？？'}</small></div>`;}).join('');$('gitems').querySelectorAll('.it').forEach(e=>e.onclick=()=>{const k=e.dataset.k;$('gtip').textContent=k?`${ITEMS[k].n}：${ITIP[k]}`:'まだ持っていないアイテムです';});
   $('garage').hidden=false;}
 
 // ===== 描画 =====
