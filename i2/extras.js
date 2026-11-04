@@ -2,9 +2,10 @@
 const SAVE_PREFIX='mekuri_',SAVE_MAGIC='MEKURI1:';
 // ===== 設定：言語・ホーム画面に追加・セーブの書き出しと読み込み =====
 function exportSave(){const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(SAVE_PREFIX)&&k!==LKEY)o[k]=localStorage.getItem(k);}return SAVE_MAGIC+btoa(unescape(encodeURIComponent(JSON.stringify(o))));}
-function importSave(txt){const fail=()=>alert(tr('読み込めませんでした。文字列を確かめてください。'));let o;txt=(txt||'').trim();if(!txt.startsWith(SAVE_MAGIC))return fail();
-  try{o=JSON.parse(decodeURIComponent(escape(atob(txt.slice(SAVE_MAGIC.length)))));}catch(e){return fail();}
-  if(!o||typeof o!=='object')return fail();for(const k in o){if(!k.startsWith(SAVE_PREFIX)||typeof o[k]!=='string'||o[k].includes('<'))return fail();}
+function importSave(txt){const fail=m=>alert(tr(m));let t=(txt||'').replace(/[\s​-‍﻿]/g,'');if(!t)return fail('貼り付ける文字列が空です。');
+  const i=t.lastIndexOf(SAVE_MAGIC);if(i<0){if(/(MEKURI|ITEMBOX)1:/.test(t))return fail('これは別のゲームのセーブです。');return fail(`文字列の先頭（${SAVE_MAGIC}）が欠けています。「コピーする」で全部をコピーしてください。`);}
+  let o;try{o=JSON.parse(decodeURIComponent(escape(atob(t.slice(i+SAVE_MAGIC.length)))));}catch(e){return fail('文字列の途中か最後が欠けています。「コピーする」で全部をコピーしてください。');}
+  if(!o||typeof o!=='object')return fail('このゲームのセーブではありません。');for(const k in o){if(!k.startsWith(SAVE_PREFIX)||typeof o[k]!=='string'||o[k].includes('<'))return fail('このゲームのセーブではありません。');}
   if(!confirm(tr('読み込むと、今のセーブは上書きされます。よろしいですか？')))return;
   const old=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(SAVE_PREFIX)&&k!==LKEY)old.push(k);}old.forEach(k=>localStorage.removeItem(k));for(const k in o)localStorage.setItem(k,o[k]);location.reload();}
 let installEv=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;});
@@ -13,7 +14,7 @@ function copyText(t,done){if(navigator.clipboard&&navigator.clipboard.writeText)
 function shareLink(text,url){if(navigator.share){navigator.share({text,url}).catch(()=>{});return;}copyText(text+'\n'+url,()=>toast('コピーした'));}
 const b64u={enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''),dec:s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))))};
 $('setBtn').onclick=()=>{ac();openSettings();};$('setClose').onclick=()=>{$('setSheet').hidden=true;};document.querySelectorAll('.langb').forEach(b=>b.onclick=()=>{if(b.dataset.l!==LANG)setLang(b.dataset.l);});
-$('saveCopy').onclick=()=>copyText($('saveOut').value,()=>toast('コピーした'));$('saveLoad').onclick=()=>importSave($('saveIn').value);
+$('saveCopy').onclick=()=>copyText($('saveOut').value,()=>toast('コピーした'));$('saveLoad').onclick=async()=>{let t=$('saveIn').value;if(!t.trim()&&navigator.clipboard&&navigator.clipboard.readText){try{t=await navigator.clipboard.readText();$('saveIn').value=t;}catch(e){}}importSave(t);};$('saveOut').onclick=()=>$('saveOut').select();$('setWord').onclick=()=>{openWord();};
 $('homeBtn').onclick=()=>{if(installEv){installEv.prompt();installEv=null;}else $('homeHelp').hidden=false;};
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 

@@ -86,7 +86,7 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
     <button class="btn sub" id="wordBtn">ふっかつのじゅもん</button>
     <button class="btn sub tiny" id="setBtn">設定（言語・セーブ・ホーム画面）</button>
     <p id="tinfo" style="font-size:14px"></p>
-    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v8・音が出ます）</p>
+    <p style="font-size:12px;color:#9ab08a">1レース約30秒（試作 v9・音が出ます）</p>
   </div>
   <div class="sheet" id="endSheet" hidden>
     <h2 id="endT"></h2><p id="endRec" class="rec"></p><p id="endP"></p>
@@ -106,6 +106,7 @@ body{margin:0;background:#1d2b1a;color:#fff;font-family:"DotGothic16","Hiragino 
   <div class="sheet" id="setSheet" hidden style="justify-content:flex-start;background:#0c1409;z-index:6">
     <h2>設定</h2>
     <p class="sl2">言語</p><div class="langs"><button class="btn sub langb" data-l="ja">日本語</button><button class="btn sub langb" data-l="en">English</button></div>
+    <button class="btn" id="setWord">ふっかつのじゅもん（おすすめ）</button>
     <div id="homeBox"><button class="btn sub" id="homeBtn" style="width:100%">ホーム画面に追加</button><p id="homeHelp" hidden style="font-size:13px;margin-top:6px">ブラウザの「共有」→「ホーム画面に追加」で、アプリのように開けます。</p></div>
     <p class="sl2">セーブの書き出し（記録と影も全部）</p><p style="font-size:12px">この文字列を保存しておくと、別の端末や別のブラウザに進み具合を移せます。</p><textarea id="saveOut" class="ta" readonly></textarea><button class="btn sub" id="saveCopy">コピーする</button>
     <p class="sl2">セーブの読み込み</p><textarea id="saveIn" class="ta"></textarea><button class="btn sub" id="saveLoad">貼り付けて読み込む</button>
