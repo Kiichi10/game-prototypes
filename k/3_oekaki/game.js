@@ -55,6 +55,7 @@
   let trainS = 0, runV = 0, runT = 0;
   let items = [], flyers = [];
   let got = { star: 0, guest: 0, fruit: 0 };
+  let total = { star: 0, guest: 0, fruit: 0 };   // 3ステージの ごうけい
   let saidB = false, saidT = false, lastHint = -9, tm = 0, modeT = 0, idleT = 0;
   let demoT = 0, showDemo = false;
   let pulse = null;    // {x,y} ここから描いてね
@@ -100,6 +101,7 @@
   // ---------- ステージ開始 ----------
   function startStage(n) {
     stageNo = n; st = STAGES[n];
+    if (n === 0) total = { star: 0, guest: 0, fruit: 0 };
     pts = []; sm = null; done = false; trainS = 0; runV = 0;
     items = st.items.map(o => ({ ...o, taken: false, ph: Math.random() * 6 }));
     flyers = []; got = { star: 0, guest: 0, fruit: 0 };
@@ -323,16 +325,19 @@
     K.rr(-20, -14, 12, 8, 3, '#cfefff'); K.rr(4, -14, 12, 8, 3, '#cfefff');
     c.restore();
   }
+  function guestCount() { return items.filter(o => o.taken && o.k === 'guest').length; }
   function drawTrain() {
     const col = '#e94b4b';
-    for (const back of [130, 66]) { const q = posAt(trainS - back); drawCar(q.x, q.y, q.a, col); }
+    // おきゃくさんを のせるほど でんしゃが ながくなる（さいだい 5りょう）
+    const ncar = Math.min(5, 2 + guestCount());
+    for (let i = ncar - 1; i >= 0; i--) { const q = posAt(trainS - 66 - i * 64); drawCar(q.x, q.y, q.a, col); }
     const h = posAt(trainS);
     K.trainTop(h.x + Math.cos(h.a) * 30, h.y + Math.sin(h.a) * 30, h.a, { color: col, stripe: '#ffd23f', scale: 0.8 });
     // のっている おきゃくさん（まどに かお）
     let n = 0;
     for (const it of items) if (it.taken && it.k === 'guest') {
-      const q = posAt(trainS - 66 - (n % 2) * 64);
-      const off = n < 2 ? -6 : 6;
+      const q = posAt(trainS - 66 - Math.min(ncar - 1, n >> 1) * 64);
+      const off = (n % 2) ? 11 : -11;
       K.circle(q.x + Math.cos(q.a) * off, q.y + Math.sin(q.a) * off, 9, '#ffd9b8', it.col, 3); n++;
     }
   }
@@ -447,24 +452,41 @@
 
   // ---------- とうちゃく ----------
   let arrT = 0;
+  // あつめた かずで ほし 1〜3つ（0こは ない＝がんばりを みとめる）
+  function medals() {
+    const r = items.length ? items.filter(o => o.taken).length / items.length : 0;
+    return r > 0.99 ? 3 : r >= 0.5 ? 2 : 1;
+  }
   function arrive() {
     mode = 'arrived'; arrT = 0;
     K.sfx.dingdong(); setTimeout(() => K.sfx.fanfare(), 900);
     K.confetti(60);
+    total.star += items.filter(o => o.taken && o.k === 'star').length;
+    total.guest += guestCount();
+    total.fruit += items.filter(o => o.taken && o.k === 'fruit').length;
     const n = items.filter(o => o.taken && o.k === 'star').length;
-    say('ゴールに とうちゃく！ ほしを ' + n + 'こ あつめたよ');
+    if (medals() === 3) say('ぜんぶ あつめたね！ すごい！');
+    else say('ゴールに とうちゃく！ ほしを ' + n + 'こ あつめたよ');
   }
   function drawArrived(t) {
     if (arrT < 1.4) return;
     c.fillStyle = 'rgba(255,255,255,0.75)'; c.fillRect(0, 0, W, H);
-    K.rr(240, 150, 800, 300, 40, '#fff', '#e94b4b', 8);
-    K.text('とうちゃく！', W / 2, 225, 80, '#e94b4b', 'center', '#fff');
-    const ns = items.filter(o => o.taken && o.k === 'star').length, ng = items.filter(o => o.taken && o.k === 'guest').length, nf = items.filter(o => o.taken && o.k === 'fruit').length;
-    K.star(440, 350, 30, '#ffd23f'); K.text('' + ns, 500, 352, 48, '#555', 'center', null);
-    drawFace(620, 350, 0.75, '#ff8ad8', 0); K.text('' + ng, 680, 352, 48, '#555', 'center', null);
-    FRUITS[0](800, 352, 1.1); K.text('' + nf, 860, 352, 48, '#555', 'center', null);
+    K.rr(210, 104, 860, 356, 40, '#fff', '#e94b4b', 8);
+    K.text('とうちゃく！', W / 2, 168, 72, '#e94b4b', 'center', '#fff');
+    // ほし 1〜3つの ひょうか
+    const md = medals();
+    for (let i = 0; i < 3; i++) {
+      const on = i < md, sc = on ? 1 + Math.sin(t * 5 + i) * 0.04 : 1;
+      K.star(W / 2 - 130 + i * 130, 262, 50 * sc, on ? '#ffd23f' : '#e3e5ea');
+    }
+    if (md === 3) K.text('ぜんぶ あつめた！', W / 2, 336, 38, '#ff7a1c', 'center', '#fff');
+    const ns = items.filter(o => o.taken && o.k === 'star').length, ng = guestCount(), nf = items.filter(o => o.taken && o.k === 'fruit').length;
+    K.star(440, 410, 28, '#ffd23f'); K.text('' + ns, 498, 412, 44, '#555', 'center', null);
+    drawFace(620, 410, 0.7, '#ff8ad8', 0); K.text('' + ng, 678, 412, 44, '#555', 'center', null);
+    FRUITS[0](800, 412, 1.0); K.text('' + nf, 858, 412, 44, '#555', 'center', null);
     const last = stageNo === STAGES.length - 1;
-    K.button(W / 2 - 200, 500, 400, 110, last ? 'ごほうび' : 'つぎへ', COLOR, () => {
+    if (last) K.text(`ぜんぶで ほし ${total.star}こ・おきゃくさん ${total.guest}にん`, W / 2, 486, 32, '#2b6b2b', 'center', '#fff');
+    K.button(W / 2 - 200, 530, 400, 110, last ? 'ごほうび' : 'つぎへ', COLOR, () => {
       if (last) {
         K.reward(GAME, 'せんろ かきの めいじんだね', () => startStage(0));
         const rs = K.scene;   // ごほうびの うしろに のはらを みせる

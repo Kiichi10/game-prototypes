@@ -51,11 +51,15 @@
     if (mic.stream) mic.stream.getTracks().forEach(t => t.stop());
     mic.stream = null; mic.analyser = null; if (mic.state === 'ok') mic.state = 'none';
   }
+  // こえの 大きさ（0〜1）。いちばん 大きい ところではなく ならした 大きさ(RMS)で みる。
+  // ピークだと ちかくで はなす 子どもの こえで すぐ いっぱいに なって、ぼうが うごかなく なるため
   function micLevel() {
     if (!mic.analyser) return 0;
     mic.analyser.getByteTimeDomainData(mic.data);
-    let m = 0; for (let i = 0; i < mic.data.length; i++) m = Math.max(m, Math.abs(mic.data[i] - 128));
-    return Math.min(1, m / 70);
+    let s = 0;
+    for (let i = 0; i < mic.data.length; i++) { const v = (mic.data[i] - 128) / 128; s += v * v; }
+    const rms = Math.sqrt(s / mic.data.length);
+    return Math.min(1, rms * 5);
   }
 
   // ---- 録音 ----
@@ -215,16 +219,22 @@
     K.rr(sx - 760, TRY + 30, 960, 140, 8, '#d7d2c8', '#a39d90', 4);
     ctx.fillStyle = '#ffd23f'; ctx.fillRect(sx - 756, TRY + 46, 952, 10);
   }
-  function doorXs() { const r = []; for (let i = 0; i < TRAIN.cars; i++) r.push(HEADX - i * (CARW + GAP) - CARW * 0.5); return r; }
+  // ドアは まどの ところに ぴったり あわせる（2_ekiin・4_melody と おなじ いち）
+  function doorXs() { const r = []; for (let i = 0; i < TRAIN.cars; i++) r.push(HEADX - i * (CARW + GAP) - CARW * 0.625); return r; }
   function doors(open) {
     for (const x of doorXs()) {
-      const w = 46, y = TRY - CARH * 0.88, h = CARH * 0.84;
-      K.rr(x - w / 2 - 3, y - 3, w + 6, h + 6, 6, K.shade(TRAIN.color, -0.35));
+      const w = CARW * 0.22, y = TRY - CARH * 0.9, h = CARH * 0.84;
+      K.rr(x - w / 2 - 3, y - 3, w + 6, h + 6, 6, K.shade(TRAIN.color, -0.45));
       K.rr(x - w / 2, y, w, h, 4, '#3a3550');
       const pw = (w / 2) * (1 - open);
-      if (pw > 0.5) {
-        K.rr(x - w / 2 - (w / 2 - pw) * 0, y, pw, h, 3, '#e8ecf4'); K.rr(x + w / 2 - pw, y, pw, h, 3, '#e8ecf4');
-        if (pw > 10) { K.rr(x - w / 2 + 4, y + 8, pw - 8, h * 0.32, 3, '#cfefff'); K.rr(x + w / 2 - pw + 4, y + 8, pw - 8, h * 0.32, 3, '#cfefff'); }
+      if (pw > 1) {
+        const panel = K.shade(TRAIN.color, 0.12), edge = K.shade(TRAIN.color, -0.4);
+        K.rr(x - w / 2, y, pw, h, 3, panel, edge, 2); K.rr(x + w / 2 - pw, y, pw, h, 3, panel, edge, 2);
+        if (pw > 12) {
+          ctx.globalAlpha = 0.55;
+          K.rr(x - w / 2 + 4, y + 10, pw - 8, h * 0.38, 3, '#cfefff'); K.rr(x + w / 2 - pw + 4, y + 10, pw - 8, h * 0.38, 3, '#cfefff');
+          ctx.globalAlpha = 1;
+        }
       }
     }
   }
@@ -275,8 +285,9 @@
     setState(proceed ? 'play' : 'sample'); G.playEnd = 1.4 + sampleText(s).length * 0.16 + 0.8;
   }
   function toPraise() {
-    setState('praise');
-    G.praise = mic.state === 'ok' && G.recs[G.idx] ? PRAISE[G.idx % PRAISE.length] : 'いっしょに いえたね！ じょうず！';
+    const redo = mic.state === 'ok' && !!G.recs[G.idx];
+    setState('praise'); G.canRedo = redo;
+    G.praise = redo ? PRAISE[G.idx % PRAISE.length] : 'いっしょに いえたね！ じょうず！';
     K.sfx.good(); K.sparkle(MICX - 300, 200, 24); K.say(G.praise.replace('！', '。'));
   }
   function toArrive() { setState('arrive'); G.arrStart = G.pos; G.stationPos = G.pos + 1500; makeWaiting(); }
@@ -320,7 +331,8 @@
     if ((st === 'play' || st === 'sample') && G.stT > G.playEnd) {
       if (st === 'play') toPraise(); else { setState('ask'); G.stT = 3; }
     }
-    if (st === 'praise' && G.stT > 2.4) toArrive();
+    // じぶんの こえが とれた ときは、とりなおす じかんを すこし ながく とる
+    if (st === 'praise' && G.stT > (G.canRedo ? 4.6 : 2.4)) toArrive();
     if (st === 'proc' && G.stT > 4) gotVoice(null);   // 念のため（止まらない）
     if (st === 'finale') updateFinale();
     K.runSound(dt, G.speed / 300);
@@ -421,6 +433,9 @@
     } else if (st === 'rec') {
       const el = (performance.now() - rec.t0) / 1000;
       micButton(MICX, MICY, MICR, true, micLevel(), Math.min(1, el / 5), t);
+    } else if (st === 'praise' && G.canRedo) {
+      // いいなおしたい ときは もういちど（うまく いえなくても やりなおせる）
+      K.button(930, 540, 280, 110, 'もういちど', '#ff8c2b', () => { if (G.st === 'praise') toAsk(); }, { size: 42 });
     }
   }
   function drawFinale(t) {

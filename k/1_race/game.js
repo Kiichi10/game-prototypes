@@ -30,6 +30,8 @@
         const sh = rest[Math.floor(Math.random() * 2)];
         types = [];
         for (let i = 0; i < 3; i++) types[i] = i === st ? 'star' : i === sh ? 'sheep' : (Math.random() < 0.5 ? 'tunnel' : 'plain');
+        // ときどき ほしの せんろが 2ほん（どっちを えらぶか まよえるように）
+        if (Math.random() < 0.45) { const other = rest.find(i => i !== sh); types[other] = 'star'; }
         prevStar = st;
       }
       const river = k % 3 === 0 && !types.includes('tunnel');
@@ -52,8 +54,10 @@
 
   // ---------- でんしゃ ----------
   function makeTrain(lane, color, stripe, isP) {
-    return { x: 0, lane, target: lane, v: 0, trans: null, done: 0, boost: 0, yieldT: 0, pushT: 0, color, stripe, isP, got: new Set(), finished: false, sheepRun: 0 };
+    return { x: 0, lane, target: lane, v: 0, trans: null, done: 0, boost: 0, yieldT: 0, pushT: 0, color, stripe, isP, got: new Set(), finished: false, sheepRun: 0, cars: 1 };
   }
+  // ほしを 3こ あつめるごとに しゃりょうが 1りょう ふえる（さいだい 4りょう）
+  function carsOf(t) { return Math.min(3, 1 + Math.floor(t.got.size / 3)); }
   function yAt(t, x) {
     if (!t.trans) return LY[t.lane];
     const p = Math.max(0, Math.min(1, (x - (t.trans.S - SWH)) / (2 * SWH)));
@@ -71,10 +75,16 @@
     const seg = R.segs[k];
     const val = { star: 3, plain: 2, tunnel: 2, sheep: 0.3 };
     let best = t.lane, bs = -99;
-    const smart = Math.random() > 0.4;
+    // ライバルも ほしを ねらう（1いが かんたんすぎないように）。
+    // むらさき＝よく ほしを とる / オレンジ＝ときどき。どちらかには かてるように ちがえてある
+    const smart = Math.random() < (t.wise || 0.6);
     for (let l = 0; l < 3; l++) {
       let s = smart ? val[seg.types[l]] + Math.random() * 1.6 : Math.random() * 3;
       if (Math.abs(l - t.lane) === 2) s -= 0.4;
+      // まえを はしる でんしゃが いる せんろは ほしが のこっていない → ねうちが さがる
+      if (smart && seg.types[l] === 'star') {
+        for (const o of R.trains) if (o !== t && o.x > t.x && o.x - t.x < 700 && (o.trans ? o.trans.to : o.lane) === l) s -= 2.2;
+      }
       const sweep = range(t.lane, l);
       for (const o of R.trains) {
         if (o === t || Math.abs(o.x - t.x) > GAP + 80) continue;
@@ -113,9 +123,12 @@
   function startRace() {
     const c = buildCourse();
     const P = makeTrain(1, '#e94b4b', '#ffd23f', true);
+    // むらさきは よく ほしを とる（ちゃんと えらばないと かてない）・オレンジは ときどき
+    const rvA = makeTrain(0, '#9b6bff', '#ffffff', false); rvA.wise = 0.7; rvA.edge = 1.0;
+    const rvB = makeTrain(2, '#ff9a3c', '#ffffff', false); rvB.wise = 0.4; rvB.edge = 0.95;
     R = {
       segs: c.segs, stars: c.stars, P,
-      trains: [makeTrain(0, '#9b6bff', '#ffffff', false), P, makeTrain(2, '#ff9a3c', '#ffffff', false)],
+      trains: [rvA, P, rvB],
       phase: 'count', t: 0, msg: '', msgT: 0, tutDone: false, tutT: 0, order: [], firstStar: false, firstSheep: false, helpT: 0, helpLane: -1, endT: 0,
     };
     say('しんごうを みてね', 'しんごうを みてね');
@@ -165,11 +178,14 @@
 
   function moveTrain(t, dt) {
     let tgt = BASE;
-    if (!t.isP) {
-      const gap = t.x - R.P.x;
-      tgt *= 0.97 * (gap > 400 ? 0.86 : gap < -400 ? 1.3 : 1);
-    }
     if (t.boost > 0) { t.boost -= dt; tgt += BOOST; }
+    if (!t.isP) {
+      // むらさきは ほぼ おなじ はやさ＝ちゃんと えらばないと かてない。オレンジ(0.92)は すこし おそい
+      tgt *= t.edge || 1;
+      // はなれすぎない（さきに いきすぎたら ゆっくり・おくれたら いそぐ）＝さいごまで きわどい レースに
+      const gap = t.x - R.P.x;
+      tgt *= gap > 1400 ? 0.78 : gap > 700 ? 0.9 : gap < -700 ? 1.12 : 1;
+    }
     const z = t.trans ? 'plain' : zoneAt(t.x, t.lane);
     if (z === 'sheep') tgt = Math.min(tgt, SLOW);
     if (t.yieldT > 0) { t.yieldT -= dt; tgt *= 0.5; }
@@ -196,9 +212,12 @@
     for (const s of R.stars) {
       if (s.lane !== t.lane || t.trans || t.got.has(s.id) || Math.abs(s.x - t.x) > 40) continue;
       t.got.add(s.id); t.boost = Math.min(3.2, Math.max(t.boost, 0) + 1.6);
+      const grew = carsOf(t) > t.cars;
+      if (grew) t.cars = carsOf(t);
       if (t.isP) {
         s.taken = true; K.sfx.star(); K.sparkle(s.x - camX(), LY[s.lane], 12, '#ffd23f');
         if (!R.firstStar) { R.firstStar = true; say('ほしを とった！ はやく なったよ'); }
+        else if (grew) { K.sfx.good(); say('しゃりょうが ふえたよ！'); }
       }
     }
     // ひつじ（じぶん）
@@ -348,7 +367,8 @@
   }
   function drawSwitch(S, cx) {
     if (S - SWH - cx > W + 20 || S + SWH - cx < -20) return;
-    for (const [a, b] of [[0, 1], [1, 0], [1, 2], [2, 1]]) for (const off of [-17, 17]) { smoothPath(S, LY[a], LY[b], cx, off); ctx.strokeStyle = '#7d8696'; ctx.lineWidth = 5; ctx.stroke(); }
+    // となりの せんろへの みちだけ（おなじ みちを 2かい ひかない＝ごちゃつかない）
+    for (const [a, b] of [[0, 1], [1, 2]]) for (const off of [-17, 17]) { smoothPath(S, LY[a], LY[b], cx, off); ctx.strokeStyle = '#7d8696'; ctx.lineWidth = 4; ctx.stroke(); }
     // ポイントの めじるし
     const sx = S - SWH - cx;
     K.rr(sx - 6, 132, 12, 34, 4, '#555'); K.circle(sx, 132, 12, '#ffd23f', '#555', 3);
@@ -398,19 +418,23 @@
     for (let y = 140; y < 590; y += 25) for (let c = 0; c < 2; c++) { ctx.fillStyle = ((y / 25 + c) % 2) ? '#fff' : '#222'; ctx.fillRect(sx + c * 13 - 13, y, 13, 25); }
   }
   function drawTrain(t, cx, time) {
-    const sx = t.x - cx; if (sx < -260 || sx > W + 120) return;
+    const sx = t.x - cx; if (sx < -480 || sx > W + 120) return;
     const y = yAt(t, t.x);
     const ang = Math.atan2(yAt(t, t.x + 6) - yAt(t, t.x - 6), 12);
-    // うしろの しゃりょう
-    const bx = t.x - 140, by = yAt(t, bx), ba = Math.atan2(yAt(t, bx + 6) - yAt(t, bx - 6), 12);
-    ctx.save(); ctx.translate(bx - cx, by); ctx.rotate(ba);
-    K.rr(-40, -19, 84, 46, 14, 'rgba(0,0,0,0.18)');
-    K.rr(-44, -23, 88, 46, 14, t.color, K.shade(t.color, -0.4), 4);
-    ctx.fillStyle = t.stripe; ctx.fillRect(-38, -4, 76, 8);
-    ctx.restore();
-    ctx.fillStyle = '#555'; ctx.fillRect(sx - 98, y - 4, 12, 8);
+    // うしろの しゃりょう（ほしを あつめると ふえる）
+    for (let i = t.cars - 1; i >= 0; i--) {
+      const bx = t.x - 140 - i * 96, by = yAt(t, bx), ba = Math.atan2(yAt(t, bx + 6) - yAt(t, bx - 6), 12);
+      ctx.save(); ctx.translate(bx - cx, by); ctx.rotate(ba);
+      K.rr(-40, -19, 84, 46, 14, 'rgba(0,0,0,0.18)');
+      K.rr(-44, -23, 88, 46, 14, t.color, K.shade(t.color, -0.4), 4);
+      ctx.fillStyle = t.stripe; ctx.fillRect(-38, -4, 76, 8);
+      ctx.restore();
+      // れんけつき
+      const jx = bx + 48, jy = yAt(t, jx);
+      ctx.fillStyle = '#555'; ctx.fillRect(jx - cx - 6, jy - 4, 12, 8);
+    }
     K.trainTop(sx, y, ang, { color: t.color, stripe: t.stripe });
-    if (t.boost > 0 && t.isP) for (let i = 0; i < 3; i++) K.star(sx - 200 - i * 26 + Math.sin(time * 20 + i) * 4, y + (i - 1) * 18, 9, '#ffd23f');
+    if (t.boost > 0 && t.isP) { const tx = sx - 190 - (t.cars - 1) * 96; for (let i = 0; i < 3; i++) K.star(tx - i * 26 + Math.sin(time * 20 + i) * 4, y + (i - 1) * 18, 9, '#ffd23f'); }
     if (t.isP) {
       K.rr(sx - 120, y - 92, 96, 50, 18, '#fff', '#e94b4b', 4);
       ctx.beginPath(); ctx.moveTo(sx - 82, y - 44); ctx.lineTo(sx - 62, y - 44); ctx.lineTo(sx - 72, y - 30); ctx.closePath(); ctx.fillStyle = '#e94b4b'; ctx.fill();
@@ -453,6 +477,10 @@
     const rank = ranking().indexOf(R.P) + 1;
     K.rr(1110, 18, 156, 64, 20, '#fff', '#e94b4b', 4);
     K.text(rank + 'ばん', 1188, 51, 38, '#e94b4b', 'center', null);
+    // あつめた ほし
+    K.rr(1110, 90, 156, 60, 20, '#fff', '#ffb000', 4);
+    K.star(1143, 120, 20, '#ffd23f');
+    K.text('' + R.P.got.size, 1198, 122, 38, '#7a4b00', 'center', null);
   }
   function drawSignal() {
     const x = W / 2, y = 330;
@@ -472,7 +500,11 @@
   function drawResult(time) {
     ctx.fillStyle = 'rgba(255,255,255,0.86)'; ctx.fillRect(0, 0, W, H);
     const top = R.rank === 1 ? 'いちばん！ すごい！' : R.rank === 2 ? '2ばん！ がんばったね' : '3ばん！ よく はしったね';
-    K.text(top, W / 2, 110, 72, '#e94b4b', 'center', '#fff');
+    K.text(top, W / 2, 96, 72, '#e94b4b', 'center', '#fff');
+    // あつめた ほし（かんむりと かさならない ひだりに おく）
+    K.rr(40, 160, 300, 66, 24, '#fff7c7', '#ffb000', 5);
+    K.star(90, 193, 24, '#ffd23f');
+    K.text('ほし ' + R.P.got.size + 'こ', 220, 195, 40, '#7a4b00', 'center', null);
     const pos = [[W / 2, 420, 200], [W / 2 - 300, 470, 150], [W / 2 + 300, 500, 120]];
     R.final.forEach((t, i) => {
       const [x, y, h] = pos[i];

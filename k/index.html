@@ -23,6 +23,14 @@
   <a href="3_oekaki/" style="background:#ff9f1c"><span class="ic">✏️</span>せんろ おえかき<small>ゆびで せんろを かくと でんしゃが はしるよ</small></a>
   <a href="4_melody/" style="background:#4b8bf5"><span class="ic">🎵</span>はっしゃ メロディ<small>ひかったら おして メロディを ならそう</small></a>
   <a href="5_shasho/" style="background:#b06bff"><span class="ic">🎤</span>ぼくが しゃしょうさん<small>じぶんの こえで しゃない ほうそう</small></a>
+  <a href="6_sticker/" style="background:#ff8ad8"><span class="ic">🏅</span>シールちょう<small id="stk">あつめた シールを みる</small></a>
 </div>
+<script>
+  // もらった シールの まいすう（この たんまつの なかだけ）
+  try {
+    var n = JSON.parse(localStorage.getItem('kidtrain_stickers') || '[]').length;
+    if (n) document.getElementById('stk').textContent = 'いま ' + n + 'まい';
+  } catch (e) {}
+</script>
 <div class="note">保護者の方へ：試作版です。音が出ます。⑤はマイクを使いますが、録音は端末の中だけで使い、保存・送信はしません（画面を閉じると消えます）。もらえるシールはこの端末の中だけに記録されます。</div>
 </body></html>

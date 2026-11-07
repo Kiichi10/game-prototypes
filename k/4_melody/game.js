@@ -5,7 +5,9 @@
   const BELL = { x: 1080, y: 600, r: 100 };
   const LANE_Y = 600, TRACK_Y = 405, STOP_X = 1190;
   const WIN = 0.25; // はんていは あまく ±0.25びょう
-  const CARS = 5, TS = 0.85;
+  const CARS = 4, TS = 1.0;   // りょうすうを へらして でんしゃを おおきく（まどの おきゃくさんが みえるように）
+  const CARW = 230 * TS, CARH = 110 * TS, CGAP = 10 * TS;
+  const DOORK = 1;            // ドアを つける まどの ばんごう（ドアの いちは 5_shasho と そろえる）
 
   // オリジナル曲（MIDI番号と はく数）。明るく短い チャイム風。
   const STAGES = [
@@ -19,6 +21,7 @@
   const NOTE_COLS = ['#ff5a5a', '#3ec46d', '#4b8bf5', '#b06bff', '#ff9f1c'];
 
   let stageIdx = 0, phase = 'arrive', pt = 0; // pt = その場面の けいか時間
+  let totalHits = 0;                          // 3えき ぜんぶで ひけた かず
   let notes = [], songStart = 0, lead = 0, hits = 0, demoDone = false, isDemo = false;
   let trainX = -300, bellPress = 0, msg = '', faces = 0, floaters = [];
 
@@ -42,6 +45,7 @@
   function setPhase(p) { phase = p; pt = 0; }
 
   function go(i) {
+    if (i === 0) totalHits = 0;
     stageIdx = i; trainX = -300; faces = 0; floaters = [];
     setPhase('arrive');
   }
@@ -83,27 +87,61 @@
     c.fillStyle = '#bfb6a5'; c.fillRect(0, TRACK_Y + 2, W, 12);
     c.fillStyle = '#ffd23f'; c.fillRect(0, TRACK_Y + 26, W, 14); // きいろい せん
       }
+  // まどの ばしょ（ドアの まどは のぞく）
   function windowCenters(x0) {
-    const carW = 230 * TS, carH = 110 * TS, gap = 10 * TS, out = [];
+    const out = [];
     for (let i = CARS - 1; i >= 0; i--) {
-      const bx = -i * (carW + gap) - carW, by = -carH, n = i === 0 ? 3 : 4;
-      for (let k = 0; k < n; k++) out.push({ x: x0 + bx + carW * (0.16 + k * 0.215), y: TRACK_Y + by + carH * 0.32 });
+      const bx = -i * (CARW + CGAP) - CARW, by = -CARH, n = i === 0 ? 3 : 4;
+      for (let k = 0; k < n; k++) {
+        if (k === DOORK) continue;
+        out.push({ x: x0 + bx + CARW * (0.16 + k * 0.215), y: TRACK_Y + by + CARH * 0.32 });
+      }
     }
     return out;
+  }
+  const WINMAX = windowCenters(0).length;
+  // ドア（まどの ところに ぴったり あわせる）
+  function drawDoors(x0, open) {
+    for (let i = 0; i < CARS; i++) {
+      const cx = x0 - i * (CARW + CGAP) - CARW * (1 - (0.16 + DOORK * 0.215));
+      const dw = CARW * 0.22, dh = CARH * 0.84, y0 = TRACK_Y - CARH * 0.9;
+      K.rr(cx - dw / 2 - 3, y0 - 3, dw + 6, dh + 6, 6, K.shade(st().color, -0.45));
+      K.rr(cx - dw / 2, y0, dw, dh, 4, '#3a4560');
+      const pw = dw / 2 * (1 - open);
+      if (pw > 1) {
+        const panel = K.shade(st().color, 0.12), edge = K.shade(st().color, -0.4);
+        K.rr(cx - dw / 2, y0, pw, dh, 3, panel, edge, 2);
+        K.rr(cx + dw / 2 - pw, y0, pw, dh, 3, panel, edge, 2);
+        if (pw > 12) {
+          c.globalAlpha = 0.55;
+          K.rr(cx - dw / 2 + 4, y0 + 10, pw - 8, dh * 0.38, 3, '#cfefff');
+          K.rr(cx + dw / 2 - pw + 4, y0 + 10, pw - 8, dh * 0.38, 3, '#cfefff');
+          c.globalAlpha = 1;
+        }
+      }
+    }
+  }
+  // ドアの あきぐあい（0=しまる / 1=あく）
+  function doorOpen() {
+    if (phase === 'arrive') return 0;
+    if (phase === 'door') return Math.max(0, 1 - Math.max(0, pt - 1.2) / 0.6);
+    if (phase === 'depart') return 0;
+    return 1;
   }
   const SKINS = ['#ffd9b8', '#f1c27d', '#e0ac69', '#ffe3cc'];
   const HAIRS = ['#5a3a22', '#2b2b2b', '#c47a2c', '#7a4a2a'];
   function drawFaces(t) {
     const ws = windowCenters(trainX);
     for (let i = 0; i < Math.min(faces, ws.length); i++) {
-      const w = ws[i], r = 13, wave = Math.sin(t * 8 + i) * 0.5;
-      K.circle(w.x, w.y + 3, r, SKINS[i % 4], '#8a5a3c', 2);
-      c.fillStyle = HAIRS[i % 4]; c.beginPath(); c.arc(w.x, w.y + 1, r, Math.PI, 0); c.fill();
-      K.circle(w.x - 4, w.y + 4, 1.8, '#333'); K.circle(w.x + 4, w.y + 4, 1.8, '#333');
+      const w = ws[i], r = 14, wave = Math.sin(t * 8 + i) * 0.5;   // まどの ふちが みえる 大きさ
+      K.circle(w.x, w.y + 4, r, SKINS[i % 4], '#8a5a3c', 2.5);
+      c.fillStyle = HAIRS[i % 4]; c.beginPath(); c.arc(w.x, w.y + 2, r, Math.PI, 0); c.fill();
+      K.circle(w.x - 4.5, w.y + 6, 2.2, '#333'); K.circle(w.x + 4.5, w.y + 6, 2.2, '#333');
+      c.strokeStyle = '#333'; c.lineWidth = 2; c.beginPath(); c.arc(w.x, w.y + 8, 3.5, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
       // てを ふる
-      c.save(); c.translate(w.x + 12, w.y + 8); c.rotate(-0.6 + wave);
-      c.strokeStyle = SKINS[i % 4]; c.lineWidth = 5; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -16); c.stroke(); K.circle(0, -18, 5, SKINS[i % 4]);
+      c.save(); c.translate(w.x + 13, w.y + 10); c.rotate(-0.6 + wave);
+      c.strokeStyle = SKINS[i % 4]; c.lineWidth = 6; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -19); c.stroke(); K.circle(0, -21, 6, SKINS[i % 4]);
       c.restore();
     }
   }
@@ -159,7 +197,11 @@
   function drawSign() {
     K.rr(W / 2 - 230, 26, 460, 86, 22, '#fff', st().color, 8);
     K.text(st().name, W / 2, 70, 52, '#2b3a55', 'center', null);
-    K.text(`${stageIdx + 1}/3`, W / 2 + 290, 70, 36, '#2b3a55', 'center');
+    K.text(`${stageIdx + 1}/${STAGES.length}`, W / 2 + 290, 70, 36, '#2b3a55', 'center');
+    // ここまでに ひけた かず
+    K.rr(150, 24, 206, 62, 26, 'rgba(255,255,255,0.85)', '#ffb000', 4);
+    K.star(188, 55, 22, '#ffd23f');
+    K.text(totalHits + hits + 'こ', 285, 57, 38, '#7a4b00', 'center', null);
   }
   function drawHand(t) { // おてほんの ゆび（ひかった時に ベルを おす）
     const near = bellPress > 0.3 || noteNear(), d = near ? 0 : 30;
@@ -204,7 +246,7 @@
       } else if (phase === 'demoend') {
         if (pt > 1.8) startSong(false);
       } else if (phase === 'board') {
-        const want = Math.max(1, hits);
+        const want = Math.min(WINMAX, Math.max(1, hits));
         if (pt > 1.0 && faces < want && pt > 1.0 + faces * 0.18) { faces++; K.sfx.pop(); }
         if (faces >= want && pt > 1.4 + want * 0.18 + 1.2) { setPhase('door'); K.say('ドアが しまります'); }
       } else if (phase === 'door') {
@@ -214,6 +256,7 @@
         const v = Math.min(900, 40 + pt * pt * 260);
         trainX += v * dt; K.runSound(dt, v / 120);
         if (trainX > W + 1100) {
+          totalHits += hits; hits = 0;
           if (stageIdx < STAGES.length - 1) { K.say('つぎの えきへ しゅっぱつ'); go(stageIdx + 1); }
           else K.reward('はっしゃ メロディ', 'メロディ ぜんぶ ひけたね', () => { demoDone = true; go(0); K.scene = scene; });
         }
@@ -222,6 +265,7 @@
     draw(t) {
       drawBg(t);
       K.trainSide(trainX, TRACK_Y, { color: st().color, stripe: '#ffffff', cars: CARS, scale: TS, bob: phase === 'arrive' || phase === 'depart' ? Math.sin(t * 25) * 1.2 : 0 });
+      drawDoors(trainX, doorOpen());
       drawFaces(t);
       drawPlatform();
       K.person(170, 538, { color: '#2b3a55', hat: '#2b3a55', scale: 1.1, hop: phase === 'depart' ? Math.abs(Math.sin(t * 6)) * 8 : 0 });
