@@ -42,7 +42,8 @@
     lead = st().travel; songStart = now(); hits = 0;
     phase = demo ? 'demo' : 'play'; pt = 0;
   }
-  function setPhase(p) { phase = p; pt = 0; }
+  let doorMel = 0, doorSaid = false;      // はっしゃの とき じぶんの メロディを ながす
+  function setPhase(p) { phase = p; pt = 0; doorSaid = false; }
 
   function go(i) {
     if (i === 0) totalHits = 0;
@@ -50,8 +51,39 @@
     setPhase('arrive');
   }
 
+  // ---------- じゆうに ならす（じぶんの はっしゃメロディを つくる） ----------
+  const BARS = [72, 74, 76, 77, 79, 81, 83, 84];
+  const BARCOL = ['#ff5a5a', '#ff9f1c', '#ffd23f', '#3ec46d', '#2fd6a0', '#4b8bf5', '#9b6bff', '#ff8ad8'];
+  const MYKEY = 'kidtrain_mymelody';
+  let mine = [];           // いま つくっている メロディ
+  let lastBar = -1, myPlay = null;
+  function loadMine() { try { const a = JSON.parse(localStorage.getItem(MYKEY) || 'null'); return Array.isArray(a) && a.length ? a : null; } catch (e) { return null; } }
+  function saveMine() { try { localStorage.setItem(MYKEY, JSON.stringify(mine)); } catch (e) {} }
+  function barAt(p) {
+    const n = BARS.length, w = (W - 120) / n;
+    if (p.y < 300 || p.y > 700) return -1;
+    const i = Math.floor((p.x - 60) / w);
+    return i >= 0 && i < n ? i : -1;
+  }
+  function hitBar(i) {
+    if (i < 0) return;
+    K.bell(K.note(BARS[i]), 0, 0.8, 0.3);
+    mine.push(BARS[i]); if (mine.length > 8) mine.shift();
+    const n = BARS.length, w = (W - 120) / n;
+    K.sparkle(60 + w * (i + 0.5), 320, 12, BARCOL[i]);
+    floaters.push({ x: 60 + w * (i + 0.5), y: 300, t: 0, s: '♪' });
+    bellPress = 1;
+  }
+  // つくった メロディを ならす（まいかいの でんしゃが でる とき にも つかう）
+  function playMelody(list, t0) {
+    if (!list || !list.length) return 0;
+    list.forEach((m, i) => K.bell(K.note(m), (t0 || 0) + i * 0.3, 0.7, 0.3));
+    return list.length * 0.3 + 0.5;
+  }
+
   // ---------- 入力: どこを おしても ベルを ならせる（6さい向け） ----------
   K.handlers.down = p => {
+    if (phase === 'free') { lastBar = barAt(p); hitBar(lastBar); return; }
     if (phase !== 'play') { if (phase === 'demo' || phase === 'intro') ringBell(true); return; }
     const s = songTime();
     let best = null, bd = 9;
@@ -64,6 +96,12 @@
     } else ringBell(true);
   };
   function ringBell(quiet) { bellPress = 1; K.bell(K.note(84), 0, 0.25, quiet ? 0.05 : 0.2); }
+  K.handlers.move = p => {    // ゆびを すべらせると つづけて ならせる
+    if (phase !== 'free' || !K.pointer.down) return;
+    const i = barAt(p);
+    if (i !== lastBar) { lastBar = i; hitBar(i); }
+  };
+  K.handlers.up = () => { lastBar = -1; };
 
   // ---------- 絵 ----------
   function drawBg(t) {
@@ -124,7 +162,7 @@
   // ドアの あきぐあい（0=しまる / 1=あく）
   function doorOpen() {
     if (phase === 'arrive') return 0;
-    if (phase === 'door') return Math.max(0, 1 - Math.max(0, pt - 1.2) / 0.6);
+    if (phase === 'door') return Math.max(0, 1 - Math.max(0, pt - doorMel - 1.0) / 0.6);
     if (phase === 'depart') return 0;
     return 1;
   }
@@ -248,10 +286,15 @@
       } else if (phase === 'board') {
         const want = Math.min(WINMAX, Math.max(1, hits));
         if (pt > 1.0 && faces < want && pt > 1.0 + faces * 0.18) { faces++; K.sfx.pop(); }
-        if (faces >= want && pt > 1.4 + want * 0.18 + 1.2) { setPhase('door'); K.say('ドアが しまります'); }
+        if (faces >= want && pt > 1.4 + want * 0.18 + 1.2) {
+          setPhase('door');
+          // じぶんで つくった はっしゃメロディが あれば、それを ながす
+          doorMel = playMelody(loadMine(), 0.15);
+          if (!doorMel) K.say('ドアが しまります');
+        }
       } else if (phase === 'door') {
-        if (pt > 1.2 && pt - dt <= 1.2) K.sfx.door();
-        if (pt > 2.4) { setPhase('depart'); K.sfx.whistle(); }
+        if (!doorSaid && pt > doorMel + 1.0) { doorSaid = true; K.sfx.door(); if (doorMel) K.say('ドアが しまります'); }
+        if (pt > doorMel + 2.2) { setPhase('depart'); K.sfx.whistle(); }
       } else if (phase === 'depart') {
         const v = Math.min(900, 40 + pt * pt * 260);
         trainX += v * dt; K.runSound(dt, v / 120);
@@ -281,7 +324,7 @@
       else if (phase === 'demoend') line = 'こんどは きみの ばん！';
       else if (phase === 'play') line = 'ひかったら おしてね';
       else if (phase === 'board') line = msg;
-      else if (phase === 'door') line = 'ドアが しまります';
+      else if (phase === 'door') line = (doorMel && pt < doorMel) ? 'きみの はっしゃメロディ♪' : 'ドアが しまります';
       else if (phase === 'depart') line = 'しゅっぱつ しんこう！';
       if (line) K.text(line, phase === 'play' || phase === 'demo' ? 560 : W / 2, 482, 46, '#2b3a55', 'center', '#fff');
       if (phase === 'board' || phase === 'door') K.text(`おきゃくさん ${faces}にん`, W / 2, 540, 36, '#e94b4b', 'center', '#fff');
@@ -290,9 +333,75 @@
     }
   };
 
+  // ---------- じゆうに ならす がめん ----------
+  const freeScene = {
+    update(dt) {
+      bellPress = Math.max(0, bellPress - dt * 5);
+      floaters.forEach(f => { f.t += dt; f.y -= dt * 90; });
+      floaters = floaters.filter(f => f.t < 0.9);
+      if (myPlay) { myPlay -= dt; if (myPlay <= 0) myPlay = null; }
+    },
+    draw(t) {
+      const g = c.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#ffe9f6'); g.addColorStop(1, '#e7f6ff');
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      K.rr(300, 16, 680, 80, 28, '#fff', '#ff8ad8', 6);
+      K.text('じゆうに ならそう', 640, 58, 46, '#e94b4b', 'center', null);
+      // つくっている メロディ
+      K.rr(300, 110, 680, 76, 26, 'rgba(255,255,255,0.8)');
+      for (let i = 0; i < 8; i++) {
+        const x = 352 + i * 82, m = mine[i];
+        if (m === undefined) K.circle(x, 148, 18, '#eceff5');
+        else { const bi = BARS.indexOf(m); K.circle(x, 148, 22, BARCOL[bi < 0 ? 0 : bi], '#fff', 3); }
+      }
+      K.text('おした おとが はっしゃメロディに なるよ', 640, 228, 32, '#555', 'center', '#fff');
+      // けんばん
+      const n = BARS.length, w = (W - 120) / n;
+      for (let i = 0; i < n; i++) {
+        const x = 60 + i * w + 6, hh = 348 - i * 8, y = 668 - hh;   // ひくい おとほど ながい ばん
+        K.rr(x, y + 8, w - 12, hh, 20, K.shade(BARCOL[i], -0.35));
+        K.rr(x, y, w - 12, hh, 20, BARCOL[i], '#ffffff', 4);
+        K.rr(x + 10, y + 10, w - 32, 40, 14, 'rgba(255,255,255,0.35)');
+        K.circle(x + (w - 12) / 2, y + hh - 34, 12, 'rgba(255,255,255,0.6)');
+      }
+      // ボタン
+      K.button(36, 112, 230, 92, 'きく', '#4b8bf5', () => { myPlay = playMelody(mine, 0.05); K.say('きみの メロディ'); }, { size: 40 });
+      K.button(1014, 112, 230, 92, 'きめる', '#3ec46d', () => {
+        if (!mine.length) { K.say('けんばんを おして メロディを つくってね'); return; }
+        saveMine(); K.sfx.good(); K.confetti(40);
+        K.say('これが きみの はっしゃメロディ だよ');
+      }, { size: 40 });
+      K.button(16, 16, 120, 64, 'もどる', '#8a94a8', toTitle, { size: 28 });
+      floaters.forEach(f => { c.save(); c.globalAlpha = 1 - f.t / 0.9; K.text(f.s, f.x, f.y, 54, '#e94b4b', 'center', '#fff'); c.restore(); });
+    }
+  };
+  function startFree() {
+    phase = 'free'; mine = loadMine() || []; floaters = []; lastBar = -1;
+    K.scene = freeScene;
+    K.say('けんばんを おして、じぶんの はっしゃメロディを つくろう');
+  }
+
   // テスト用（じょうたいを みるだけ）
   window.MELODY = { get phase() { return phase; }, get stage() { return stageIdx; }, get hits() { return hits; },
     next() { const s = songTime(); const n = notes.find(n => !n.hit && n.t + WIN > s); return n ? n.t - s : null; } };
 
-  K.title('はっしゃ メロディ', 'ベルを ならして えきの メロディを ひこう', '#ff8ad8', () => { go(0); K.scene = scene; });
+  // ---------- タイトル（2つの あそびかた） ----------
+  function toTitle() {
+    phase = 'title';
+    K.scene = {
+      update() {},
+      draw(t) {
+        c.fillStyle = K.bg; c.fillRect(0, 0, W, H);
+        K.rr(140, 96, 1000, 270, 40, '#fff', '#ff8ad8', 10);
+        K.text('はっしゃ メロディ', W / 2, 190, 88, '#ff8ad8', 'center', '#fff');
+        K.text('ベルを ならして えきの メロディを ひこう', W / 2, 296, 36, '#555', 'center', null);
+        K.trainSide(W / 2 + 340 + ((t * 120) % 1600) - 800, 660, { color: '#ff8ad8', stripe: '#fff', cars: 3, scale: 0.9, bob: Math.sin(t * 20) * 1.5 });
+        c.fillStyle = '#8a6a4a'; c.fillRect(0, 680, W, 14);
+        K.button(150, 400, 460, 130, 'えきを まわる', '#ff8ad8', () => { go(0); K.scene = scene; }, { size: 46 });
+        K.button(670, 400, 460, 130, 'じゆうに ならす', '#4b8bf5', startFree, { size: 44 });
+        K.homeButton();
+      }
+    };
+  }
+  toTitle();
 })();

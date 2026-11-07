@@ -10,6 +10,7 @@
   // water: ellipse / river(折れ線＋はば)、mountains: ellipse、items: star / guest / fruit
   const STAGES = [
     {
+      intro: 'えきから ゆびで なぞって せんろを かこう',
       start: { x: 170, y: 420 }, goal: { x: 1110, y: 420 },
       water: [{ type: 'ellipse', x: 640, y: 430, rx: 130, ry: 95 }],
       mountains: [],
@@ -20,6 +21,7 @@
       demo: [[170, 420], [300, 360], [420, 330], [540, 400], [640, 430], [760, 400], [880, 330], [1000, 360], [1110, 420]],
     },
     {
+      intro: 'こんどは かわと やまが あるよ。えきから ゴールまで せんろを かこう',
       start: { x: 160, y: 560 }, goal: { x: 1110, y: 250 },
       water: [{ type: 'river', w: 100, pts: [[600, 90], [560, 260], [500, 420], [520, 560], [470, 740]] }],
       mountains: [{ x: 860, y: 470, rx: 150, ry: 115 }],
@@ -30,6 +32,7 @@
       ],
     },
     {
+      intro: 'かわを わたって ゴールまで いこう',
       start: { x: 150, y: 230 }, goal: { x: 1120, y: 590 },
       water: [
         { type: 'ellipse', x: 350, y: 520, rx: 140, ry: 90 },
@@ -41,6 +44,37 @@
         { k: 'star', x: 880, y: 560 }, { k: 'star', x: 1150, y: 400 },
         { k: 'guest', x: 160, y: 620, col: '#b06bff' }, { k: 'guest', x: 620, y: 160, col: '#e94b4b' }, { k: 'guest', x: 960, y: 470, col: '#4b8bf5' },
         { k: 'fruit', x: 560, y: 620, f: 2 }, { k: 'fruit', x: 880, y: 150, f: 0 }, { k: 'fruit', x: 1170, y: 220, f: 1 },
+      ],
+    },
+    {
+      intro: 'みずうみと やまを こえて いこう',
+      start: { x: 180, y: 620 }, goal: { x: 1110, y: 170 },
+      water: [
+        { type: 'ellipse', x: 620, y: 440, rx: 180, ry: 115 },
+        { type: 'river', w: 86, pts: [[1000, 90], [960, 260], [1010, 430], [960, 600], [1000, 740]] },
+      ],
+      mountains: [{ x: 360, y: 300, rx: 120, ry: 95 }, { x: 830, y: 630, rx: 125, ry: 90 }],
+      items: [
+        { k: 'star', x: 260, y: 520 }, { k: 'star', x: 450, y: 480 }, { k: 'star', x: 620, y: 440 },
+        { k: 'star', x: 780, y: 330 }, { k: 'star', x: 940, y: 240 }, { k: 'star', x: 1150, y: 520 },
+        { k: 'guest', x: 180, y: 240, col: '#ff8ad8' }, { k: 'guest', x: 620, y: 180, col: '#3ec46d' }, { k: 'guest', x: 840, y: 630, col: '#ff9f1c' },
+        { k: 'fruit', x: 420, y: 650, f: 1 }, { k: 'fruit', x: 1170, y: 330, f: 2 },
+      ],
+    },
+    {
+      intro: 'さいごの ステージだよ。いっぱい あつめて ゴールまで いこう',
+      start: { x: 150, y: 390 }, goal: { x: 1140, y: 390 },
+      water: [
+        { type: 'river', w: 92, pts: [[430, 90], [470, 260], [420, 430], [470, 600], [430, 740]] },
+        { type: 'river', w: 92, pts: [[860, 90], [820, 260], [870, 430], [820, 600], [860, 740]] },
+      ],
+      mountains: [{ x: 645, y: 150, rx: 150, ry: 95 }, { x: 645, y: 640, rx: 150, ry: 95 }],
+      items: [
+        { k: 'star', x: 280, y: 250 }, { k: 'star', x: 280, y: 560 }, { k: 'star', x: 450, y: 390 },
+        { k: 'star', x: 645, y: 390 }, { k: 'star', x: 845, y: 390 }, { k: 'star', x: 1020, y: 250 }, { k: 'star', x: 1020, y: 560 },
+        { k: 'guest', x: 180, y: 620, col: '#4b8bf5' }, { k: 'guest', x: 645, y: 250, col: '#e94b4b' },
+        { k: 'guest', x: 645, y: 540, col: '#b06bff' }, { k: 'guest', x: 1150, y: 170, col: '#3ec46d' },
+        { k: 'fruit', x: 180, y: 180, f: 0 }, { k: 'fruit', x: 1150, y: 620, f: 2 }, { k: 'fruit', x: 450, y: 650, f: 1 },
       ],
     },
   ];
@@ -108,11 +142,50 @@
     saidB = false; saidT = false; banner = null; pulse = null; wasIn = 'g';
     mode = 'idle'; modeT = 0; idleT = 0;
     showDemo = !!st.demo; demoT = 0;
-    if (n === 0) say('えきから ゆびで なぞって せんろを かこう');
-    else if (n === 1) say('こんどは かわと やまが あるよ。えきから ゴールまで せんろを かこう');
-    else say('さいごの ステージだよ。いっぱい あつめて ゴールまで いこう');
+    say(st.intro);
     K.scene = scene;
   }
+
+  // ---------- じゆうに かく（ゴールなし・はしりながら かきたせる） ----------
+  function randomFreeStage() {
+    const r = (a, b) => a + Math.random() * (b - a);
+    const s = {
+      free: true, intro: 'すきなだけ せんろを かいて あそぼう',
+      start: { x: 170, y: 360 }, goal: { x: -9999, y: -9999 },
+      water: [
+        { type: 'ellipse', x: r(420, 820), y: r(330, 560), rx: r(110, 165), ry: r(80, 110) },
+        { type: 'river', w: 88, pts: [[r(900, 1050), 90], [r(880, 1020), 260], [r(900, 1050), 430], [r(880, 1020), 600], [r(900, 1050), 740]] },
+      ],
+      mountains: [{ x: r(380, 620), y: r(140, 230), rx: r(100, 140), ry: r(80, 100) },
+                  { x: r(700, 980), y: r(560, 650), rx: r(100, 140), ry: r(80, 100) }],
+      items: [],
+    };
+    for (let i = 0; i < 14; i++) s.items.push(freeItem(s));
+    return s;
+  }
+  function freeItem(s) {
+    const r = (a, b) => a + Math.random() * (b - a);
+    const k = Math.random() < 0.55 ? 'star' : Math.random() < 0.6 ? 'guest' : 'fruit';
+    const cols = ['#ff8ad8', '#4b8bf5', '#3ec46d', '#ff9f1c', '#b06bff', '#e94b4b'];
+    let x = 0, y = 0;
+    for (let i = 0; i < 30; i++) {
+      x = r(120, 1200); y = r(150, 660);
+      const far = !s.items.some(o => Math.hypot(o.x - x, o.y - y) < 120);
+      if (far) break;
+    }
+    return { k, x, y, col: cols[(Math.random() * cols.length) | 0], f: (Math.random() * 3) | 0, taken: false, ph: Math.random() * 6 };
+  }
+  function startFree() {
+    stageNo = -1; st = randomFreeStage();
+    pts = []; sm = null; done = false; trainS = 0; runV = 0;
+    items = st.items.map(o => ({ ...o }));
+    flyers = []; got = { star: 0, guest: 0, fruit: 0 }; total = { star: 0, guest: 0, fruit: 0 };
+    saidB = false; saidT = false; banner = null; pulse = null; wasIn = 'g';
+    mode = 'idle'; modeT = 0; idleT = 0; showDemo = false;
+    say(st.intro);
+    K.scene = scene;
+  }
+  const isFree = () => !!(st && st.free);
   function erase() {
     pts = []; sm = null; done = false; trainS = 0; runV = 0;
     items.forEach(it => it.taken = false); got = { star: 0, guest: 0, fruit: 0 }; flyers = [];
@@ -123,7 +196,8 @@
   // ---------- 入力 ----------
   K.handlers.down = p => {
     if (K.scene !== scene) return;
-    if (mode === 'running' || mode === 'arrived') return;
+    if (mode === 'arrived') return;
+    if (mode === 'running' && !isFree()) return;   // じゆうモードは はしっていても かきたせる
     showDemo = false;
     const from = endPt();
     const near = Math.hypot(p.x - from.x, p.y - from.y) < (pts.length ? 110 : 120);
@@ -164,6 +238,11 @@
       if (k !== last.k) onKindChange(last.k, k, nx, ny);
       last = { x: nx, y: ny, k };
       pts.push(last);
+      // じゆうモードは、でんしゃが とおりすぎた うしろの せんろを 片づけて かるくする
+      if (isFree() && pts.length > 1400) {
+        const cut = pts.length - 1400;
+        if (cut * STEP < trainS - 300) { pts.splice(0, cut); trainS -= cut * STEP; }
+      }
       if (pts.length % 6 === 0) K.tone(500 + Math.random() * 120, 0, 0.03, 'triangle', 0.05);
       if (Math.hypot(nx - st.goal.x, ny - st.goal.y) < 70) { snapGoal(); return; }
     }
@@ -363,7 +442,7 @@
     K.star(HUD.star.x - 30, 51, 22, '#ffd23f'); K.text('' + got.star, HUD.star.x + 18, 53, 40, '#555', 'center', null);
     drawFace(HUD.guest.x - 30, 51, 0.6, '#ff8ad8', 0); K.text('' + got.guest, HUD.guest.x + 18, 53, 40, '#555', 'center', null);
     FRUITS[0](HUD.fruit.x - 30, 53, 0.9); K.text('' + got.fruit, HUD.fruit.x + 18, 53, 40, '#555', 'center', null);
-    K.text('ステージ ' + (stageNo + 1), 245, 50, 30, '#2b6b2b', 'center');
+    K.text(isFree() ? 'じゆうに かく' : 'ステージ ' + (stageNo + 1), 245, 50, 30, '#2b6b2b', 'center');
   }
 
   // ---------- メイン画面 ----------
@@ -378,7 +457,7 @@
       if (pulse) pulse.t += dt;
       if (banner) { banner.t += dt; if (banner.t > 1.8) banner = null; }
       if (mode === 'arrived') arrT += dt;
-      if (mode === 'running') {
+      if (mode === 'running' || (isFree() && mode === 'drawing' && trainS < runEnd())) {
         runT += dt;
         const L = runEnd(), left = L - trainS;
         const target = 250 * Math.max(0.3, Math.min(1, left / 140));
@@ -397,25 +476,28 @@
         if (trainS >= L - 0.5) {
           runV = 0;
           if (done) { arrive(); }
-          else { mode = 'idle'; modeT = 0; pulse = { x: endPt().x, y: endPt().y, t: 0 }; K.sfx.door(); say('せんろが おわったよ。さきっぽから つづきを かいてね'); }
+          else if (mode === 'running') { mode = 'idle'; modeT = 0; pulse = { x: endPt().x, y: endPt().y, t: 0 }; K.sfx.door(); say('せんろが おわったよ。さきっぽから つづきを かいてね'); }
         }
       }
       for (let i = flyers.length - 1; i >= 0; i--) {
         const f = flyers[i]; f.t += dt;
-        if (f.t >= 0.7) { got[f.it.k]++; K.sfx.pop(); flyers.splice(i, 1); }
+        if (f.t >= 0.7) {
+          got[f.it.k]++; K.sfx.pop(); flyers.splice(i, 1);
+          if (isFree()) items.push(freeItem(st));   // とった ぶん また わいてくる
+        }
       }
     },
     draw(t) {
       drawField(t);
       drawStation(st.start, 'えき', false, t);
-      drawStation(st.goal, 'ゴール', true, t);
+      if (!isFree()) drawStation(st.goal, 'ゴール', true, t);
       drawTrack();
       for (const it of items) if (!it.taken) drawItem(it, it.x, it.y, 1, t);
       drawTrain();
       for (const m of st.mountains) drawMountain(m);
       drawTunnelParts(t);
       drawRoof(st.start, 'えき', false, t);
-      drawRoof(st.goal, 'ゴール', true, t);
+      if (!isFree()) drawRoof(st.goal, 'ゴール', true, t);
       // ここから かいてね
       if (mode === 'idle' && !done) {
         const p = endPt(), r = 46 + Math.sin(t * 5) * 8;
@@ -446,9 +528,21 @@
       }
       K.homeButton();
       if (mode !== 'arrived') K.button(W - 176, 12, 160, 90, 'けす', '#ff8a5b', erase, { size: 40 });
+      // じゆうモードは いつでも おしまいに できる（5こ あつめたら ごほうび）
+      if (isFree() && mode !== 'arrived') {
+        const n = got.star + got.guest + got.fruit;
+        if (n >= 5) K.button(W - 176, 116, 160, 90, 'おしまい', '#3ec46d', freeFinish, { size: 32 });
+      }
       if (mode === 'arrived') drawArrived(t);
     }
   };
+
+  function freeFinish() {
+    mode = 'arrived';
+    K.reward(GAME, 'たくさん あつめたね', startFree);
+    const rs = K.scene;   // ごほうびの うしろに のはらを みせる
+    K.scene = { update: rs.update, draw(t, dt) { drawField(t); drawTrack(); drawTrain(); for (const m of st.mountains) drawMountain(m); rs.draw(t, dt); } };
+  }
 
   // ---------- とうちゃく ----------
   let arrT = 0;
@@ -485,16 +579,37 @@
     drawFace(620, 410, 0.7, '#ff8ad8', 0); K.text('' + ng, 678, 412, 44, '#555', 'center', null);
     FRUITS[0](800, 412, 1.0); K.text('' + nf, 858, 412, 44, '#555', 'center', null);
     const last = stageNo === STAGES.length - 1;
-    if (last) K.text(`ぜんぶで ほし ${total.star}こ・おきゃくさん ${total.guest}にん`, W / 2, 486, 32, '#2b6b2b', 'center', '#fff');
-    K.button(W / 2 - 200, 530, 400, 110, last ? 'ごほうび' : 'つぎへ', COLOR, () => {
-      if (last) {
-        K.reward(GAME, 'せんろ かきの めいじんだね', () => startStage(0));
-        const rs = K.scene;   // ごほうびの うしろに のはらを みせる
-        K.scene = { update: rs.update, draw(t, dt) { drawField(t); drawTrack(); drawTrain(); for (const m of st.mountains) drawMountain(m); rs.draw(t, dt); } };
-      }
-      else startStage(stageNo + 1);
-    });
+    K.text(`ぜんぶで ほし ${total.star}こ・おきゃくさん ${total.guest}にん`, W / 2, 486, 32, '#2b6b2b', 'center', '#fff');
+    if (last) K.button(W / 2 - 200, 530, 400, 110, 'ごほうび', COLOR, toReward);
+    else if (stageNo >= 1) {
+      // 2ステージめから あとは、つづけても おしまいに しても いい
+      K.button(170, 530, 380, 110, 'ごほうび', '#ffb000', toReward, { size: 44 });
+      K.button(730, 530, 380, 110, 'つぎへ', COLOR, () => startStage(stageNo + 1), { size: 44 });
+    }
+    else K.button(W / 2 - 200, 530, 400, 110, 'つぎへ', COLOR, () => startStage(stageNo + 1));
+  }
+  function toReward() {
+    K.reward(GAME, 'せんろ かきの めいじんだね', () => startStage(0));
+    const rs = K.scene;   // ごほうびの うしろに のはらを みせる
+    K.scene = { update: rs.update, draw(t, dt) { drawField(t); drawTrack(); drawTrain(); for (const m of st.mountains) drawMountain(m); rs.draw(t, dt); } };
   }
 
-  K.title('せんろ おえかき', 'ゆびで せんろを かくと でんしゃが はしるよ', COLOR, () => startStage(0));
+  // ---------- タイトル（2つの あそびかた） ----------
+  function toTitle() {
+    K.scene = {
+      update() {},
+      draw(t) {
+        c.fillStyle = K.bg; c.fillRect(0, 0, W, H);
+        K.rr(140, 96, 1000, 270, 40, '#fff', COLOR, 10);
+        K.text('せんろ おえかき', W / 2, 190, 88, COLOR, 'center', '#fff');
+        K.text('ゆびで せんろを かくと でんしゃが はしるよ', W / 2, 296, 36, '#555', 'center', null);
+        K.trainSide(W / 2 + 340 + ((t * 120) % 1600) - 800, 660, { color: COLOR, cars: 3, scale: 0.9, bob: Math.sin(t * 20) * 1.5 });
+        c.fillStyle = '#8a6a4a'; c.fillRect(0, 680, W, 14);
+        K.button(150, 400, 460, 130, 'ステージ', COLOR, () => startStage(0), { size: 52 });
+        K.button(670, 400, 460, 130, 'じゆうに かく', '#ff9f1c', startFree, { size: 46 });
+        K.homeButton();
+      }
+    };
+  }
+  toTitle();
 })();

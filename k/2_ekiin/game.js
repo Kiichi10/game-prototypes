@@ -28,7 +28,9 @@
       order: ord.slice(0, 3), other: ord[3], ti: -1, people: [], pops: [], train: null,
       wave: 0, whistleT: 0, kind: 0, total: 0,
       runnerAt: 1 + (Math.random() < 0.5 ? 0 : 1),   // かけこみは 3ぼんのうち 1ぼんだけ
+      lost: null, lostDone: false,
     };
+    G.lostAt = G.runnerAt === 1 ? 2 : 1;             // わすれものは かけこみと ちがう でんしゃで
     K.scene = scene;
     nextTrain();
   }
@@ -88,6 +90,18 @@
     K.sfx.horn();
   }
 
+  // ドアが ひらいたら、この でんしゃに のっていた ひとが おりて くる
+  function dropOff() {
+    const tr = G.train, n = 1 + (G.ti % 2);
+    for (let i = 0; i < n; i++) {
+      const d = tr.doors[(i + G.ti) % tr.doors.length];
+      const dir = i % 2 ? 1 : -1;
+      G.people.push({
+        col: tr.ci, slot: -1, x: doorX(d), y: TY - 6, sx: doorX(d), state: 'drop', t: -i * 0.5,
+        dir, shake: 0, bubble: 0, hop: 0, runner: false, hair: ['#5a3a22', '#2b2b2b', '#a0522d', '#d9a441'][(Math.random() * 4) | 0],
+      });
+    }
+  }
   function doorX(d) { return G.train.x + d.off; }
   function nearestDoor(x) {
     let best = null, bd = 1e9;
@@ -95,6 +109,49 @@
     return best;
   }
   function pop(text, x, y, color, size) { G.pops.push({ text, x, y, color: color || '#e94b4b', size: size || 64, life: 1.6 }); }
+
+  // ---- わすれもの（のった ひとが かばんを おいて いってしまう） ----
+  function dropBag(p) {
+    if (G.lostDone || G.ti !== G.lostAt || G.lost) return;
+    G.lostDone = true;
+    G.lost = { x: p.tx || p.sx, y: PY - 10, t: 0, fly: 0 };
+    setTimeout(() => {
+      if (!G || !G.lost) return;
+      K.sfx.oops(); pop('あっ、わすれもの！', W / 2, 300, '#ff8c2b', 60);
+      K.say('あっ、かばんを わすれてるよ。タッチして とどけて あげよう');
+    }, 700);
+  }
+  function tapBag() {
+    const L = G.lost; if (!L || L.fly) return;
+    L.fly = 0.001;
+    K.sfx.pop();
+    setTimeout(() => {
+      if (!G) return;
+      K.sfx.good(); K.sparkle(doorX(G.train.doors[0]), TY - 60, 20, '#ffd23f');
+      pop('ありがとう！', W / 2, 280, '#3ec46d', 72);
+      K.say('かばんを とどけて くれて ありがとう');
+    }, 650);
+  }
+  function drawBag(t) {
+    const L = G.lost; if (!L) return;
+    let x = L.x, y = L.y;
+    if (L.fly) {
+      const q = Math.min(1, L.fly), dx = doorX(G.train.doors[0]);
+      x = L.x + (dx - L.x) * q; y = L.y + (TY - 40 - L.y) * q - Math.sin(Math.PI * q) * 120;
+    }
+    const bob = L.fly ? 0 : Math.abs(Math.sin(t * 4)) * 6;
+    // かばん
+    K.rr(x - 34, y - 46 - bob, 68, 50, 10, '#c98a4b', '#8a5a2b', 4);
+    ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(x, y - 46 - bob, 18, Math.PI, 0); ctx.stroke();
+    K.rr(x - 10, y - 30 - bob, 20, 14, 4, '#ffd23f');
+    if (!L.fly) {
+      K.circle(x, y - 24, 54 + Math.sin(t * 6) * 5, null, 'rgba(255,140,43,' + (0.5 + 0.4 * Math.sin(t * 8)) + ')', 6);
+      ctx.fillStyle = '#ff8c2b'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 5;
+      const by = y - 130 - Math.abs(Math.sin(t * 6)) * 16;
+      ctx.beginPath(); ctx.moveTo(x - 24, by - 28); ctx.lineTo(x + 24, by - 28); ctx.lineTo(x, by + 4); ctx.closePath(); ctx.stroke(); ctx.fill();
+    }
+  }
   function colName(ci) { return COLS[ci].n; }
 
   function boardPerson(p) {
@@ -130,6 +187,8 @@
     if (!G || K.scene !== scene) return;
     const tr = G.train;
     if (tr.state !== 'board') return;
+    const L = G.lost;
+    if (L && !L.fly && Math.abs(pt.x - L.x) < 80 && pt.y > L.y - 120 && pt.y < L.y + 30) { tapBag(); return; }
     let hit = null, hd = 1e9;
     for (const p of G.people) {
       if (p.state !== 'wait' && p.state !== 'walk' && p.state !== 'run') continue;
@@ -141,6 +200,11 @@
 
   function pressDoor() {
     const tr = G.train;
+    if (G.lost && !G.lost.fly) {
+      K.say('わすれものが あるよ。タッチして とどけて あげよう');
+      pop('わすれもの！', W / 2, 300, '#ff8c2b', 60);
+      return;
+    }
     const r = G.people.find(p => p.runner && p.state !== 'gone' && p.state !== 'hop');
     if (r) {
       K.say('あっ、まって。のりたい ひとが はしってくるよ。のせてあげよう');
@@ -184,7 +248,7 @@
       }
     } else if (tr.state === 'opening') {
       tr.open = Math.min(1, tr.st / 0.7);
-      if (tr.open >= 1) { tr.state = 'board'; tr.st = 0; }
+      if (tr.open >= 1) { tr.state = 'board'; tr.st = 0; dropOff(); }
     } else if (tr.state === 'board') {
       tr.idle += dt;
       const need = G.people.filter(p => !p.runner && p.col === tr.ci && (p.state === 'wait' || p.state === 'walk'));
@@ -200,7 +264,7 @@
             tr.runnerSpawned = true;
             G.people.push({ col: tr.ci, slot: -1, x: -80, tx: SLOTS[0] - 40, y: PY, state: 'run', t: 0, shake: 0, bubble: 0, hop: 0, runner: true, hair: '#2b2b2b' });
             K.say('みんな のったね。あれ？ だれか はしってくるよ');
-          } else {
+          } else if (!G.lost) {
             K.say('みんな のったね。ドア しめます を おしてね');
           }
         }
@@ -232,11 +296,26 @@
       } else if (p.state === 'hop') {
         const q = Math.min(1, p.t / 0.6), dx = doorX(p.door), dy = TY - 6;
         p.x = lerp(p.sx, dx, q); p.y = lerp(p.sy, dy, q) - Math.sin(Math.PI * q) * 150; p.hop = 0;
-        if (q >= 1) { p.state = 'gone'; p.door.riders++; G.total++; K.sparkle(dx, TY - 60, 12, COLS[p.col].c); }
+        if (q >= 1) {
+          p.state = 'gone'; p.door.riders++; G.total++; K.sparkle(dx, TY - 60, 12, COLS[p.col].c);
+          dropBag(p);
+        }
+      } else if (p.state === 'drop') {
+        // でんしゃから おりて、ホームへ
+        if (p.t < 0) continue;
+        const q = Math.min(1, p.t / 0.6);
+        p.x = p.sx + p.dir * 50 * q;
+        p.y = lerp(TY + 18, PY, q);          // ドアから ホームへ おりて くる
+        p.sc = PS * (0.68 + 0.32 * q);       // てまえに くるほど 大きく
+        if (q >= 1) { p.state = 'leave'; p.t = 0; p.y = PY; p.sc = PS; }
+      } else if (p.state === 'leave') {
+        p.x += p.dir * 210 * dt; p.hop = Math.abs(Math.sin(p.t * 9)) * 12;
+        if (p.x < -120 || p.x > W + 120) p.state = 'gone';
       } else if (p.state === 'wait') {
         p.hop = G.wave ? Math.abs(Math.sin(p.t * 8)) * 16 : 0;
       }
     }
+    if (G.lost && G.lost.fly) { G.lost.fly += dt / 0.6; if (G.lost.fly >= 1) G.lost = null; }
     for (const q of G.pops) q.life -= dt;
     G.pops = G.pops.filter(q => q.life > 0);
   }
@@ -336,8 +415,9 @@
     const tr = G.train;
     for (const p of G.people) {
       if (p.state === 'gone') continue;
+      if (p.state === 'drop' && p.t < 0) continue;   // まだ でんしゃの なか
       const sh = p.shake > 0 ? Math.sin(p.shake * 40) * 8 : 0;
-      const sc = p.state === 'hop' ? PS * (1 - 0.3 * Math.min(1, p.t / 0.6)) : PS;
+      const sc = p.state === 'hop' ? PS * (1 - 0.3 * Math.min(1, p.t / 0.6)) : (p.sc || PS);
       K.person(p.x + sh, p.y, { color: COLS[p.col].c, scale: sc, hop: p.hop, hair: p.hair });
       if (p.runner && p.state === 'run') { // あせ
         K.circle(p.x - 40, p.y - 120 - p.hop, 6, '#8fd3ff'); K.circle(p.x - 52, p.y - 100 - p.hop, 5, '#8fd3ff');
@@ -367,7 +447,8 @@
     K.text(col.n + ' でんしゃ', 272, 68, 46, '#2b3a55', 'left', null);
     const guide = {
       announce: 'アナウンス を おそう', arrive: 'でんしゃが くるよ', opening: 'ドアが ひらくよ',
-      board: tr.allT >= 0 ? (G.people.some(p => p.runner && p.state !== 'gone') ? 'はしってくる ひとを まとう' : 'ドアを しめよう') : 'おなじ いろの ひとを タッチ',
+      board: (G.lost && !G.lost.fly) ? 'わすれものを とどけよう'
+        : tr.allT >= 0 ? (G.people.some(p => p.runner && p.state !== 'gone') ? 'はしってくる ひとを まとう' : 'ドアを しめよう') : 'おなじ いろの ひとを タッチ',
       closing: 'ドアが しまります', whistle: 'ふえを ふこう', whistled: 'しゅっぱつ！ を おそう', depart: 'いってらっしゃい',
     }[tr.state];
     K.text(guide, 440, 132, 32, '#555', 'center', null);
@@ -414,6 +495,7 @@
       drawTrain(t);
       drawPlatform();
       drawPeople(t);
+      drawBag(t);
       drawStaff(t);
       drawHud(t);
       drawPops();

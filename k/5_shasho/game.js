@@ -126,16 +126,40 @@
     fxIn = ac.createGain(); fxIn.connect(hp);
     return fxIn;
   }
+  // こえの かえかた（ふつう / たかい / ロボット）
+  const FX = [
+    { key: 'normal', name: 'ふつう', say: 'ふつうの こえ', rate: 1.0 },
+    { key: 'high', name: 'たかい', say: 'たかい こえ', rate: 1.32 },
+    { key: 'robot', name: 'ロボット', say: 'ロボットの こえ', rate: 1.0, ring: 58 },
+  ];
+  const FXKEY = 'kidtrain_shasho_fx';
+  let fxPick = 0;
+  try { const n = parseInt(localStorage.getItem(FXKEY) || '0', 10); if (n >= 0 && n < FX.length) fxPick = n; } catch (e) {}
+  function setFx(i) { fxPick = i; try { localStorage.setItem(FXKEY, String(i)); } catch (e) {} }
+  // リングモジュレーション（ロボットの こえ）
+  function ringNode() {
+    const ac = K.ac, g = ac.createGain(); g.gain.value = 0;
+    const lfo = ac.createOscillator(); lfo.frequency.value = FX[fxPick].ring;
+    const amt = ac.createGain(); amt.gain.value = 1;
+    lfo.connect(amt); amt.connect(g.gain); lfo.start();
+    return g;
+  }
+
   // when 秒後に声を流す。戻り値は声の長さ（秒）
   function playVoice(v, when) {
     if (!v) return 0;
     if (v.buf) {
       const ac = K.ac, src = ac.createBufferSource(); src.buffer = v.buf;
+      const f = FX[fxPick];
+      src.playbackRate.value = f.rate;
       let peak = 0; const d = v.buf.getChannelData(0);
       for (let i = 0; i < d.length; i += 4) peak = Math.max(peak, Math.abs(d[i]));
-      const g = ac.createGain(); g.gain.value = Math.min(6, 0.8 / Math.max(0.02, peak));
-      src.connect(g); g.connect(getFx()); src.start(ac.currentTime + when);
-      return v.buf.duration;
+      const g = ac.createGain(); g.gain.value = Math.min(6, 0.8 / Math.max(0.02, peak)) * (f.ring ? 1.6 : 1);
+      src.connect(g);
+      if (f.ring) { const r = ringNode(); g.connect(r); r.connect(getFx()); }
+      else g.connect(getFx());
+      src.start(ac.currentTime + when);
+      return v.buf.duration / f.rate;
     }
     // 予備: デコードできなかった時は効果なしでそのまま
     const url = URL.createObjectURL(v.blob), a = new Audio(url);
@@ -264,14 +288,24 @@
   const FIN_GAP = 0.9;
 
   function newGame() {
-    G = { st: 'cruise', stT: 0, idx: 0, pos: 0, speed: CRUISE, stationPos: 0, recs: [], people: [], praise: '', said: {}, playEnd: 0, fin: null };
+    G = { st: 'cruise', stT: 0, idx: 0, pos: 0, speed: CRUISE, stationPos: 0, recs: [], people: [], praise: '', said: {}, playEnd: 0, fin: null, asking: 'next', doorRec: null };
   }
   function setState(s) { G.st = s; G.stT = 0; G.said = {}; }
   const cur = () => STATIONS[G.idx];
 
-  function toAsk() { setState('ask'); K.say(mic.state === 'ng' ? `つぎは ${cur().name}。みほんを ながして、いっしょに いってみよう` : `つぎは ${cur().name}、って いってみよう`); }
+  const DOORTEXT = 'ドアが しまります。ごちゅうい ください。';
+  function askingDoor() { return G.asking === 'door'; }
+  function toAsk() {
+    G.asking = 'next'; setState('ask');
+    K.say(mic.state === 'ng' ? `つぎは ${cur().name}。みほんを ながして、いっしょに いってみよう` : `つぎは ${cur().name}、って いってみよう`);
+  }
+  // さいしょの えきだけ、ドアの ほうそうも じぶんの こえで ろくおんする
+  function toAskDoor() {
+    G.asking = 'door'; setState('ask');
+    K.say('こんどは、ドアが しまります、って いってみよう');
+  }
   function gotVoice(v) {
-    G.recs[G.idx] = v;
+    if (askingDoor()) G.doorRec = v; else G.recs[G.idx] = v;
     if (!v) { playSample(true); return; }
     K.sfx.dingdong();
     const d = playVoice(v, 1.5);
@@ -280,14 +314,15 @@
   function playSample(proceed) {
     if (window.speechSynthesis) speechSynthesis.cancel();
     K.sfx.dingdong();
-    const s = cur();
-    setTimeout(() => K.say(sampleText(s)), 1400);
-    setState(proceed ? 'play' : 'sample'); G.playEnd = 1.4 + sampleText(s).length * 0.16 + 0.8;
+    const txt = askingDoor() ? DOORTEXT : sampleText(cur());
+    setTimeout(() => K.say(txt), 1400);
+    setState(proceed ? 'play' : 'sample'); G.playEnd = 1.4 + txt.length * 0.16 + 0.8;
   }
   function toPraise() {
-    const redo = mic.state === 'ok' && !!G.recs[G.idx];
-    setState('praise'); G.canRedo = redo;
-    G.praise = redo ? PRAISE[G.idx % PRAISE.length] : 'いっしょに いえたね！ じょうず！';
+    const wasDoor = askingDoor();
+    const redo = mic.state === 'ok' && !!(wasDoor ? G.doorRec : G.recs[G.idx]);
+    setState('praise'); G.canRedo = redo; G.praiseDoor = wasDoor;
+    G.praise = redo ? PRAISE[(wasDoor ? 3 : G.idx) % PRAISE.length] : 'いっしょに いえたね！ じょうず！';
     K.sfx.good(); K.sparkle(MICX - 300, 200, 24); K.say(G.praise.replace('！', '。'));
   }
   function toArrive() { setState('arrive'); G.arrStart = G.pos; G.stationPos = G.pos + 1500; makeWaiting(); }
@@ -308,8 +343,15 @@
       if (u >= 1) { G.speed = 0; setState('doors'); K.sfx.door(); K.say(`${cur().name} に つきました`); }
     } else if (st === 'doors') {
       G.speed = 0;
-      if (G.stT > 3.7 && !G.said.close) { G.said.close = 1; K.sfx.door(); }
-      if (G.stT > 4.6) {
+      // ドアが しまる まえに、じぶんの こえの ほうそうを ながす
+      if (G.stT > 2.4 && !G.said.ann) {
+        G.said.ann = 1;
+        G.annLen = G.doorRec ? playVoice(G.doorRec, 0.4) + 0.6 : 0;
+        if (G.doorRec) K.sfx.dingdong();
+      }
+      const dc = 3.7 + (G.annLen || 0);
+      if (G.stT > dc && !G.said.close) { G.said.close = 1; K.sfx.door(); }
+      if (G.stT > dc + 0.9) {
         if (G.idx >= STATIONS.length - 1) toFinale();
         else { setState('depart'); K.sfx.whistle(); }
       }
@@ -332,7 +374,11 @@
       if (st === 'play') toPraise(); else { setState('ask'); G.stT = 3; }
     }
     // じぶんの こえが とれた ときは、とりなおす じかんを すこし ながく とる
-    if (st === 'praise' && G.stT > (G.canRedo ? 4.6 : 2.4)) toArrive();
+    if (st === 'praise' && G.stT > (G.canRedo ? 4.6 : 2.4)) {
+      // さいしょの えきの あとで、ドアの ほうそうも ろくおんして もらう
+      if (!G.praiseDoor && G.idx === 0 && !G.doorRec && mic.state === 'ok') toAskDoor();
+      else toArrive();
+    }
     if (st === 'proc' && G.stT > 4) gotVoice(null);   // 念のため（止まらない）
     if (st === 'finale') updateFinale();
     K.runSound(dt, G.speed / 300);
@@ -392,9 +438,16 @@
     const st = G.st, s = cur();
     const px = 230, py = 104, pw = 900, ph = 170;
     if (st === 'ask' || st === 'sample') {
-      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', s.col, 6);
-      K.circle(px + 95, py + ph / 2, 66, '#fff7fb', s.col, 4); animal(s.animal, px + 95, py + ph / 2 + 4, 52);
-      K.text(`つぎは ${s.name}`, px + 190, py + 58, 60, '#2b3a55', 'left', null);
+      const dr = askingDoor();
+      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', dr ? '#7a6cf0' : s.col, 6);
+      if (dr) {
+        K.rr(px + 56, py + 28, 78, ph - 56, 10, '#e8ecf4', '#7a6cf0', 5);
+        K.rr(px + 60, py + 40, 34, 46, 6, '#cfefff'); K.rr(px + 98, py + 40, 32, 46, 6, '#cfefff');
+        K.text('ドアが しまります', px + 190, py + 58, 56, '#2b3a55', 'left', null);
+      } else {
+        K.circle(px + 95, py + ph / 2, 66, '#fff7fb', s.col, 4); animal(s.animal, px + 95, py + ph / 2 + 4, 52);
+        K.text(`つぎは ${s.name}`, px + 190, py + 58, 60, '#2b3a55', 'left', null);
+      }
       K.text(mic.state === 'ng' ? 'みほんを ながして いっしょに いおう' : '…って いってみよう', px + 196, py + 128, 38, '#e94b4b', 'left', null);
     } else if (st === 'rec') {
       K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', '#ff3b3b', 6);
@@ -402,7 +455,7 @@
       K.circle(px + 80, py + 58, 14 + Math.sin(t * 8) * 3, '#ff3b3b');
       K.text('きいてるよ…', px + 110, py + 58, 52, '#e94b4b', 'left', null);
       for (let i = 0; i < 16; i++) { const h = 10 + lv * 70 * (0.5 + 0.5 * Math.abs(Math.sin(t * 13 + i * 1.7))); K.rr(px + 470 + i * 26, py + 60 - h / 2, 16, h, 6, i / 16 < lv * 1.2 ? '#ff6b6b' : '#ffd0d0'); }
-      K.text(rec.toggle ? 'いいおわったら もういちど おしてね' : `つぎは ${s.name}`, px + pw / 2, py + 130, 38, '#2b3a55', 'center', null);
+      K.text(rec.toggle ? 'いいおわったら もういちど おしてね' : (askingDoor() ? 'ドアが しまります' : `つぎは ${s.name}`), px + pw / 2, py + 130, 38, '#2b3a55', 'center', null);
     } else if (st === 'proc' || st === 'play') {
       K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', '#7a6cf0', 6);
       speaker(px + 110, py + ph / 2, 1.2, t, st === 'play');
@@ -427,6 +480,7 @@
         micButton(MICX, MICY, MICR, false, 0, 0, t);
         if (mic.state === 'pending') K.text('じゅんび ちゅう', MICX, MICY - MICR - 30, 30, '#555', 'center');
         else K.text('おしながら はなしてね', MICX + 60, MICY - MICR - 34, 32, '#e94b4b', 'right', '#fff');
+        drawFxPicker(t);
         K.button(SAMPLE.x - 20, SAMPLE.y + 10, SAMPLE.w - 20, SAMPLE.h, 'みほん', '#4b8bf5', () => { if (G.st === 'ask') playSample(false); }, { size: 36 });
         if (G.st === 'ask' && G.stT > 14) K.button(640, 600, 180, 100, 'すすむ', '#3ec46d', () => { if (G.st === 'ask') playSample(true); }, { size: 36 });
       }
@@ -435,7 +489,22 @@
       micButton(MICX, MICY, MICR, true, micLevel(), Math.min(1, el / 5), t);
     } else if (st === 'praise' && G.canRedo) {
       // いいなおしたい ときは もういちど（うまく いえなくても やりなおせる）
-      K.button(930, 540, 280, 110, 'もういちど', '#ff8c2b', () => { if (G.st === 'praise') toAsk(); }, { size: 42 });
+      K.button(930, 540, 280, 110, 'もういちど', '#ff8c2b', () => { if (G.st === 'praise') (G.praiseDoor ? toAskDoor() : toAsk()); }, { size: 42 });
+    }
+  }
+  // こえを かえる えらびボタン
+  function drawFxPicker(t) {
+    K.rr(40, 530, 536, 156, 28, 'rgba(255,255,255,0.82)');
+    K.text('こえを かえる', 60, 556, 28, '#2b3a55', 'left', null);
+    for (let i = 0; i < FX.length; i++) {
+      const x = 56 + i * 172, y = 580, w = 156, h = 92, on = fxPick === i;
+      if (on) K.rr(x - 6, y - 6, w + 12, h + 12, 26, null, '#ffd23f', 6);
+      K.button(x, y, w, h, FX[i].name, on ? '#e94b4b' : '#8a94a8', () => {
+        if (fxPick === i) return;
+        setFx(i); K.sfx.pop();
+        const last = G.recs[G.idx] || G.doorRec;
+        if (last) playVoice(last, 0.1); else K.say(FX[i].say);
+      }, { size: 32 });
     }
   }
   function drawFinale(t) {
@@ -461,7 +530,7 @@
     const bob = G.speed > 0 ? Math.sin(t * 18) * 1.5 : 0;
     K.trainSide(HEADX, TRY, { ...TRAIN, bob });
     let open = 0;
-    if (G.st === 'doors') open = G.stT < 0.6 ? G.stT / 0.6 : G.stT < 3.7 ? 1 : Math.max(0, 1 - (G.stT - 3.7) / 0.5);
+    if (G.st === 'doors') { const dc = 3.7 + (G.annLen || 0); open = G.stT < 0.6 ? G.stT / 0.6 : G.stT < dc ? 1 : Math.max(0, 1 - (G.stT - dc) / 0.5); }
     doors(open);
     if (showSt) stationFront(sx);
     if (showSt) drawPeople(sx);

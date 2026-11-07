@@ -13,6 +13,25 @@
   const MINGAP = 200, GAP = 240;
   const GAME = 'せんろチェンジレース';
 
+  // えらべる でんしゃ（みため だけ。はやさは ぜんぶ おなじ＝どれを えらんでも そん しない）
+  const TRAINS = [
+    { key: 'local', name: 'ふつうでんしゃ', color: '#e94b4b', stripe: '#ffd23f' },
+    { key: 'bullet', name: 'とっきゅう', color: '#2fb6e8', stripe: '#ffffff' },
+    { key: 'steam', name: 'きかんしゃ', color: '#4a4a55', stripe: '#ffd23f' },
+  ];
+  // えらべる コース（けしき と ゴールの えきめい が かわる）
+  const COURSES = [
+    { key: 'field', name: 'くさはら', goal: 'ゴールえき', ground: '#9ad672', band: 'rgba(255,255,255,0.12)', slow: 'rgba(255,240,150,0.78)' },
+    { key: 'sea', name: 'うみべ', goal: 'うみえき', ground: '#f3dfa6', band: 'rgba(255,255,255,0.2)', slow: 'rgba(120,228,172,0.72)' },
+    { key: 'night', name: 'よるのまち', goal: 'ほしえき', ground: '#3c4a7a', band: 'rgba(255,255,255,0.1)', slow: 'rgba(255,238,140,0.6)' },
+  ];
+  const PICKKEY = 'kidtrain_race_pick';
+  let pick = { train: 0, course: 0 };
+  try { const o = JSON.parse(localStorage.getItem(PICKKEY) || '{}'); if (o && typeof o.train === 'number') pick = { train: o.train % 3, course: o.course % 3 }; } catch (e) {}
+  function savePick() { try { localStorage.setItem(PICKKEY, JSON.stringify(pick)); } catch (e) {} }
+  const myTrain = () => TRAINS[pick.train];
+  const myCourse = () => COURSES[pick.course];
+
   let R = null;
 
   // ---------- コースを つくる ----------
@@ -122,7 +141,7 @@
   // ---------- レース ----------
   function startRace() {
     const c = buildCourse();
-    const P = makeTrain(1, '#e94b4b', '#ffd23f', true);
+    const P = makeTrain(1, myTrain().color, myTrain().stripe, true);
     // むらさきは よく ほしを とる（ちゃんと えらばないと かてない）・オレンジは ときどき
     const rvA = makeTrain(0, '#9b6bff', '#ffffff', false); rvA.wise = 0.7; rvA.edge = 1.0;
     const rvB = makeTrain(2, '#ff9a3c', '#ffffff', false); rvB.wise = 0.4; rvB.edge = 0.95;
@@ -272,14 +291,7 @@
   // ---------- えがく ----------
   function draw(time) {
     const cx = camX();
-    // くさはら
-    ctx.fillStyle = '#9ad672'; ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < 3; i++) { ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(0, LY[i] - BAND, W, BAND * 2); }
-    // はな
-    for (let k = Math.floor(cx / 160) - 1; k < (cx + W) / 160 + 1; k++) {
-      const hx = k * 160 - cx + ((k * 73) % 60), hy = [140, 290, 440, 590][((k % 4) + 4) % 4];
-      K.circle(hx, hy, 5, ['#fff', '#ffe066', '#ff9ad5'][((k % 3) + 3) % 3]);
-    }
+    drawCourseBg(time, cx);
 
     const k0 = Math.max(0, Math.floor(cx / SEG) - 1), k1 = Math.floor((cx + W) / SEG) + 1;
     // かわ・てっきょう
@@ -299,7 +311,7 @@
     for (let k = Math.max(1, k0); k <= k1 && k < NSW; k++) {
       R.segs[k].types.forEach((ty, l) => {
         const x1 = k * SEG + ZS - cx, x2 = k * SEG + ZE - cx;
-        if (ty === 'sheep') { K.rr(x1, LY[l] - BAND + 4, x2 - x1, BAND * 2 - 8, 20, 'rgba(255,240,150,0.75)'); }
+        if (ty === 'sheep') { K.rr(x1, LY[l] - BAND + 4, x2 - x1, BAND * 2 - 8, 20, myCourse().slow); }
         if (ty === 'tunnel') { K.rr(x1 - 10, LY[l] - BAND + 2, x2 - x1 + 20, BAND * 2 - 4, 40, '#5d9a46', '#467a34', 5); ctx.fillStyle = '#3d3d4a'; ctx.fillRect(x1, LY[l] - 36, x2 - x1, 72); }
       });
     }
@@ -352,6 +364,60 @@
     if (R.phase === 'goal' && R.goalT < 1.6) K.text('ゴール！', W / 2, 330, 120, '#e94b4b', 'center', '#fff');
     if (R.phase === 'result') drawResult(time);
     K.homeButton();
+  }
+
+  // ---------- コースの けしき ----------
+  function drawCourseBg(time, cx) {
+    const C = myCourse();
+    ctx.fillStyle = C.ground; ctx.fillRect(0, 0, W, H);
+    if (C.key === 'sea') {
+      // うえのほうが うみ
+      ctx.fillStyle = '#4fb8e8'; ctx.fillRect(0, 0, W, 132);
+      ctx.fillStyle = '#7fd4f5'; ctx.fillRect(0, 108, W, 24);
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      for (let k = Math.floor(cx / 120) - 1; k < (cx + W) / 120 + 1; k++) {
+        const wx = k * 120 - cx * 0.4, wy = 40 + ((k * 37) % 60);
+        ctx.beginPath(); ctx.moveTo(wx, wy + Math.sin(time * 2 + k) * 3);
+        ctx.quadraticCurveTo(wx + 16, wy - 8, wx + 32, wy + Math.sin(time * 2 + k) * 3); ctx.stroke();
+      }
+      // すなはまの かい と ひとで
+      for (let k = Math.floor(cx / 170) - 1; k < (cx + W) / 170 + 1; k++) {
+        const hx = k * 170 - cx + ((k * 61) % 70), hy = [160, 300, 450, 600][((k % 4) + 4) % 4];
+        if (((k % 3) + 3) % 3 === 0) K.star(hx, hy, 11, '#ff9a6b');
+        else { K.circle(hx, hy, 8, '#fff2d8', '#e2c9a3', 2); ctx.strokeStyle = '#e2c9a3'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(hx - 6, hy + 4); ctx.lineTo(hx + 6, hy - 5); ctx.stroke(); }
+      }
+    } else if (C.key === 'night') {
+      // よぞら と まちの あかり
+      ctx.fillStyle = '#1e2a52'; ctx.fillRect(0, 0, W, 140);
+      for (let k = Math.floor(cx / 90) - 1; k < (cx + W) / 90 + 1; k++) {
+        const sx2 = k * 90 - cx * 0.25 + ((k * 53) % 40), sy = 20 + ((k * 29) % 90);
+        const tw = 0.6 + 0.4 * Math.sin(time * 3 + k);
+        ctx.globalAlpha = tw; K.star(sx2, sy, 6, '#fff7c7'); ctx.globalAlpha = 1;
+      }
+      K.circle(1150, 52, 34, '#fff3b0'); K.circle(1136, 44, 30, '#1e2a52');
+      // たてもの
+      for (let k = Math.floor(cx / 150) - 1; k < (cx + W) / 150 + 1; k++) {
+        const bx = k * 150 - cx * 0.6, bw = 90 + ((k * 37) % 40), bh = 50 + ((k * 73) % 60);
+        K.rr(bx, 140 - bh, bw, bh, 6, '#2b3a66');
+        for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) {
+          if (((k + r * 3 + q * 7) % 4) === 0) continue;
+          ctx.fillStyle = '#ffe88a'; ctx.fillRect(bx + 12 + q * 24, 140 - bh + 12 + r * 18, 12, 10);
+        }
+      }
+      // あかり（がいとう）
+      for (let k = Math.floor(cx / 260) - 1; k < (cx + W) / 260 + 1; k++) {
+        const lx = k * 260 - cx + 40;
+        ctx.fillStyle = '#596a9c'; ctx.fillRect(lx - 3, 150, 6, 30);
+        K.circle(lx, 150, 10, 'rgba(255,230,140,0.9)');
+      }
+    } else {
+      // はな
+      for (let k = Math.floor(cx / 160) - 1; k < (cx + W) / 160 + 1; k++) {
+        const hx = k * 160 - cx + ((k * 73) % 60), hy = [140, 290, 440, 590][((k % 4) + 4) % 4];
+        K.circle(hx, hy, 5, ['#fff', '#ffe066', '#ff9ad5'][((k % 3) + 3) % 3]);
+      }
+    }
+    for (let i = 0; i < 3; i++) { ctx.fillStyle = C.band; ctx.fillRect(0, LY[i] - BAND, W, BAND * 2); }
   }
 
   function drawRail(xa, xb, l, cx) {
@@ -414,7 +480,7 @@
     if (sx < -500 || sx > W + 50) return;
     for (const y of [140, 290, 440, 590]) { K.rr(sx - 20, y - 22, 420, 44, 8, '#d9d4c7', '#a39c8b', 4); ctx.fillStyle = '#ffd23f'; ctx.fillRect(sx - 20, y + (y < 300 ? 14 : -18), 420, 5); }
     K.rr(sx + 120, 70, 210, 64, 14, '#fff', '#2b3a55', 5);
-    K.text('ゴールえき', sx + 225, 103, 34, '#2b3a55', 'center', null);
+    K.text(myCourse().goal, sx + 225, 103, 34, '#2b3a55', 'center', null);
     for (let y = 140; y < 590; y += 25) for (let c = 0; c < 2; c++) { ctx.fillStyle = ((y / 25 + c) % 2) ? '#fff' : '#222'; ctx.fillRect(sx + c * 13 - 13, y, 13, 25); }
   }
   function drawTrain(t, cx, time) {
@@ -425,20 +491,58 @@
     for (let i = t.cars - 1; i >= 0; i--) {
       const bx = t.x - 140 - i * 96, by = yAt(t, bx), ba = Math.atan2(yAt(t, bx + 6) - yAt(t, bx - 6), 12);
       ctx.save(); ctx.translate(bx - cx, by); ctx.rotate(ba);
+      const kind = t.isP ? myTrain().key : 'local';
+      const cc = kind === 'steam' ? '#8a5a3c' : t.color;
       K.rr(-40, -19, 84, 46, 14, 'rgba(0,0,0,0.18)');
-      K.rr(-44, -23, 88, 46, 14, t.color, K.shade(t.color, -0.4), 4);
+      K.rr(-44, -23, 88, 46, 14, cc, K.shade(cc, -0.4), 4);
       ctx.fillStyle = t.stripe; ctx.fillRect(-38, -4, 76, 8);
       ctx.restore();
       // れんけつき
       const jx = bx + 48, jy = yAt(t, jx);
       ctx.fillStyle = '#555'; ctx.fillRect(jx - cx - 6, jy - 4, 12, 8);
     }
-    K.trainTop(sx, y, ang, { color: t.color, stripe: t.stripe });
+    drawHeadTop(sx, y, ang, t, time);
     if (t.boost > 0 && t.isP) { const tx = sx - 190 - (t.cars - 1) * 96; for (let i = 0; i < 3; i++) K.star(tx - i * 26 + Math.sin(time * 20 + i) * 4, y + (i - 1) * 18, 9, '#ffd23f'); }
     if (t.isP) {
-      K.rr(sx - 120, y - 92, 96, 50, 18, '#fff', '#e94b4b', 4);
-      ctx.beginPath(); ctx.moveTo(sx - 82, y - 44); ctx.lineTo(sx - 62, y - 44); ctx.lineTo(sx - 72, y - 30); ctx.closePath(); ctx.fillStyle = '#e94b4b'; ctx.fill();
-      K.text('きみ', sx - 72, y - 66, 30, '#e94b4b', 'center', null);
+      K.rr(sx - 120, y - 92, 96, 50, 18, '#fff', t.color, 4);
+      ctx.beginPath(); ctx.moveTo(sx - 82, y - 44); ctx.lineTo(sx - 62, y - 44); ctx.lineTo(sx - 72, y - 30); ctx.closePath(); ctx.fillStyle = t.color; ctx.fill();
+      K.text('きみ', sx - 72, y - 66, 30, t.color, 'center', null);
+    }
+  }
+  // うえから みた せんとうしゃりょう（えらんだ しゅるいで かたちが かわる）
+  function drawHeadTop(x, y, ang, t, time, scale) {
+    const kind = t.isP ? myTrain().key : 'local';
+    const s = scale || 1;
+    if (kind === 'local') { K.trainTop(x, y, ang, { color: t.color, stripe: t.stripe, scale: s }); return; }
+    const L = 86 * s, Wd = 46 * s, color = t.color, stripe = t.stripe;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    K.rr(-L + 4, -Wd / 2 + 6, L, Wd, 16 * s, 'rgba(0,0,0,0.18)');
+    if (kind === 'bullet') {
+      ctx.beginPath();
+      ctx.moveTo(-L, -Wd / 2); ctx.lineTo(-L * 0.1, -Wd / 2);
+      ctx.quadraticCurveTo(L * 0.46, -Wd * 0.30, L * 0.40, 0);
+      ctx.quadraticCurveTo(L * 0.46, Wd * 0.30, -L * 0.1, Wd / 2);
+      ctx.lineTo(-L, Wd / 2); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = K.shade(color, -0.4); ctx.lineWidth = 4 * s; ctx.stroke();
+      ctx.fillStyle = stripe; ctx.fillRect(-L + 6 * s, -5 * s, L * 0.95, 10 * s);
+      K.rr(-L * 0.34, -Wd * 0.3, L * 0.2, Wd * 0.6, 6 * s, '#2b3a55');
+    } else {
+      // きかんしゃ（えんとつ と けむり）
+      K.rr(-L, -Wd / 2, L * 0.98, Wd, 12 * s, color, K.shade(color, -0.45), 4 * s);
+      K.rr(-L * 0.98, -Wd * 0.34, L * 0.3, Wd * 0.68, 8 * s, '#d14b3f');   // うんてんしつ（あかくて めだつ）
+      ctx.fillStyle = stripe; ctx.fillRect(-L + 6 * s, -4 * s, L * 0.9, 8 * s);
+      K.circle(L * 0.02, 0, 13 * s, '#2f3542', '#1b1f28', 3 * s);           // えんとつ
+      K.circle(L * 0.02, 0, 6 * s, '#5a6172');
+    }
+    ctx.restore();
+    if (kind === 'steam') {
+      for (let i = 0; i < 4; i++) {
+        const p = ((time * 1.6 + i * 0.25) % 1);
+        ctx.globalAlpha = 0.5 * (1 - p);
+        K.circle(x - Math.cos(ang) * 10 - p * 120, y - 16 - p * 46 + Math.sin(i) * 4, (10 + p * 26) * s, '#ffffff');
+        ctx.globalAlpha = 1;
+      }
     }
   }
   function drawArrowGlyph(x, y, ang, col) {
@@ -510,17 +614,94 @@
       const [x, y, h] = pos[i];
       K.rr(x - 120, y, 240, h + 40, 16, ['#ffd23f', '#d6dbe4', '#e8b38a'][i], '#7a6a4a', 4);
       K.text(String(i + 1), x, y + 60, 64, '#fff', 'center', 'rgba(0,0,0,0.3)');
-      K.trainTop(x + 70, y - 50 + Math.sin(time * 4 + i) * 4, 0, { color: t.color, stripe: t.stripe, scale: 1.3 });
+      drawHeadTop(x + 70, y - 50 + Math.sin(time * 4 + i) * 4, 0, t, time, 1.3);
       if (t.isP) { K.rr(x - 60, y - 160, 120, 56, 20, '#fff', '#e94b4b', 4); K.text('きみ', x, y - 132, 34, '#e94b4b', 'center', null); }
       if (i === 0 && t.isP) { const cx = x - 10, cy = y - 200; ctx.beginPath(); ctx.moveTo(cx - 40, cy + 20); ctx.lineTo(cx - 40, cy - 20); ctx.lineTo(cx - 20, cy); ctx.lineTo(cx, cy - 26); ctx.lineTo(cx + 20, cy); ctx.lineTo(cx + 40, cy - 20); ctx.lineTo(cx + 40, cy + 20); ctx.closePath(); ctx.fillStyle = '#ffd23f'; ctx.fill(); ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 4; ctx.stroke(); }
     });
   }
 
+  // ---------- でんしゃと コースを えらぶ ----------
+  function drawMiniTrain(x, y, i, time) {
+    const T = TRAINS[i], fake = { color: T.color, stripe: T.stripe, isP: true };
+    const keep = pick.train; pick.train = i;          // みほんを かくあいだ だけ きりかえる
+    drawHeadTop(x + 34, y, 0, fake, time, 1.25);
+    pick.train = keep;
+    ctx.save(); ctx.translate(x - 70, y);
+    K.rr(-40, -19, 84, 46, 14, 'rgba(0,0,0,0.15)');
+    K.rr(-44, -23, 88, 46, 14, T.key === 'steam' ? '#8a5a3c' : T.color, K.shade(T.key === 'steam' ? '#8a5a3c' : T.color, -0.4), 4);
+    ctx.fillStyle = T.stripe; ctx.fillRect(-38, -4, 76, 8);
+    ctx.restore();
+  }
+  function drawMiniCourse(x, y, w, h, i) {
+    const C = COURSES[i];
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.fillStyle = C.ground; ctx.fillRect(x, y, w, h);
+    if (C.key === 'sea') {
+      ctx.fillStyle = '#4fb8e8'; ctx.fillRect(x, y, w, h * 0.42);
+      for (let k = 0; k < 3; k++) K.circle(x + 30 + k * 48, y + h * 0.72, 7, '#fff2d8', '#e2c9a3', 2);
+    } else if (C.key === 'night') {
+      ctx.fillStyle = '#1e2a52'; ctx.fillRect(x, y, w, h * 0.46);
+      for (let k = 0; k < 4; k++) K.star(x + 24 + k * 42, y + 16 + (k % 2) * 14, 7, '#fff7c7');
+      for (let k = 0; k < 3; k++) K.rr(x + 20 + k * 54, y + h * 0.46 - 26 - (k % 2) * 10, 40, 30 + (k % 2) * 10, 4, '#2b3a66');
+    } else {
+      for (let k = 0; k < 6; k++) K.circle(x + 22 + k * 28, y + 26 + (k % 3) * 30, 5, ['#fff', '#ffe066', '#ff9ad5'][k % 3]);
+    }
+    // せんろ
+    for (let l = 0; l < 2; l++) {
+      const ry = y + h * (0.62 + l * 0.22);
+      ctx.fillStyle = '#8a6a4a'; for (let xx = x + 6; xx < x + w; xx += 18) ctx.fillRect(xx, ry - 9, 7, 18);
+      ctx.fillStyle = '#7d8696'; ctx.fillRect(x, ry - 6, w, 3); ctx.fillRect(x, ry + 4, w, 3);
+    }
+    ctx.restore();
+    K.rr(x, y, w, h, 18, null, '#ffffff', 3);
+  }
+  function toSetup() {
+    K.handlers.down = null;
+    K.scene = {
+      update() {},
+      draw(time) {
+        ctx.fillStyle = '#bfe7ff'; ctx.fillRect(0, 0, W, H);
+        K.text('どの でんしゃで はしる？', 640, 52, 44, '#e94b4b', 'center', '#fff');
+        for (let i = 0; i < 3; i++) {
+          const x = 40 + i * 400, y = 86, w = 360, h = 150;
+          const on = pick.train === i;
+          K.rr(x - 6, y - 6, w + 12, h + 12, 30, on ? '#ffd23f' : null, on ? '#ff9f1c' : null, 6);
+          K.rr(x, y, w, h, 26, '#ffffff', on ? '#ff9f1c' : '#c8d2e0', on ? 7 : 4);
+          drawMiniTrain(x + 190, y + 66, i, time);
+          K.text(TRAINS[i].name, x + w / 2, y + 124, 32, on ? '#e94b4b' : '#555', 'center', null);
+        }
+        K.text('どこを はしる？', 640, 282, 44, '#2b6fd6', 'center', '#fff');
+        for (let i = 0; i < 3; i++) {
+          const x = 40 + i * 400, y = 316, w = 360, h = 150;
+          const on = pick.course === i;
+          K.rr(x - 6, y - 6, w + 12, h + 12, 30, on ? '#ffd23f' : null, on ? '#ff9f1c' : null, 6);
+          K.rr(x, y, w, h, 26, '#ffffff', on ? '#ff9f1c' : '#c8d2e0', on ? 7 : 4);
+          drawMiniCourse(x + 14, y + 12, w - 28, h - 58, i);
+          K.text(COURSES[i].name, x + w / 2, y + 122, 32, on ? '#2b6fd6' : '#555', 'center', null);
+        }
+        // おす ところ（ボタンは うしろに おいて みた目を じゃましない）
+        for (let i = 0; i < 3; i++) {
+          hitBox(40 + i * 400, 86, 360, 150, () => { if (pick.train !== i) { pick.train = i; savePick(); K.sfx.pop(); K.say(TRAINS[i].name + 'で はしろう'); } });
+          hitBox(40 + i * 400, 316, 360, 150, () => { if (pick.course !== i) { pick.course = i; savePick(); K.sfx.pop(); K.say(COURSES[i].name + 'を はしろう'); } });
+        }
+        K.button(440, 494, 400, 110, 'はじめる', '#3ec46d', () => { K.sfx.good(); startRace(); });
+        K.button(16, 16, 120, 64, 'もどる', '#8a94a8', toTitle, { size: 28 });
+      }
+    };
+    K.say('でんしゃと コースを えらんでね');
+  }
+  // 見た目は じぶんで かいて、おす ところだけ ようい する
+  function hitBox(x, y, w, h, onTap) {
+    const sv = ctx.globalAlpha; ctx.globalAlpha = 0;
+    K.button(x, y, w, h, '', '#ffffff', onTap);
+    ctx.globalAlpha = sv;
+  }
+
   // ---------- タイトル ----------
   function toTitle() {
-    K.title('せんろチェンジレース', 'ほしの せんろを えらんで はやく はしろう', '#e94b4b', startRace);
+    K.title('せんろチェンジレース', 'ほしの せんろを えらんで はやく はしろう', '#e94b4b', toSetup);
     const d = K.scene.draw; K.scene.draw = (t, dt) => { d(t, dt); K.homeButton(); };
   }
-  window.RACE = { get R() { return R; }, choose };
+  window.RACE = { get R() { return R; }, choose, toSetup, get pick() { return pick; } };
   toTitle();
 })();
