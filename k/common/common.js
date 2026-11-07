@@ -219,7 +219,7 @@
   (function () { const s = document.createElement('script'); s.src = voiceBase + 'manifest.js'; s.onerror = () => {}; document.head.appendChild(s); })();
   const vbuf = {}; let vsrc = null, vtoken = 0;
   function loadVoice(file) {
-    if (!vbuf[file]) vbuf[file] = fetch(voiceBase + file).then(r => r.arrayBuffer()).then(b => new Promise((ok, ng) => ac.decodeAudioData(b, ok, ng))).catch(() => { delete vbuf[file]; return null; });
+    if (!vbuf[file]) vbuf[file] = fetch(voiceBase + file).then(r => r.arrayBuffer()).then(b => new Promise((ok, ng) => { const pr = ac.decodeAudioData(b, ok, ng); if (pr && pr.catch) pr.catch(() => {}); })).catch(() => { delete vbuf[file]; return null; });
     return vbuf[file];
   }
   K.preloadVoices = function () {
