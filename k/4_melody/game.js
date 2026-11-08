@@ -11,14 +11,14 @@
 
   // オリジナル曲（MIDI番号と はく数）。明るく短い チャイム風。
   const STAGES = [
-    { name: 'はなの えき', color: '#ff8ad8', beat: 0.75, travel: 2.4,
+    { name: 'はなの えき', color: K.C.pink, beat: 0.75, travel: 2.4,
       song: [[76,1],[79,1],[81,1],[79,1],[76,1],[74,1],[76,1],[72,2]] },
-    { name: 'うみの えき', color: '#4b8bf5', beat: 0.6, travel: 2.1,
+    { name: 'うみの えき', color: K.C.blue, beat: 0.6, travel: 2.1,
       song: [[72,1],[76,1],[79,1],[76,1],[77,1],[81,1],[79,2],[77,1],[76,1],[74,1],[79,1],[72,2]].slice(0, 12) },
-    { name: 'ほしの えき', color: '#ffb000', beat: 0.45, travel: 1.8,
+    { name: 'ほしの えき', color: K.C.yellow, beat: 0.45, travel: 1.8,
       song: [[79,1],[84,1],[83,1],[79,1],[81,1],[79,1],[76,1],[79,1],[77,1],[81,1],[84,1],[81,1],[79,1],[83,1],[86,1],[84,2]] },
   ];
-  const NOTE_COLS = ['#ff5a5a', '#3ec46d', '#4b8bf5', '#b06bff', '#ff9f1c'];
+  const NOTE_COLS = [K.C.red, K.C.green, K.C.blue, K.C.purple, K.C.orange];
 
   let stageIdx = 0, phase = 'arrive', pt = 0; // pt = その場面の けいか時間
   let totalHits = 0;                          // 3えき ぜんぶで ひけた かず
@@ -53,7 +53,7 @@
 
   // ---------- じゆうに ならす（じぶんの はっしゃメロディを つくる） ----------
   const BARS = [72, 74, 76, 77, 79, 81, 83, 84];
-  const BARCOL = ['#ff5a5a', '#ff9f1c', '#ffd23f', '#3ec46d', '#2fd6a0', '#4b8bf5', '#9b6bff', '#ff8ad8'];
+  const BARCOL = [K.C.red, K.C.orange, K.C.yellow, K.C.green, '#3fae7a', K.C.blue, K.C.purple, K.C.pink];
   const MYKEY = 'kidtrain_mymelody';
   let mine = [];           // いま つくっている メロディ
   let lastBar = -1, myPlay = null;
@@ -106,7 +106,7 @@
   // ---------- 絵 ----------
   function drawBg(t) {
     const g = c.createLinearGradient(0, 0, 0, TRACK_Y);
-    g.addColorStop(0, '#9ed8ff'); g.addColorStop(1, '#dff3ff');
+    g.addColorStop(0, '#79a8c8'); g.addColorStop(1, '#b9d3e4');
     c.fillStyle = g; c.fillRect(0, 0, W, H);
     // くも
     for (let i = 0; i < 4; i++) {
@@ -114,16 +114,16 @@
       K.circle(x, y, 34, '#fff'); K.circle(x + 40, y - 12, 42, '#fff'); K.circle(x + 84, y, 32, '#fff');
     }
     // とおくの やま
-    c.fillStyle = '#a8dca0'; c.beginPath(); c.moveTo(0, 300);
+    c.fillStyle = '#6b8f74'; c.beginPath(); c.moveTo(0, 300);
     for (let x = 0; x <= W; x += 80) c.lineTo(x, 270 - Math.sin(x * 0.01) * 40 - Math.sin(x * 0.023) * 20);
     c.lineTo(W, 330); c.lineTo(0, 330); c.fill();
     // せんろ
     c.fillStyle = '#8a6a4a'; c.fillRect(0, TRACK_Y - 6, W, 10);
   }
   function drawPlatform() {
-    c.fillStyle = '#d9d2c4'; c.fillRect(0, TRACK_Y + 2, W, H - TRACK_Y);
-    c.fillStyle = '#bfb6a5'; c.fillRect(0, TRACK_Y + 2, W, 12);
-    c.fillStyle = '#ffd23f'; c.fillRect(0, TRACK_Y + 26, W, 14); // きいろい せん
+    c.fillStyle = '#c3bba9'; c.fillRect(0, TRACK_Y + 2, W, H - TRACK_Y);
+    c.fillStyle = '#a79e8c'; c.fillRect(0, TRACK_Y + 2, W, 12);
+    c.fillStyle = K.C.yellow; c.fillRect(0, TRACK_Y + 26, W, 14); // きいろい せん
       }
   // まどの ばしょ（ドアの まどは のぞく）
   function windowCenters(x0) {
@@ -193,6 +193,7 @@
     c.restore();
   }
   function noteNear() {
+    if (memoryMode()) return false;
     if (phase !== 'play' && phase !== 'demo') return false;
     const s = songTime();
     return notes.some(n => !n.hit && Math.abs(n.t - s) <= WIN);
@@ -204,42 +205,46 @@
     K.circle(BELL.x, BELL.y + 10, BELL.r, '#b07a00');
     K.circle(BELL.x, BELL.y + dy, BELL.r, glow ? '#fff3a0' : '#ffe066', '#c98f00', 8);
     K.circle(BELL.x, BELL.y + dy, BELL.r - 22, null, 'rgba(201,143,0,0.6)', 6); // わ
-    drawBellIcon(BELL.x + Math.sin(t * 40) * p * 8, BELL.y + dy - 4, 0.95, '#ffb000');
+    drawBellIcon(BELL.x + Math.sin(t * 40) * p * 8, BELL.y + dy - 4, 0.95, K.C.yellow);
   }
   function drawNote(n, x) {
     const r = 42;
     if (n.shape === 'star') { K.star(x, LANE_Y, r + 8, n.col); K.star(x, LANE_Y, r * 0.45, '#fff'); }
     else { K.circle(x, LANE_Y, r, n.col, K.shade(n.col, -0.4), 5); K.circle(x - 10, LANE_Y - 10, 10, 'rgba(255,255,255,0.7)'); }
   }
+  // さいごの えきは「おぼえて ひく」＝ベルに ちかづくほど ほしが うすくなる
+  const memoryMode = () => stageIdx === STAGES.length - 1 && !isDemo;
   function drawLane() {
-    K.rr(-20, LANE_Y - 56, BELL.x + 20, 112, 56, 'rgba(255,255,255,0.55)');
+    K.rr(-20, LANE_Y - 56, BELL.x + 20, 112, 56, 'rgba(255,255,255,0.45)');
     const s = songTime(), sp = (BELL.x + 40) / st().travel;
     for (const n of notes) {
       if (n.hit) continue;
       const x = BELL.x - (n.t - s) * sp;
       if (x < -60) continue;
-      c.save(); if (x > BELL.x + 10) c.globalAlpha = Math.max(0, 1 - (x - BELL.x) / 140);
+      c.save();
+      if (x > BELL.x + 10) c.globalAlpha = Math.max(0, 1 - (x - BELL.x) / 140);
+      if (memoryMode()) c.globalAlpha *= Math.max(0.18, Math.min(1, (BELL.x - x) / 430));
       drawNote(n, Math.min(x, BELL.x + 150)); c.restore();
     }
   }
   function drawProgress() {
     if (!notes.length || isDemo) return;
-    const n = notes.length, gap = 46, x0 = W / 2 - (n - 1) * gap / 2;
-    K.rr(x0 - 36, 128, (n - 1) * gap + 72, 56, 28, 'rgba(255,255,255,0.75)');
+    const n = notes.length, gap = Math.min(44, 620 / n), x0 = W / 2 - (n - 1) * gap / 2;
+    K.rr(x0 - 26, 126, (n - 1) * gap + 52, 44, 10, 'rgba(23,32,47,0.5)');
     const s = songTime();
     notes.forEach((nt, i) => {
       const done = nt.hit, passed = s > nt.t + WIN;
-      K.star(x0 + i * gap, 156, 17, done ? '#ffd23f' : passed ? '#c9c9c9' : '#eeeeee');
+      K.star(x0 + i * gap, 148, 14, done ? K.C.yellow : passed ? '#4a5468' : '#6e7b8f');
     });
   }
   function drawSign() {
-    K.rr(W / 2 - 230, 26, 460, 86, 22, '#fff', st().color, 8);
-    K.text(st().name, W / 2, 70, 52, '#2b3a55', 'center', null);
-    K.text(`${stageIdx + 1}/${STAGES.length}`, W / 2 + 290, 70, 36, '#2b3a55', 'center');
-    // ここまでに ひけた かず
-    K.rr(150, 24, 206, 62, 26, 'rgba(255,255,255,0.85)', '#ffb000', 4);
-    K.star(188, 55, 22, '#ffd23f');
-    K.text(totalHits + hits + 'こ', 285, 57, 38, '#7a4b00', 'center', null);
+    // えきめいひょう（ホームの かんばん風）
+    K.rr(W / 2 - 230, 20, 460, 80, 10, '#f7f4ea', '#b7ac97', 3);
+    c.fillStyle = st().color; c.fillRect(W / 2 - 228, 88, 456, 10);
+    K.text(st().name, W / 2, 54, 46, K.C.ink, 'center', null);
+    K.panel(W / 2 + 246, 20, 118, 80);
+    K.lcd(W / 2 + 256, 30, 98, 28, `${stageIdx + 1} / ${STAGES.length}`, '#8fa3c0', 20);
+    K.lcd(W / 2 + 256, 64, 98, 28, '★ ' + (totalHits + hits), '#ffb454', 20);
   }
   function drawHand(t) { // おてほんの ゆび（ひかった時に ベルを おす）
     const near = bellPress > 0.3 || noteNear(), d = near ? 0 : 30;
@@ -262,7 +267,7 @@
       } else if (phase === 'intro') {
         if (pt > 2.2) {
           if (!demoDone) { demoDone = true; K.say('ほしが ベルに かさなって ひかったら おしてね'); startSong(true); }
-          else { K.say('ひかったら おしてね'); startSong(false); }
+          else { K.say(stageIdx === STAGES.length - 1 ? 'さいごの えきは、おぼえて ひこう' : 'ひかったら おしてね'); startSong(false); }
         }
       } else if (phase === 'demo' || phase === 'play') {
         const s = songTime();
@@ -311,7 +316,7 @@
       drawDoors(trainX, doorOpen());
       drawFaces(t);
       drawPlatform();
-      K.person(170, 538, { color: '#2b3a55', hat: '#2b3a55', scale: 1.1, hop: phase === 'depart' ? Math.abs(Math.sin(t * 6)) * 8 : 0 });
+      K.person(170, 538, { color: K.C.ink, hat: K.C.ink, scale: 1.1, hop: phase === 'depart' ? Math.abs(Math.sin(t * 6)) * 8 : 0 });
       drawSign();
       drawProgress();
       if (phase === 'demo' || phase === 'play') drawLane();
@@ -322,13 +327,13 @@
       if (phase === 'intro') line = st().name + 'に つきました';
       else if (phase === 'demo') line = 'おてほん：ひかったら おしてね';
       else if (phase === 'demoend') line = 'こんどは きみの ばん！';
-      else if (phase === 'play') line = 'ひかったら おしてね';
+      else if (phase === 'play') line = memoryMode() ? 'おぼえて ひこう' : 'ひかったら おしてね';
       else if (phase === 'board') line = msg;
       else if (phase === 'door') line = (doorMel && pt < doorMel) ? 'きみの はっしゃメロディ♪' : 'ドアが しまります';
       else if (phase === 'depart') line = 'しゅっぱつ しんこう！';
-      if (line) K.text(line, phase === 'play' || phase === 'demo' ? 560 : W / 2, 482, 46, '#2b3a55', 'center', '#fff');
-      if (phase === 'board' || phase === 'door') K.text(`おきゃくさん ${faces}にん`, W / 2, 540, 36, '#e94b4b', 'center', '#fff');
-      floaters.forEach(f => { c.save(); c.globalAlpha = 1 - f.t / 0.8; K.text(f.s, f.x, f.y, 40, '#e94b4b', 'center', '#fff'); c.restore(); });
+      if (line) K.text(line, phase === 'play' || phase === 'demo' ? 560 : W / 2, 482, 46, K.C.ink, 'center', '#fff');
+      if (phase === 'board' || phase === 'door') K.text(`おきゃくさん ${faces}にん`, W / 2, 540, 36, K.C.red, 'center', '#fff');
+      floaters.forEach(f => { c.save(); c.globalAlpha = 1 - f.t / 0.8; K.text(f.s, f.x, f.y, 40, K.C.red, 'center', '#fff'); c.restore(); });
       K.homeButton();
     }
   };
@@ -345,8 +350,8 @@
       const g = c.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, '#ffe9f6'); g.addColorStop(1, '#e7f6ff');
       c.fillStyle = g; c.fillRect(0, 0, W, H);
-      K.rr(300, 16, 680, 80, 28, '#fff', '#ff8ad8', 6);
-      K.text('じゆうに ならそう', 640, 58, 46, '#e94b4b', 'center', null);
+      K.rr(300, 16, 680, 80, 28, '#fff', K.C.pink, 6);
+      K.text('じゆうに ならそう', 640, 58, 46, K.C.red, 'center', null);
       // つくっている メロディ
       K.rr(300, 110, 680, 76, 26, 'rgba(255,255,255,0.8)');
       for (let i = 0; i < 8; i++) {
@@ -354,7 +359,7 @@
         if (m === undefined) K.circle(x, 148, 18, '#eceff5');
         else { const bi = BARS.indexOf(m); K.circle(x, 148, 22, BARCOL[bi < 0 ? 0 : bi], '#fff', 3); }
       }
-      K.text('おした おとが はっしゃメロディに なるよ', 640, 228, 32, '#555', 'center', '#fff');
+      K.text('おした おとが はっしゃメロディに なるよ', 640, 228, 32, K.C.sub, 'center', '#fff');
       // けんばん
       const n = BARS.length, w = (W - 120) / n;
       for (let i = 0; i < n; i++) {
@@ -365,14 +370,14 @@
         K.circle(x + (w - 12) / 2, y + hh - 34, 12, 'rgba(255,255,255,0.6)');
       }
       // ボタン
-      K.button(36, 112, 230, 92, 'きく', '#4b8bf5', () => { myPlay = playMelody(mine, 0.05); K.say('きみの メロディ'); }, { size: 40 });
-      K.button(1014, 112, 230, 92, 'きめる', '#3ec46d', () => {
+      K.button(36, 112, 230, 92, 'きく', K.C.blue, () => { myPlay = playMelody(mine, 0.05); K.say('きみの メロディ'); }, { size: 40 });
+      K.button(1014, 112, 230, 92, 'きめる', K.C.green, () => {
         if (!mine.length) { K.say('けんばんを おして メロディを つくってね'); return; }
         saveMine(); K.sfx.good(); K.confetti(40);
         K.say('これが きみの はっしゃメロディ だよ');
       }, { size: 40 });
-      K.button(16, 16, 120, 64, 'もどる', '#8a94a8', toTitle, { size: 28 });
-      floaters.forEach(f => { c.save(); c.globalAlpha = 1 - f.t / 0.9; K.text(f.s, f.x, f.y, 54, '#e94b4b', 'center', '#fff'); c.restore(); });
+      K.button(16, 16, 120, 64, 'もどる', K.C.sub, toTitle, { size: 28 });
+      floaters.forEach(f => { c.save(); c.globalAlpha = 1 - f.t / 0.9; K.text(f.s, f.x, f.y, 54, K.C.red, 'center', '#fff'); c.restore(); });
     }
   };
   function startFree() {
@@ -391,14 +396,15 @@
     K.scene = {
       update() {},
       draw(t) {
-        c.fillStyle = K.bg; c.fillRect(0, 0, W, H);
-        K.rr(140, 96, 1000, 270, 40, '#fff', '#ff8ad8', 10);
-        K.text('はっしゃ メロディ', W / 2, 190, 88, '#ff8ad8', 'center', '#fff');
-        K.text('ベルを ならして えきの メロディを ひこう', W / 2, 296, 36, '#555', 'center', null);
-        K.trainSide(W / 2 + 340 + ((t * 120) % 1600) - 800, 660, { color: '#ff8ad8', stripe: '#fff', cars: 3, scale: 0.9, bob: Math.sin(t * 20) * 1.5 });
-        c.fillStyle = '#8a6a4a'; c.fillRect(0, 680, W, 14);
-        K.button(150, 400, 460, 130, 'えきを まわる', '#ff8ad8', () => { go(0); K.scene = scene; }, { size: 46 });
-        K.button(670, 400, 460, 130, 'じゆうに ならす', '#4b8bf5', startFree, { size: 44 });
+        K.skyBg(t);
+        K.rr(150, 104, 980, 240, 20, 'rgba(255,255,255,0.93)', K.C.panelEdge, 3);
+        c.fillStyle = K.C.pink; c.fillRect(150, 104, 980, 8);
+        K.text('はっしゃ メロディ', W / 2, 190, 78, K.C.pink, 'center', null);
+        K.text('ベルを ならして えきの メロディを ひこう', W / 2, 286, 32, K.C.sub, 'center', null);
+        K.trainSide(W / 2 + 340 + ((t * 120) % 1600) - 800, 640, { color: K.C.pink, stripe: '#f0ead8', cars: 3, scale: 0.9, bob: Math.sin(t * 20) * 1.2 });
+        K.railBed(660);
+        K.button(170, 394, 430, 104, 'えきを まわる', K.C.pink, () => { go(0); K.scene = scene; }, { size: 40 });
+        K.button(680, 394, 430, 104, 'じゆうに ならす', K.C.blue, startFree, { size: 38 });
         K.homeButton();
       }
     };

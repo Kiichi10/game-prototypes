@@ -4,15 +4,15 @@
   'use strict';
   const ctx = K.ctx, W = K.W, H = K.H;
   const GAME = 'ぼくが しゃしょうさん';
-  const TRAIN = { color: '#7a6cf0', stripe: '#ffd23f', cars: 3, scale: 0.9 };
+  const TRAIN = { color: K.C.purple, stripe: K.C.yellow, cars: 3, scale: 0.9 };
   const HEADX = 760, TRY = 560;               // 先頭の右下（画面）
   const CARW = 230 * 0.9, GAP = 10 * 0.9, CARH = 110 * 0.9;
   const CRUISE = 420;                          // 走る速さ
   const STATIONS = [
-    { name: 'うさぎえき', animal: 'usagi', col: '#ff8ad8' },
-    { name: 'くまえき', animal: 'kuma', col: '#c98a4b' },
+    { name: 'うさぎえき', animal: 'usagi', col: K.C.pink },
+    { name: 'くまえき', animal: 'kuma', col: '#a8763f' },
     { name: 'ぞうえき', animal: 'zou', col: '#7fa7d9' },
-    { name: 'ぱんだえき', animal: 'panda', col: '#3ec46d' },
+    { name: 'ぱんだえき', animal: 'panda', col: K.C.green },
   ];
   const sampleText = s => `つぎは、${s.name}。${s.name} です。`;
 
@@ -205,17 +205,17 @@
     K.rr(x, y, w, h, 18, '#fff', s.col, 6);
     K.rr(x, y + h - 18, w, 18, 0, s.col);
     animal(s.animal, x + h * 0.52, y + h * 0.5, h * 0.36);
-    K.text(s.name, x + h + (w - h) / 2 - 6, y + h * 0.46, big || 44, '#2b3a55', 'center', null);
+    K.text(s.name, x + h + (w - h) / 2 - 6, y + h * 0.46, big || 44, K.C.ink, 'center', null);
   }
   function cloud(x, y, s) { ctx.fillStyle = 'rgba(255,255,255,0.9)'; [[0, 0, 34], [36, -14, 40], [76, 0, 32], [38, 10, 34]].forEach(c => { ctx.beginPath(); ctx.arc(x + c[0] * s, y + c[1] * s, c[2] * s, 0, Math.PI * 2); ctx.fill(); }); }
   const wrap = (v, m) => ((v % m) + m) % m;
   function scenery(pos, t) {
-    const g = ctx.createLinearGradient(0, 0, 0, TRY); g.addColorStop(0, '#8fd3ff'); g.addColorStop(1, '#dff4ff');
+    const g = ctx.createLinearGradient(0, 0, 0, TRY); g.addColorStop(0, '#79a8c8'); g.addColorStop(1, '#b9d3e4');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     K.circle(1160, 90, 46, '#ffe066'); 
     for (let i = 0; i < 4; i++) cloud(wrap(i * 420 - pos * 0.06, 1680) - 200, 70 + (i % 2) * 60, 0.9);
     // とおくの やま
-    ctx.fillStyle = '#9fd39a';
+    ctx.fillStyle = '#6b8f74';
     for (let i = -1; i < 6; i++) { const x = wrap(-pos * 0.15, 360) + i * 360; ctx.beginPath(); ctx.moveTo(x - 220, 470); ctx.quadraticCurveTo(x, 300 + (i % 2) * 50, x + 220, 470); ctx.fill(); }
     // き と いえ
     for (let i = -1; i < 8; i++) {
@@ -223,25 +223,25 @@
       if (k === 0) { K.rr(x - 40, 420, 80, 60, 6, '#ffe8c2'); ctx.fillStyle = '#e46a5a'; ctx.beginPath(); ctx.moveTo(x - 52, 424); ctx.lineTo(x, 380); ctx.lineTo(x + 52, 424); ctx.fill(); K.rr(x - 12, 442, 24, 38, 4, '#a0714a'); }
       else { ctx.fillStyle = '#8a5a3c'; ctx.fillRect(x - 6, 440, 12, 40); K.circle(x, 425, 32, k === 1 ? '#4fb35a' : '#63c46d'); }
     }
-    ctx.fillStyle = '#7cc56f'; ctx.fillRect(0, 478, W, TRY - 478);
+    ctx.fillStyle = '#7aa55f'; ctx.fillRect(0, 478, W, TRY - 478);
     // せんろ
     ctx.fillStyle = '#b9a58c'; ctx.fillRect(0, TRY + 12, W, 26);
     ctx.fillStyle = '#7a5a3a'; for (let x = -wrap(pos, 60); x < W; x += 60) ctx.fillRect(x, TRY + 16, 30, 18);
     ctx.fillStyle = '#6b6f7a'; ctx.fillRect(0, TRY + 14, W, 6);
-    ctx.fillStyle = '#7cc56f'; ctx.fillRect(0, TRY + 38, W, H - TRY - 38);
-    ctx.fillStyle = '#6ab35e'; for (let x = -wrap(pos * 1.3, 90); x < W; x += 90) { ctx.beginPath(); ctx.arc(x, TRY + 80, 10, Math.PI, 0); ctx.fill(); }
+    ctx.fillStyle = '#7aa55f'; ctx.fillRect(0, TRY + 38, W, H - TRY - 38);
+    ctx.fillStyle = '#6c9553'; for (let x = -wrap(pos * 1.3, 90); x < W; x += 90) { ctx.beginPath(); ctx.arc(x, TRY + 80, 10, Math.PI, 0); ctx.fill(); }
   }
   // えき（せんろの おく：やね・かんばん）
   function stationBack(s, sx) {
     ctx.fillStyle = '#c9b8a0'; ctx.fillRect(sx - 760, 470, 960, 90);
-    for (let x = sx - 720; x <= sx + 160; x += 220) { ctx.fillStyle = '#8a94a8'; ctx.fillRect(x, 260, 12, 300); }
+    for (let x = sx - 720; x <= sx + 160; x += 220) { ctx.fillStyle = K.C.sub; ctx.fillRect(x, 260, 12, 300); }
     K.rr(sx - 780, 240, 1000, 30, 10, '#e46a5a', K.shade('#e46a5a', -0.3), 4);
     stationSign(s, sx - 560, 300, 420, 130, 52);
   }
   // えき（てまえの ホーム）
   function stationFront(sx) {
     K.rr(sx - 760, TRY + 30, 960, 140, 8, '#d7d2c8', '#a39d90', 4);
-    ctx.fillStyle = '#ffd23f'; ctx.fillRect(sx - 756, TRY + 46, 952, 10);
+    ctx.fillStyle = K.C.yellow; ctx.fillRect(sx - 756, TRY + 46, 952, 10);
   }
   // ドアは まどの ところに ぴったり あわせる（2_ekiin・4_melody と おなじ いち）
   function doorXs() { const r = []; for (let i = 0; i < TRAIN.cars; i++) r.push(HEADX - i * (CARW + GAP) - CARW * 0.625); return r; }
@@ -265,9 +265,9 @@
   function micButton(x, y, r, recording, lv, prog, t) {
     const pulse = recording ? 1 + lv * 0.12 : 1 + Math.sin(t * 4) * 0.04;
     const rr = r * pulse;
-    K.circle(x, y + 7, rr, '#a3252a');
-    K.circle(x, y, rr, recording ? '#ff3b3b' : '#e83a3a', '#fff', 6);
-    if (recording) { ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(x, y, rr + 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog); ctx.stroke(); }
+    K.circle(x, y + 7, rr, '#8e2f27');
+    K.circle(x, y, rr, recording ? K.C.red : K.C.red, '#fff', 6);
+    if (recording) { ctx.strokeStyle = K.C.yellow; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(x, y, rr + 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog); ctx.stroke(); }
     // マイクの え
     K.rr(x - 18, y - 52, 36, 62, 18, '#fff');
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(x, y - 8, 30, 0.1 * Math.PI, 0.9 * Math.PI); ctx.stroke();
@@ -294,6 +294,19 @@
   const cur = () => STATIONS[G.idx];
 
   const DOORTEXT = 'ドアが しまります。ごちゅうい ください。';
+  // ろせんずを みて「つぎの えき」を じぶんで えらぶ（かんがえる ところ）
+  function toPick() { setState('pick'); G.wrong = -1; K.say('ろせんずを みて、つぎの えきを えらんでね'); }
+  function pickStation(i) {
+    if (G.st !== 'pick') return;
+    if (i === G.idx) {
+      K.sfx.good(); K.sparkle(sxOfStation(i), 48, 18, K.C.yellow);
+      G.st = 'picked'; G.stT = 0;
+      setTimeout(() => { if (G && G.st === 'picked') toAsk(); }, 900);
+      return;
+    }
+    G.wrong = i; K.sfx.oops();
+    K.say('ちがうよ。つぎは ' + cur().name + 'だよ');
+  }
   function askingDoor() { return G.asking === 'door'; }
   function toAsk() {
     G.asking = 'next'; setState('ask');
@@ -327,7 +340,7 @@
   }
   function toArrive() { setState('arrive'); G.arrStart = G.pos; G.stationPos = G.pos + 1500; makeWaiting(); }
   function makeWaiting() {
-    const xs = doorXs(), cols = ['#ff8a3d', '#4b8bf5', '#3ec46d', '#b06bff', '#ffd23f'], hats = [null, '#2b3a55', null, '#e94b4b'];
+    const xs = doorXs(), cols = ['#ff8a3d', K.C.blue, K.C.green, K.C.purple, K.C.yellow], hats = [null, K.C.ink, null, K.C.red];
     G.people = [];
     const nOn = 2, nOff = 1 + (G.idx % 2);
     for (let i = 0; i < nOn; i++) { const dx = xs[(i * 2 + G.idx) % xs.length]; G.people.push({ type: 'on', rel: dx - HEADX + (i % 2 ? 70 : -70), door: dx, color: cols[(i + G.idx) % 5], hat: hats[(i + G.idx) % 4], d: i * 0.4 }); }
@@ -362,7 +375,9 @@
     } else {
       G.speed = CRUISE; G.pos += G.speed * dt;
     }
-    if (st === 'cruise' && G.stT > 2.6) toAsk();
+    if (st === 'cruise' && G.stT > 2.6) toPick();
+    if (st === 'pick' && G.stT > 16) toAsk();        // えらばなくても すすむ
+    if (st === 'picked' && G.stT > 2.2) toAsk();     // ねんのため（とまらない）
     if (st === 'ask') {
       if (G.stT > 9 && !G.said.hint) { G.said.hint = 1; K.say(mic.state === 'ok' ? 'あかい ボタンを おしたまま、おはなし してね' : 'みほんの ボタンを おしてね'); }
     }
@@ -421,16 +436,27 @@
   }
 
   // ---- 画面 ----
+  const RX0 = 330, RX1 = 1000, RY = 48;
+  function sxOfStation(i) { return i < 0 ? RX0 - 50 : RX0 + (RX1 - RX0) * i / (STATIONS.length - 1); }
   function routeBar() {
-    const x0 = 330, x1 = 1000, y = 48;
-    ctx.fillStyle = '#ffffff'; K.rr(x0 - 40, y - 30, x1 - x0 + 80, 60, 30, 'rgba(255,255,255,0.75)');
-    ctx.fillStyle = '#8a94a8'; ctx.fillRect(x0, y - 4, x1 - x0, 8);
+    const x0 = RX0, x1 = RX1, y = RY;
+    const picking = G.st === 'pick' || G.st === 'picked';
+    K.panel(x0 - 56, y - 36, x1 - x0 + 112, 76);
+    ctx.fillStyle = '#4a5468'; ctx.fillRect(x0, y - 3, x1 - x0, 6);
     STATIONS.forEach((s, i) => {
-      const x = x0 + (x1 - x0) * i / (STATIONS.length - 1), done = i < G.idx || (i === G.idx && (G.st === 'doors' || G.st === 'finale'));
-      K.circle(x, y, 24, done ? '#ffd23f' : '#fff', s.col, 4); animal(s.animal, x, y + 2, 17);
+      const x = sxOfStation(i), done = i < G.idx || (i === G.idx && (G.st === 'doors' || G.st === 'finale'));
+      const wrong = G.wrong === i && picking;
+      K.circle(x, y, picking ? 26 : 22, done ? K.C.yellow : '#f0ead8', wrong ? K.C.red : s.col, 4);
+      animal(s.animal, x, y + 2, 16);
+      if (picking) {
+        // ここを おすと えらべる
+        const sv = ctx.globalAlpha; ctx.globalAlpha = 0;
+        K.button(x - 34, y - 34, 68, 68, '', '#ffffff', () => pickStation(i));
+        ctx.globalAlpha = sv;
+      }
     });
-    const sxOf = i => i < 0 ? x0 - 50 : x0 + (x1 - x0) * i / (STATIONS.length - 1);
-    const prog = { cruise: 0.15, ask: 0.3, sample: 0.3, rec: 0.35, proc: 0.4, play: 0.45, praise: 0.55, arrive: 0.75 + 0.25 * Math.min(1, G.stT / 3.6), doors: 1, finale: 1, depart: 1 }[G.st];
+    const sxOf = sxOfStation;
+    const prog = { cruise: 0.15, pick: 0.2, picked: 0.25, ask: 0.3, sample: 0.3, rec: 0.35, proc: 0.4, play: 0.45, praise: 0.55, arrive: 0.75 + 0.25 * Math.min(1, G.stT / 3.6), doors: 1, finale: 1, depart: 1 }[G.st];
     const mx = sxOf(G.idx - 1) + (sxOf(G.idx) - sxOf(G.idx - 1)) * (prog == null ? 0.5 : prog);
     K.rr(mx - 16, y - 46, 32, 20, 6, TRAIN.color, '#fff', 2);
   }
@@ -439,67 +465,71 @@
     const px = 230, py = 104, pw = 900, ph = 170;
     if (st === 'ask' || st === 'sample') {
       const dr = askingDoor();
-      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', dr ? '#7a6cf0' : s.col, 6);
+      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', dr ? K.C.purple : s.col, 6);
       if (dr) {
-        K.rr(px + 56, py + 28, 78, ph - 56, 10, '#e8ecf4', '#7a6cf0', 5);
+        K.rr(px + 56, py + 28, 78, ph - 56, 10, '#e8ecf4', K.C.purple, 5);
         K.rr(px + 60, py + 40, 34, 46, 6, '#cfefff'); K.rr(px + 98, py + 40, 32, 46, 6, '#cfefff');
-        K.text('ドアが しまります', px + 190, py + 58, 56, '#2b3a55', 'left', null);
+        K.text('ドアが しまります', px + 190, py + 58, 56, K.C.ink, 'left', null);
       } else {
         K.circle(px + 95, py + ph / 2, 66, '#fff7fb', s.col, 4); animal(s.animal, px + 95, py + ph / 2 + 4, 52);
-        K.text(`つぎは ${s.name}`, px + 190, py + 58, 60, '#2b3a55', 'left', null);
+        K.text(`つぎは ${s.name}`, px + 190, py + 58, 60, K.C.ink, 'left', null);
       }
-      K.text(mic.state === 'ng' ? 'みほんを ながして いっしょに いおう' : '…って いってみよう', px + 196, py + 128, 38, '#e94b4b', 'left', null);
+      K.text(mic.state === 'ng' ? 'みほんを ながして いっしょに いおう' : '…って いってみよう', px + 196, py + 128, 38, K.C.red, 'left', null);
     } else if (st === 'rec') {
-      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', '#ff3b3b', 6);
+      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', K.C.red, 6);
       const lv = micLevel();
-      K.circle(px + 80, py + 58, 14 + Math.sin(t * 8) * 3, '#ff3b3b');
-      K.text('きいてるよ…', px + 110, py + 58, 52, '#e94b4b', 'left', null);
+      K.circle(px + 80, py + 58, 14 + Math.sin(t * 8) * 3, K.C.red);
+      K.text('きいてるよ…', px + 110, py + 58, 52, K.C.red, 'left', null);
       for (let i = 0; i < 16; i++) { const h = 10 + lv * 70 * (0.5 + 0.5 * Math.abs(Math.sin(t * 13 + i * 1.7))); K.rr(px + 470 + i * 26, py + 60 - h / 2, 16, h, 6, i / 16 < lv * 1.2 ? '#ff6b6b' : '#ffd0d0'); }
-      K.text(rec.toggle ? 'いいおわったら もういちど おしてね' : (askingDoor() ? 'ドアが しまります' : `つぎは ${s.name}`), px + pw / 2, py + 130, 38, '#2b3a55', 'center', null);
+      K.text(rec.toggle ? 'いいおわったら もういちど おしてね' : (askingDoor() ? 'ドアが しまります' : `つぎは ${s.name}`), px + pw / 2, py + 130, 38, K.C.ink, 'center', null);
     } else if (st === 'proc' || st === 'play') {
-      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', '#7a6cf0', 6);
+      K.rr(px, py, pw, ph, 30, 'rgba(255,255,255,0.95)', K.C.purple, 6);
       speaker(px + 110, py + ph / 2, 1.2, t, st === 'play');
-      K.text(st === 'proc' ? 'ほうそう じゅんび ちゅう…' : 'しゃないほうそう ちゅう', px + 520, py + ph / 2, 52, '#5b4bd6', 'center', null);
+      K.text(st === 'proc' ? 'ほうそう じゅんび ちゅう…' : 'しゃないほうそう ちゅう', px + 520, py + ph / 2, 52, K.C.purple, 'center', null);
     } else if (st === 'praise') {
-      K.rr(px, py, pw, ph, 30, '#fff7c7', '#ffd23f', 8);
+      K.rr(px, py, pw, ph, 30, '#fff7c7', K.C.yellow, 8);
       const parts = G.praise.split(' ');
-      K.text(parts[0], px + pw / 2, py + 56, 60, '#e94b4b', 'center', '#fff');
-      K.text(parts.slice(1).join(' '), px + pw / 2, py + 126, 42, '#2b3a55', 'center', null);
-      K.star(px + 60, py + 50, 30, '#ffd23f'); K.star(px + pw - 60, py + 50, 30, '#ffd23f');
+      K.text(parts[0], px + pw / 2, py + 56, 60, K.C.red, 'center', '#fff');
+      K.text(parts.slice(1).join(' '), px + pw / 2, py + 126, 42, K.C.ink, 'center', null);
+      K.star(px + 60, py + 50, 30, K.C.yellow); K.star(px + pw - 60, py + 50, 30, K.C.yellow);
+    } else if (st === 'pick' || st === 'picked') {
+      K.rr(px + 90, py, pw - 180, 100, 16, 'rgba(255,255,255,0.95)', K.C.blue, 4);
+      K.text(st === 'picked' ? 'そう！ つぎは ' + s.name : 'つぎは どの えき？', px + pw / 2, py + 50, 46, K.C.ink, 'center', null);
+      if (st === 'pick') K.text('うえの ろせんずから えらんでね', px + pw / 2, py + 128, 32, K.C.sub, 'center', '#fff');
     } else if (st === 'doors') {
       K.rr(px + 150, py, pw - 300, 90, 30, 'rgba(255,255,255,0.92)', s.col, 5);
-      K.text(`${s.name} に つきました`, px + pw / 2, py + 46, 46, '#2b3a55', 'center', null);
+      K.text(`${s.name} に つきました`, px + pw / 2, py + 46, 46, K.C.ink, 'center', null);
     }
   }
   function controls(t) {
     const st = G.st;
     if (st === 'ask' || st === 'sample') {
       if (mic.state === 'ng') {
-        K.button(SAMPLE_BIG.x, SAMPLE_BIG.y, SAMPLE_BIG.w, SAMPLE_BIG.h, 'みほんを ながす', '#4b8bf5', () => { if (G.st === 'ask') playSample(true); }, { size: 40 });
+        K.button(SAMPLE_BIG.x, SAMPLE_BIG.y, SAMPLE_BIG.w, SAMPLE_BIG.h, 'みほんを ながす', K.C.blue, () => { if (G.st === 'ask') playSample(true); }, { size: 40 });
       } else {
         micButton(MICX, MICY, MICR, false, 0, 0, t);
-        if (mic.state === 'pending') K.text('じゅんび ちゅう', MICX, MICY - MICR - 30, 30, '#555', 'center');
-        else K.text('おしながら はなしてね', MICX + 60, MICY - MICR - 34, 32, '#e94b4b', 'right', '#fff');
+        if (mic.state === 'pending') K.text('じゅんび ちゅう', MICX, MICY - MICR - 30, 30, K.C.sub, 'center');
+        else K.text('おしながら はなしてね', MICX + 60, MICY - MICR - 34, 32, K.C.red, 'right', '#fff');
         drawFxPicker(t);
-        K.button(SAMPLE.x - 20, SAMPLE.y + 10, SAMPLE.w - 20, SAMPLE.h, 'みほん', '#4b8bf5', () => { if (G.st === 'ask') playSample(false); }, { size: 36 });
-        if (G.st === 'ask' && G.stT > 14) K.button(640, 600, 180, 100, 'すすむ', '#3ec46d', () => { if (G.st === 'ask') playSample(true); }, { size: 36 });
+        K.button(SAMPLE.x - 20, SAMPLE.y + 10, SAMPLE.w - 20, SAMPLE.h, 'みほん', K.C.blue, () => { if (G.st === 'ask') playSample(false); }, { size: 36 });
+        if (G.st === 'ask' && G.stT > 14) K.button(640, 600, 180, 100, 'すすむ', K.C.green, () => { if (G.st === 'ask') playSample(true); }, { size: 36 });
       }
     } else if (st === 'rec') {
       const el = (performance.now() - rec.t0) / 1000;
       micButton(MICX, MICY, MICR, true, micLevel(), Math.min(1, el / 5), t);
     } else if (st === 'praise' && G.canRedo) {
       // いいなおしたい ときは もういちど（うまく いえなくても やりなおせる）
-      K.button(930, 540, 280, 110, 'もういちど', '#ff8c2b', () => { if (G.st === 'praise') (G.praiseDoor ? toAskDoor() : toAsk()); }, { size: 42 });
+      K.button(930, 540, 280, 110, 'もういちど', K.C.orange, () => { if (G.st === 'praise') (G.praiseDoor ? toAskDoor() : toAsk()); }, { size: 42 });
     }
   }
   // こえを かえる えらびボタン
   function drawFxPicker(t) {
     K.rr(40, 530, 536, 156, 28, 'rgba(255,255,255,0.82)');
-    K.text('こえを かえる', 60, 556, 28, '#2b3a55', 'left', null);
+    K.text('こえを かえる', 60, 556, 28, K.C.ink, 'left', null);
     for (let i = 0; i < FX.length; i++) {
       const x = 56 + i * 172, y = 580, w = 156, h = 92, on = fxPick === i;
-      if (on) K.rr(x - 6, y - 6, w + 12, h + 12, 26, null, '#ffd23f', 6);
-      K.button(x, y, w, h, FX[i].name, on ? '#e94b4b' : '#8a94a8', () => {
+      if (on) K.rr(x - 6, y - 6, w + 12, h + 12, 26, null, K.C.yellow, 6);
+      K.button(x, y, w, h, FX[i].name, on ? K.C.red : K.C.sub, () => {
         if (fxPick === i) return;
         setFx(i); K.sfx.pop();
         const last = G.recs[G.idx] || G.doorRec;
@@ -509,15 +539,15 @@
   }
   function drawFinale(t) {
     const f = G.fin;
-    K.rr(80, 96, 1120, 330, 34, 'rgba(255,255,255,0.95)', '#7a6cf0', 6);
-    K.text('きょうの しゃないほうそう', W / 2, 150, 54, '#5b4bd6', 'center', null);
+    K.rr(80, 96, 1120, 330, 34, 'rgba(255,255,255,0.95)', K.C.purple, 6);
+    K.text('きょうの しゃないほうそう', W / 2, 150, 54, K.C.purple, 'center', null);
     const cw = 240, gap = 22, x0 = W / 2 - (cw * 4 + gap * 3) / 2;
     STATIONS.forEach((s, i) => {
       const on = i === f.j && !f.done, x = x0 + i * (cw + gap), y = 200 - (on ? 8 + Math.sin(t * 10) * 4 : 0);
-      K.rr(x, y, cw, 200, 22, on ? '#fff7c7' : '#f6f7fb', on ? '#ffd23f' : s.col, on ? 9 : 4);
+      K.rr(x, y, cw, 200, 22, on ? '#fff7c7' : '#f6f7fb', on ? K.C.yellow : s.col, on ? 9 : 4);
       animal(s.animal, x + cw / 2, y + 88, 46);
-      K.text(s.name, x + cw / 2, y + 160, 34, '#2b3a55', 'center', null);
-      if (i < f.j || f.done) K.star(x + cw - 26, y + 26, 20, '#ffd23f');
+      K.text(s.name, x + cw / 2, y + 160, 34, K.C.ink, 'center', null);
+      if (i < f.j || f.done) K.star(x + cw - 26, y + 26, 20, K.C.yellow);
       if (on) speaker(x + 32, y + 30, 0.45, t, true);
     });
   }
@@ -562,5 +592,5 @@
     K.handlers.down = onDown; K.handlers.up = onUp; K.handlers.move = null;
     K.scene = { update, draw };
   }
-  K.title(GAME, 'あかい マイクで しゃないほうそう を しよう', '#7a6cf0', () => { newGame(); requestMic(); scene(); });
+  K.title(GAME, 'あかい マイクで しゃないほうそう を しよう', K.C.purple, () => { newGame(); requestMic(); scene(); });
 })();
