@@ -14,7 +14,7 @@
   const STAGES = [
     {
       name: 'ぱんだえきへ いこう',
-      hint: 'ポイントを タップして、ぱんだえきへ いく みちを つくろう',
+      hint: 'わかれみちを おして、ぱんだえきへ いこう',
       main: { path: ring(1, 1, 11, 4), closed: true },
       branches: [{ from: [6, 4], path: [[6, 5], [7, 5], [8, 5], [9, 5]] }],
       marks: [
@@ -26,7 +26,7 @@
     },
     {
       name: 'おきゃくさんを のせよう',
-      hint: 'くまえきで とまる ふだを おいて、よにん のせて ぱんだえきへ いこう',
+      hint: 'くまえきに とまる ふだを はって、よにんを のせよう',
       main: { path: ring(1, 1, 11, 4), closed: true },
       branches: [{ from: [6, 4], path: [[6, 5], [7, 5], [8, 5], [9, 5]] }],
       marks: [
@@ -39,7 +39,7 @@
     },
     {
       name: 'ふたつの えきを まわろう',
-      hint: 'うさぎえきと くまえきで のせて、ぱんだえきへ とどけよう',
+      hint: 'うさぎえきと くまえきで のせて、ぱんだえきへ',
       main: { path: ring(1, 1, 11, 4), closed: true },
       branches: [
         { from: [6, 4], path: [[6, 5], [7, 5], [8, 5], [9, 5]] },
@@ -271,7 +271,7 @@
   function drawBuild(t) {
     c.fillStyle = 'rgba(20,27,43,0.82)'; c.fillRect(0, 0, W, H);
     K.rr(120, 54, 1040, 612, 20, '#f2f5f9', K.C.panelEdge, 3);
-    K.text('くみたて', W / 2, 100, 46, K.C.ink, 'center', null);
+    K.text('くみたて', W / 2, 100, 54, K.C.ink, 'center', null);
     // いまの へんせい（みほん）
     const bw = BUILD.cars * 76, bx = W / 2 - bw / 2 + 38, by = 182;
     for (let i = BUILD.cars - 1; i >= 0; i--) {
@@ -283,23 +283,23 @@
       else { K.rr(x - 18, by - 12, 13, 10, 2, '#9fc3dc'); K.rr(x + 2, by - 12, 13, 10, 2, '#9fc3dc'); }
     }
     // なんりょう
-    K.text('なんりょう つなぐ？', 180, 266, 26, K.C.sub, 'left', null);
+    K.text('なんりょう つなぐ？', 180, 264, 32, K.C.sub, 'left', null);
     for (let i = 2; i <= 5; i++) {
       const on = BUILD.cars === i;
-      K.button(180 + (i - 2) * 112, 290, 96, 68, i + 'りょう', on ? K.C.orange : '#aab4c4', () => { BUILD.cars = i; K.sfx.pop(); }, { size: 26 });
+      K.button(180 + (i - 2) * 112, 290, 96, 68, i + 'りょう', on ? K.C.orange : '#aab4c4', () => { BUILD.cars = i; K.sfx.pop(); }, { size: 32 });
     }
-    K.text('ながいほど たくさん のれる', 660, 312, 23, K.C.sub, 'left', null);
-    K.text('でも すこし おそくなる', 660, 344, 23, K.C.sub, 'left', null);
+    K.text('ながいほど たくさん のれる', 660, 308, 28, K.C.sub, 'left', null);
+    K.text('でも すこし おそくなる', 660, 344, 28, K.C.sub, 'left', null);
     // モーター
-    K.text('モーター', 180, 408, 26, K.C.sub, 'left', null);
+    K.text('はやさ', 180, 408, 32, K.C.sub, 'left', null);
     MOTORS.forEach((m, i) => {
       const on = BUILD.motor === i;
-      K.button(180 + i * 150, 432, 132, 68, m.name, on ? K.C.orange : '#aab4c4', () => { BUILD.motor = i; K.sfx.pop(); }, { size: 28 });
+      K.button(180 + i * 150, 432, 132, 68, m.name, on ? K.C.orange : '#aab4c4', () => { BUILD.motor = i; K.sfx.pop(); }, { size: 32 });
     });
-    K.text('はやいと きもちいい', 660, 454, 23, K.C.sub, 'left', null);
-    K.text('でも ポイントの はんだんが いそがしい', 660, 486, 23, K.C.sub, 'left', null);
+    K.text('はやいと きもちいい', 660, 452, 28, K.C.sub, 'left', null);
+    K.text('でも わかれみちの えらびかたが いそがしい', 660, 490, 28, K.C.sub, 'left', null);
     // いろ
-    K.text('いろ', 180, 548, 26, K.C.sub, 'left', null);
+    K.text('いろ', 180, 546, 32, K.C.sub, 'left', null);
     COLORS.forEach((col, i) => {
       const x = 180 + i * 90, on = BUILD.color.head === col.head;
       K.rr(x, 570, 74, 58, 8, col.head, on ? K.C.orange : '#2b3038', on ? 5 : 2);
@@ -307,7 +307,7 @@
       K.button(x, 570, 74, 58, '', '#fff', () => { BUILD.color = col; K.sfx.pop(); });
       c.globalAlpha = sv;
     });
-    K.button(880, 560, 220, 80, 'できた', K.C.green, () => { mode = 'plan'; K.sfx.good(); }, { size: 38 });
+    K.button(880, 556, 230, 84, 'できた', K.C.green, () => { mode = 'plan'; K.sfx.good(); }, { size: 42 });
   }
 
 
@@ -417,7 +417,7 @@
       if (cell.type === 'garage') {
         K.rr(x - 40, y - 46, 80, 40, 6, '#8a5a3c', '#6b452c', 3);
         c.fillStyle = '#6b452c'; c.beginPath(); c.moveTo(x - 46, y - 46); c.lineTo(x, y - 70); c.lineTo(x + 46, y - 46); c.closePath(); c.fill();
-        K.text('しゃこ', x, y - 26, 18, '#f0ead8', 'center', null);
+        K.text('しゃこ', x, y - 84, 24, '#f7f4ea', 'center', '#6b452c');
       }
       if (cell.type === 'station') {
         // うえの はしの えきは、ホームと かんばんを さかさに おく
@@ -427,11 +427,11 @@
         for (let i = 0; i < Math.min(n, 4); i++) {
           K.person(x - 30 + i * 20, y + (up > 0 ? 26 : -20), { color: ['#2f6fa8', '#c9453a', '#3f8f66', '#6b5bb5'][i % 4], scale: 0.3, hop: Math.abs(Math.sin(t * 3 + i)) * 3 });
         }
-        if (n > 4) K.text('+' + (n - 4), x + 54, y + 16 * up, 18, '#f0ead8', 'center', K.C.ink);
+        if (n > 4) K.text('+' + (n - 4), x + 56, y + 16 * up, 23, '#f0ead8', 'center', K.C.ink);
         const sgy = up > 0 ? y - 80 : y + 38;
         K.rr(x - 46, sgy, 92, 42, 5, '#f7f4ea', '#b7ac97', 3);
         c.fillStyle = cell.col; c.fillRect(x - 46, sgy + 36, 92, 6);
-        K.text(cell.name.replace('えき', ''), x, sgy + 20, 22, K.C.ink, 'center', null);
+        K.text(cell.name.replace('えき', ''), x, sgy + 21, 28, K.C.ink, 'center', null);
       }
       if (cell.type === 'switch') drawPoint(cell, x, y, t);
     }
@@ -517,7 +517,7 @@
       drawPlacedCards();
       drawTrain(t);
       drawUI(t);
-      if (drag) drawCard(drag.type, drag.x - 46, drag.y - 56, 92, 92);
+      if (drag) drawCard(drag.type, drag.x - 53, drag.y - 64, 106, 106);
       if (mode === 'build') drawBuild(t);
       K.homeButton();
     }
@@ -530,9 +530,9 @@
     fast: { name: 'はやく', col: '#3f8f66' },
   };
   let drag = null;       // いま つまんでいる ふだ
-  const TRAY_Y = 606;
+  const TRAY_Y = 602;
   function trayCards() { return (st.cards || []).slice(0, 4); }
-  function trayRect(i) { return { x: 24 + i * 104, y: TRAY_Y, w: 92, h: 92 }; }
+  function trayRect(i) { return { x: 24 + i * 118, y: TRAY_Y, w: 106, h: 106 }; }
   function drawCard(type, x, y, w, h, small) {
     const cd = CARDS[type];
     K.rr(x, y + 4, w, h, 10, 'rgba(0,0,0,0.25)');
@@ -542,39 +542,42 @@
     if (type === 'stop') { K.circle(cx2, cy2, w * 0.2, cd.col); K.rr(cx2 - w * 0.13, cy2 - w * 0.04, w * 0.26, w * 0.08, 2, '#fff'); }
     if (type === 'slow') { c.fillStyle = cd.col; c.beginPath(); c.moveTo(cx2 - w * 0.18, cy2 - w * 0.16); c.lineTo(cx2 + w * 0.16, cy2); c.lineTo(cx2 - w * 0.18, cy2 + w * 0.16); c.closePath(); c.fill(); }
     if (type === 'fast') { c.fillStyle = cd.col; for (const o of [-w * 0.16, w * 0.04]) { c.beginPath(); c.moveTo(cx2 + o, cy2 - w * 0.16); c.lineTo(cx2 + o + w * 0.16, cy2); c.lineTo(cx2 + o, cy2 + w * 0.16); c.closePath(); c.fill(); } }
-    if (!small) K.text(cd.name, cx2, y + h - 22, 19, K.C.ink, 'center', null);
+    if (!small) K.text(cd.name, cx2, y + h - 24, 25, K.C.ink, 'center', null);
   }
   function drawPlacedCards() {
     for (const cell of cells.values()) {
       if (!cell.card) continue;
-      drawCard(cell.card, sx(cell.x) - 24, sy(cell.y) - 54, 48, 48, true);
+      drawCard(cell.card, sx(cell.x) - 28, sy(cell.y) - 60, 56, 56, true);
     }
   }
 
   function drawUI(t) {
     // うえの おびと めあて
-    K.panel(150, 6, 980, 44);
-    K.lcd(160, 12, 960, 32, mode === 'clear' ? 'とうちゃく！' : (msgT > 0 && msg ? msg : st.hint), '#ffd9a0', 24);
-    K.gauge(1210, 36, 30, mode === 'run' ? Math.min(1, tr.v / 240) : 0, null);
+    K.panel(150, 4, 980, 56);
+    K.lcd(162, 10, 956, 44, mode === 'clear' ? 'とうちゃく！' : (msgT > 0 && msg ? msg : st.hint), '#ffd9a0', 30);
+    K.gauge(1212, 40, 32, mode === 'run' ? Math.min(1, tr.v / 240) : 0, null);
     // のせている にんずう と のせられる かず
     if (st.goal.deliver) {
-      K.panel(16, 6, 118, 44);
-      K.lcd(24, 12, 102, 32, tr.riders + ' / ' + capacity(), tr.riders >= capacity() ? '#ff9a6b' : '#9ad7a0', 22);
+      K.panel(14, 4, 126, 56);
+      K.lcd(22, 10, 110, 44, tr.riders + '/' + capacity(), tr.riders >= capacity() ? '#ff9a6b' : '#9ad7a0', 30);
     }
     // したの そうさ
     K.panel(0, 596, W, 124);
     if (mode === 'plan') {
       trayCards().forEach((type, i) => { const r = trayRect(i); drawCard(type, r.x, r.y, r.w, r.h); });
-      if (trayCards().length) K.text('ふだを せんろに おくと、そこで めいれいを まもるよ', 300, 586, 21, '#dfe6ef', 'left', null);
-      K.button(880, 614, 170, 80, 'くみたて', K.C.purple, () => { K.sfx.pop(); mode = 'build'; }, { size: 34 });
-      K.button(1066, 614, 190, 80, 'はしる', K.C.green, run, { size: 40 });
+      if (trayCards().length) {
+        K.text('ふだを せんろに はると、', 300, 634, 27, '#dfe6ef', 'left', null);
+        K.text('そこで めいれいを まもるよ', 300, 674, 27, '#dfe6ef', 'left', null);
+      }
+      K.button(856, 610, 182, 88, 'くみたて', K.C.purple, () => { K.sfx.pop(); mode = 'build'; }, { size: 38 });
+      K.button(1050, 610, 206, 88, 'はしる', K.C.green, run, { size: 46 });
     } else if (mode === 'run') {
-      K.button(120, 614, 210, 82, 'ゆっくり', K.C.blue, () => { tr.want = 0.5; }, { size: 34 });
-      K.button(348, 614, 210, 82, 'ふつう', K.C.green, () => { tr.want = 1; }, { size: 34 });
-      K.button(576, 614, 210, 82, 'とまる', K.C.red, () => { tr.want = 0; }, { size: 34 });
-      K.button(950, 614, 220, 82, 'やりなおす', K.C.sub, backToPlan, { size: 30 });
+      K.button(104, 610, 224, 88, 'ゆっくり', K.C.blue, () => { tr.want = 0.5; }, { size: 40 });
+      K.button(344, 610, 224, 88, 'ふつう', K.C.green, () => { tr.want = 1; }, { size: 40 });
+      K.button(584, 610, 224, 88, 'とまる', K.C.red, () => { tr.want = 0; }, { size: 40 });
+      K.button(944, 610, 232, 88, 'やりなおす', K.C.sub, backToPlan, { size: 36 });
     } else if (mode === 'clear') {
-      K.button(W / 2 - 150, 614, 300, 82, 'つぎへ', K.C.green, nextStage, { size: 40 });
+      K.button(W / 2 - 160, 610, 320, 88, 'つぎへ', K.C.green, nextStage, { size: 46 });
     }
   }
 
@@ -587,7 +590,7 @@
         K.rr(150, 104, 980, 240, 20, 'rgba(255,255,255,0.93)', K.C.panelEdge, 3);
         c.fillStyle = K.C.blue; c.fillRect(150, 104, 980, 8);
         K.text(GAME, W / 2, 190, 78, K.C.blue, 'center', null);
-        K.text('ポイントを かえて、じぶんの でんしゃを はしらせよう', W / 2, 286, 32, K.C.sub, 'center', null);
+        K.text('わかれみちを かえて、じぶんの でんしゃを はしらせよう', W / 2, 288, 34, K.C.sub, 'center', null);
         K.trainSide(W / 2 + 340 + ((t * 120) % 1600) - 800, 640, { color: K.C.blue, cars: 3, scale: 0.9, bob: Math.sin(t * 20) * 1.2 });
         K.railBed(660);
         K.button(W / 2 - 190, 394, 380, 104, 'はじめる', K.C.blue, () => startStage(0));

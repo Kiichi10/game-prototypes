@@ -270,10 +270,15 @@
   // LED風の 文字ひょうじ
   K.lcd = function (x, y, w, h, text, color, size) {
     K.rr(x, y, w, h, 6, '#121a28', '#3d4a63', 2);
+    // ながい 文は はみ出さないように すこし ちぢめる（きりすてない）
+    let s = size || h * 0.6;
+    ctx.font = `bold ${s}px ${K.FONT}`;
+    const tw = ctx.measureText(String(text)).width;
+    if (tw > w - 16) s = Math.max(14, s * (w - 16) / tw);
     ctx.save(); ctx.globalAlpha = 0.25;
-    K.text(text, x + w / 2, y + h / 2 + 1, size || h * 0.6, color || '#ffb454', 'center', null);
+    K.text(text, x + w / 2, y + h / 2 + 1, s, color || '#ffb454', 'center', null);
     ctx.restore();
-    K.text(text, x + w / 2, y + h / 2, size || h * 0.6, color || '#ffb454', 'center', null);
+    K.text(text, x + w / 2, y + h / 2, s, color || '#ffb454', 'center', null);
   };
   // メーター（0〜1）
   K.gauge = function (x, y, r, v, label, color) {
@@ -496,7 +501,7 @@
     ctx.fillStyle = '#5f6878'; ctx.fillRect(x0, y + 14, x1 - x0, 5);
   };
 
-  K.homeButton = function () { K.button(16, 16, 116, 56, 'もどる', '#55637c', () => { location.href = '../'; }, { size: 26 }); };
+  K.homeButton = function () { K.button(16, 16, 128, 62, 'もどる', '#55637c', () => { location.href = '../'; }, { size: 29 }); };
 
   // ---------- ごほうび画面 ----------
   K.reward = function (game, msg, onAgain) {
