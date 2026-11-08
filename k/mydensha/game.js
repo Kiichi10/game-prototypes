@@ -26,7 +26,7 @@
     },
     {
       name: 'おきゃくさんを のせよう',
-      hint: 'くまえきに とまる ふだを はって、よにんを のせよう',
+      hint: 'あかい しんごうを くまえきに おいて、よにんを のせよう',
       main: { path: ring(1, 1, 11, 4), closed: true },
       branches: [{ from: [6, 4], path: [[6, 5], [7, 5], [8, 5], [9, 5]] }],
       marks: [
@@ -39,7 +39,7 @@
     },
     {
       name: 'ふたつの えきを まわろう',
-      hint: 'うさぎえきと くまえきで のせて、ぱんだえきへ',
+      hint: 'ふたつの えきに しんごうを おいて、ぱんだえきへ',
       main: { path: ring(1, 1, 11, 4), closed: true },
       branches: [
         { from: [6, 4], path: [[6, 5], [7, 5], [8, 5], [9, 5]] },
@@ -257,24 +257,28 @@
   }
   K.handlers.down = p => {
     if (K.scene !== scene || mode !== 'plan') return;
-    // したの たなから ふだを つまむ
+    // したの たなの しんごうを つかむ（えらんだ じょうたいにも なる）
     const cs = trayCards();
     for (let i = 0; i < cs.length; i++) {
       const r = trayRect(i);
       if (p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h) {
-        drag = { type: cs[i], x: p.x, y: p.y }; K.sfx.pop(); return;
+        drag = { type: cs[i], x: p.x, y: p.y, moved: false };
+        picked = cs[i];
+        K.sfx.pop();
+        return;
       }
     }
     const cell = cellAt(p);
     if (!cell) return;
-    if (cell.card) { cell.card = null; K.sfx.oops(); return; }   // おいた ふだは タップで とる
+    if (cell.card) { cell.card = null; K.sfx.oops(); return; }   // おいた しんごうは さわると とれる
+    if (picked) { cell.card = picked; K.sfx.star(); K.sparkle(sx(cell.x) + 30, sy(cell.y), 10, K.C.yellow); return; }
     if (cell.type === 'switch') { cell.branchOn = !cell.branchOn; K.sfx.clack(); }
   };
-  K.handlers.move = p => { if (drag) { drag.x = p.x; drag.y = p.y; } };
+  K.handlers.move = p => { if (drag) { if (Math.hypot(p.x - drag.x, p.y - drag.y) > 10) drag.moved = true; drag.x = p.x; drag.y = p.y; } };
   K.handlers.up = p => {
     if (!drag) return;
     const cell = cellAt(p);
-    if (cell && p.y < 580) { cell.card = drag.type; K.sfx.star(); }
+    if (drag.moved && cell && p.y < 586) { cell.card = drag.type; K.sfx.star(); picked = null; }
     drag = null;
   };
 
@@ -445,14 +449,6 @@
           K.person(x - 30 + i * 20, y + (up > 0 ? 26 : -20), { color: ['#2f6fa8', '#c9453a', '#3f8f66', '#6b5bb5'][i % 4], scale: 0.3, hop: Math.abs(Math.sin(t * 3 + i)) * 3 });
         }
         if (n > 4) K.text('+' + (n - 4), x + 56, y + 16 * up, 23, '#f0ead8', 'center', K.C.ink);
-        // おきゃくさんが まっていて ふだが まだ ない えきは「ここに はってね」と しめす
-        if (mode === 'plan' && n > 0 && !cell.card && (st.cards || []).includes('stop')) {
-          c.save();
-          c.setLineDash([9, 7]); c.lineDashOffset = -t * 22;
-          c.strokeStyle = 'rgba(255,214,120,' + (0.6 + 0.3 * Math.sin(t * 4)) + ')'; c.lineWidth = 4;
-          c.beginPath(); c.roundRect(x - 30, y - 62, 60, 60, 8); c.stroke();
-          c.restore();
-        }
         const sgy = up > 0 ? y - 80 : y + 38;
         K.rr(x - 46, sgy, 92, 42, 5, '#f7f4ea', '#b7ac97', 3);
         c.fillStyle = cell.col; c.fillRect(x - 46, sgy + 36, 92, 6);
@@ -462,6 +458,19 @@
     }
   }
   // ポイント: えらんでいる みちを ひからせる（どっちに いくか ひとめで わかる）
+  // 「ここに しんごうを おいてね」の わく（えきの うえに かさねて えがく）
+  function drawSignalHints(t) {
+    if (mode !== 'plan' || !(st.cards || []).includes('stop')) return;
+    for (const cell of cells.values()) {
+      if (cell.type !== 'station' || !(cell.wait > 0) || cell.card) continue;
+      const x = sx(cell.x), y = sy(cell.y);
+      c.save();
+      c.setLineDash([11, 8]); c.lineDashOffset = -t * 26;
+      c.strokeStyle = 'rgba(255,196,92,' + (0.75 + 0.25 * Math.sin(t * 4)) + ')'; c.lineWidth = 6;
+      c.beginPath(); c.roundRect(x - 38, y - 38, 76, 76, 12); c.stroke();
+      c.restore();
+    }
+  }
   function drawPoint(cell, x, y, t) {
     const from = cell.trunk[0];
     const to = cell.branchOn ? cell.branch : cell.trunk[1];
@@ -539,41 +548,93 @@
       if (!trackCv) trackCv = buildTrackCanvas();
       c.drawImage(trackCv, 0, 0);
       drawMarks(t);
-      drawPlacedCards();
+      drawSignalHints(t);
+      drawPlacedCards(t);
       drawTrain(t);
       drawUI(t);
-      if (drag) drawCard(drag.type, drag.x - 53, drag.y - 64, 106, 106);
+      if (mode === 'plan') drawHandDemo(t);
+      if (drag) drawSignalPost(drag.x, drag.y + 30, drag.type, 0.9);
       if (mode === 'build') drawBuild(t);
       K.homeButton();
     }
   };
 
   // ---------- めいれいの ふだ（プログラム） ----------
+  // ---------- しんごう（せんろに おく もの） ----------
+  // 「ふだ」は 6さいには わかりにくかった（2026-11-09 お頭）。
+  // だれでも しっている「あかの しんごう＝とまれ」に かえた。
   const CARDS = {
-    stop: { name: 'とまる', col: '#c9453a' },
-    slow: { name: 'ゆっくり', col: '#2f6fa8' },
-    fast: { name: 'はやく', col: '#3f8f66' },
+    stop: { name: 'とまれ', col: '#c9453a', lamp: 0 },
+    slow: { name: 'ゆっくり', col: '#d79a26', lamp: 1 },
+    fast: { name: 'すすめ', col: '#3f8f66', lamp: 2 },
   };
-  let drag = null;       // いま つまんでいる ふだ
-  const TRAY_Y = 602;
-  function trayCards() { return (st.cards || []).slice(0, 4); }
-  function trayRect(i) { return { x: 24 + i * 118, y: TRAY_Y, w: 106, h: 106 }; }
-  function drawCard(type, x, y, w, h, small) {
+  let drag = null;       // ゆびで つかんでいる しんごう
+  let picked = null;     // えらんでいる しんごう（タッチ2かいでも おける）
+  const TRAY_Y = 600;
+  function trayCards() { return (st.cards || []).slice(0, 3); }
+  function trayRect(i) { return { x: 26 + i * 132, y: TRAY_Y, w: 118, h: 112 }; }
+
+  // ほんものの しんごうきの かたち（ポールと 3つの ランプ）
+  function drawSignalPost(x, y, type, sc) {
     const cd = CARDS[type];
-    K.rr(x, y + 4, w, h, 10, 'rgba(0,0,0,0.25)');
-    K.rr(x, y, w, h, 10, '#f7f4ea', cd.col, 4);
-    c.fillStyle = cd.col; c.fillRect(x, y + h - 10, w, 10);
-    const cx2 = x + w / 2, cy2 = y + h / 2 - 6;
-    if (type === 'stop') { K.circle(cx2, cy2, w * 0.2, cd.col); K.rr(cx2 - w * 0.13, cy2 - w * 0.04, w * 0.26, w * 0.08, 2, '#fff'); }
-    if (type === 'slow') { c.fillStyle = cd.col; c.beginPath(); c.moveTo(cx2 - w * 0.18, cy2 - w * 0.16); c.lineTo(cx2 + w * 0.16, cy2); c.lineTo(cx2 - w * 0.18, cy2 + w * 0.16); c.closePath(); c.fill(); }
-    if (type === 'fast') { c.fillStyle = cd.col; for (const o of [-w * 0.16, w * 0.04]) { c.beginPath(); c.moveTo(cx2 + o, cy2 - w * 0.16); c.lineTo(cx2 + o + w * 0.16, cy2); c.lineTo(cx2 + o, cy2 + w * 0.16); c.closePath(); c.fill(); } }
-    if (!small) K.text(cd.name, cx2, y + h - 24, 25, K.C.ink, 'center', null);
+    sc = sc || 1;
+    c.save(); c.translate(x, y); c.scale(sc, sc);
+    // はしら
+    c.fillStyle = '#5b6372'; c.fillRect(-4, -4, 8, 34);
+    K.rr(-14, 28, 28, 10, 3, '#4a5262', '#39404e', 2);
+    // はこ
+    K.rr(-15, -74, 30, 72, 7, '#2b3038', '#1a1d23', 3);
+    const cols = ['#d6453c', '#d79a26', '#3fae7a'];
+    for (let i = 0; i < 3; i++) {
+      const on = i === cd.lamp, cy2 = -62 + i * 22;
+      if (on) { c.save(); c.globalAlpha = 0.45; K.circle(0, cy2, 15, cols[i]); c.restore(); }
+      K.circle(0, cy2, 9, on ? cols[i] : '#434a57', '#1a1d23', 2);
+      if (on) K.circle(-3, cy2 - 3, 3, 'rgba(255,255,255,0.5)');
+    }
+    c.restore();
   }
-  function drawPlacedCards() {
+  function drawTrayItem(type, r, on) {
+    K.rr(r.x, r.y + 4, r.w, r.h, 12, 'rgba(0,0,0,0.3)');
+    K.rr(r.x, r.y, r.w, r.h, 12, on ? '#fff7e2' : '#f7f4ea', on ? K.C.orange : '#b7ac97', on ? 6 : 3);
+    drawSignalPost(r.x + r.w / 2, r.y + 78, type, 0.82);
+    K.text(CARDS[type].name, r.x + r.w / 2, r.y + h_label(r), 26, K.C.ink, 'center', null);
+  }
+  function h_label(r) { return r.h - 16; }
+  function drawPlacedCards(t) {
     for (const cell of cells.values()) {
       if (!cell.card) continue;
-      drawCard(cell.card, sx(cell.x) - 28, sy(cell.y) - 60, 56, 56, true);
+      drawSignalPost(sx(cell.x) + 30, sy(cell.y) + 16, cell.card, 0.78);
     }
+  }
+  // ゆびの え（おてほん）
+  function drawFinger(x, y) {
+    c.save(); c.translate(x, y);
+    c.fillStyle = 'rgba(0,0,0,0.2)'; c.beginPath(); c.ellipse(6, 10, 16, 6, 0, 0, 7); c.fill();
+    K.rr(-9, -44, 20, 48, 10, '#f7f4ea', '#8a8070', 3);
+    K.rr(-20, -4, 42, 40, 14, '#f7f4ea', '#8a8070', 3);
+    K.rr(12, -8, 16, 26, 8, '#f7f4ea', '#8a8070', 3);
+    c.restore();
+  }
+  // まだ しんごうを おいていない ときだけ、おきかたを 見せる
+  function stationNeedingSignal() {
+    if (!(st.cards || []).includes('stop')) return null;
+    for (const cell of cells.values()) if (cell.type === 'station' && cell.wait > 0 && !cell.card) return cell;
+    return null;
+  }
+  function drawHandDemo(t) {
+    const target = stationNeedingSignal();
+    if (!target || drag) return;
+    const r = trayRect(0);
+    const p = (t % 3.4) / 3.4;
+    if (p > 0.78) return;
+    const k = Math.min(1, p / 0.78), e = k * k * (3 - 2 * k);
+    const x0 = r.x + r.w / 2, y0 = r.y + 40;
+    const x1 = sx(target.x) + 30, y1 = sy(target.y) + 14;
+    const x = x0 + (x1 - x0) * e, y = y0 + (y1 - y0) * e - Math.sin(Math.PI * e) * 40;
+    c.save(); c.globalAlpha = 0.9;
+    drawSignalPost(x, y, 'stop', 0.6);
+    drawFinger(x + 10, y + 20);
+    c.restore();
   }
 
   function drawUI(t) {
@@ -589,10 +650,10 @@
     // したの そうさ
     K.panel(0, 596, W, 124);
     if (mode === 'plan') {
-      trayCards().forEach((type, i) => { const r = trayRect(i); drawCard(type, r.x, r.y, r.w, r.h); });
+      trayCards().forEach((type, i) => drawTrayItem(type, trayRect(i), picked === type));
       if (trayCards().length) {
-        K.text('ふだを せんろに はると、', 300, 634, 27, '#dfe6ef', 'left', null);
-        K.text('そこで めいれいを まもるよ', 300, 674, 27, '#dfe6ef', 'left', null);
+        K.text('あかい しんごうを えきに おくと', 320, 636, 28, '#dfe6ef', 'left', null);
+        K.text('でんしゃが とまるよ', 320, 676, 28, '#dfe6ef', 'left', null);
       }
       K.button(856, 610, 182, 88, 'くみたて', K.C.purple, () => { K.sfx.pop(); mode = 'build'; }, { size: 38 });
       K.button(1050, 610, 206, 88, 'はしる', K.C.green, run, { size: 46 });
