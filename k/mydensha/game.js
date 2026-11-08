@@ -116,7 +116,7 @@
     const start = g || cells.values().next().value;
     // しゃこから でる むき（ステージで きめる。なければ さいしょの へり）
     const out = start.out != null && start.dirs.includes(start.out) ? start.out : start.dirs[0];
-    tr = { cx: start.x, cy: start.y, eIn: T.opp(out), eOut: out, u: 0.5, v: 0, want: 1, stopT: 0, riders: 0, time: 0, toldNeed: false, done: false, visited: {}, trail: [] };
+    tr = { cx: start.x, cy: start.y, eIn: T.opp(out), eOut: out, u: 0.5, v: 0, want: 1, stopT: 0, riders: 0, time: 0, toldNeed: false, clearing: false, done: false, visited: {}, trail: [] };
     tr.path = T.pathIn(tr.eIn, tr.eOut);
     // はじめは うしろむきに ならべる（でる むきの はんたいがわに しゃりょうを おく）
     const h0 = T.at(tr.path, tr.u), back = T.opp(out);
@@ -149,7 +149,7 @@
       return;
     }
     const target = MOTORS[BUILD.motor].v * tr.want * (1 - (BUILD.cars - 2) * 0.06);
-    tr.v += (target - tr.v) * Math.min(1, dt * 2.2);
+    tr.v += (target - tr.v) * Math.min(1, dt * (tr.want === 0 ? 5.5 : 2.2));
     if (tr.v < 1 && tr.want === 0) tr.v = 0;
     tr.u += (tr.v * dt) / tr.path.len;
     while (tr.u >= 1) {
@@ -174,6 +174,18 @@
     }
   }
   function capacity() { return BUILD.cars * 2; }   // 1りょうに 2にん
+  // まいかい しらべる: えきの マスに いて、ほぼ とまっていれば のせる
+  function checkStation() {
+    if (tr.v > 25) return;
+    const h = headPos();
+    let best = null, bd = 1e9;
+    for (const cell of cells.values()) {
+      if (cell.type !== 'station') continue;
+      const d = Math.hypot(sx(cell.x) - h.x, sy(cell.y) - h.y);
+      if (d < 140 && d < bd) { bd = d; best = cell; }   // となりの マスで とまっても のれる
+    }
+    atStation(best);
+  }
   function enterCell(cell) {
     tr.visited[T.key(cell.x, cell.y)] = true;
     if (cell.card === 'stop' && tr.time - (cell.usedAt == null ? -99 : cell.usedAt) > 8) { cell.usedAt = tr.time; tr.stopT = 2.4; tr.want = 0; K.sfx.door(); }
@@ -181,33 +193,38 @@
     if (cell.card === 'fast') tr.want = 1.4;
     if (cell.type === 'station') reachStation(cell);
   }
-  function reachStation(cell) {
-    if (mode !== 'run') return;
-    const stopping = tr.stopT > 0.2;
-    // おきゃくさんは「とまる」ふだを おいた ときだけ のれる
-    if (stopping && cell.wait > 0) {
+  // ★ えきに「とまっていれば」のれる。ふだで とまっても、じぶんで とめても おなじ。
+  //   （2026-11-09 まで「ふだで とまった ときだけ」に なっていて、てで とめても のらなかった）
+  function atStation(cell) {
+    if (mode !== 'run' || !cell) return;
+    if (cell.wait > 0) {
       const room = capacity() - tr.riders;
       const n = Math.min(room, cell.wait);
       if (n > 0) {
         cell.wait -= n; tr.riders += n;
         K.sfx.good(); K.sparkle(sx(cell.x), sy(cell.y) - 40, 14, '#e8c04a');
-        if (cell.wait > 0) say('まだ まってる ひとが いるよ。もっと ながく つなごう');
-        else say('のったよ！');
-      } else if (room <= 0) {
+        say(cell.wait > 0 ? 'まだ まってる ひとが いるよ。もっと ながく つなごう' : 'のったよ！');
+      } else if (!cell.toldFull) {
+        cell.toldFull = true;
         say('いっぱいだ。くみたてで ながく しよう');
       }
     }
-    if (st.goal.station && cell.name === st.goal.station) {
-      const need = st.goal.deliver || 0;
-      if (tr.riders >= need) {
-        tr.stopT = Math.max(tr.stopT, 2.0); tr.want = 0;
-        setTimeout(() => { if (mode === 'run') clearStage(); }, 700);
-      } else if (need > 0 && !tr.toldNeed) {
-        tr.toldNeed = true;
-        say('あと すこし のせてから こよう');
-      }
+    if (st.goal.station && cell.name === st.goal.station && tr.riders >= (st.goal.deliver || 0)) {
+      tr.want = 0;
+      if (!tr.clearing) { tr.clearing = true; setTimeout(() => { if (mode === 'run') clearStage(); }, 700); }
     }
   }
+  // えきに ついた とき（はしった まま とおった ときも よばれる）
+  function reachStation(cell) {
+    if (mode !== 'run') return;
+    // ゴールの えきを「のせきれて いない」まま とおったら、1かいだけ おしえる
+    const need = st.goal.deliver || 0;
+    if (st.goal.station && cell.name === st.goal.station && need > 0 && tr.riders < need && !tr.toldNeed) {
+      tr.toldNeed = true;
+      say('あと すこし のせてから こよう');
+    }
+  }
+
   function clearStage() {
     mode = 'clear';
     K.sfx.fanfare(); K.confetti(60);
@@ -223,7 +240,7 @@
   }
   function run() {
     if (mode !== 'plan') return;
-    for (const cell of cells.values()) { cell.usedAt = null; if (cell.wait0 != null) cell.wait = cell.wait0; }
+    for (const cell of cells.values()) { cell.usedAt = null; cell.toldFull = false; if (cell.wait0 != null) cell.wait = cell.wait0; }
     resetTrain();
     mode = 'run'; tr.want = 1;
     K.sfx.whistle();
@@ -428,6 +445,14 @@
           K.person(x - 30 + i * 20, y + (up > 0 ? 26 : -20), { color: ['#2f6fa8', '#c9453a', '#3f8f66', '#6b5bb5'][i % 4], scale: 0.3, hop: Math.abs(Math.sin(t * 3 + i)) * 3 });
         }
         if (n > 4) K.text('+' + (n - 4), x + 56, y + 16 * up, 23, '#f0ead8', 'center', K.C.ink);
+        // おきゃくさんが まっていて ふだが まだ ない えきは「ここに はってね」と しめす
+        if (mode === 'plan' && n > 0 && !cell.card && (st.cards || []).includes('stop')) {
+          c.save();
+          c.setLineDash([9, 7]); c.lineDashOffset = -t * 22;
+          c.strokeStyle = 'rgba(255,214,120,' + (0.6 + 0.3 * Math.sin(t * 4)) + ')'; c.lineWidth = 4;
+          c.beginPath(); c.roundRect(x - 30, y - 62, 60, 60, 8); c.stroke();
+          c.restore();
+        }
         const sgy = up > 0 ? y - 80 : y + 38;
         K.rr(x - 46, sgy, 92, 42, 5, '#f7f4ea', '#b7ac97', 3);
         c.fillStyle = cell.col; c.fillRect(x - 46, sgy + 36, 92, 6);
@@ -507,7 +532,7 @@
   const scene = {
     update(dt) {
       if (msgT > 0) msgT -= dt;
-      if (mode === 'run') { step(dt); pushTrail(); }
+      if (mode === 'run') { step(dt); checkStation(); pushTrail(); }
     },
     draw(t) {
       drawFloor();
@@ -558,8 +583,8 @@
     K.gauge(1212, 40, 32, mode === 'run' ? Math.min(1, tr.v / 240) : 0, null);
     // のせている にんずう と のせられる かず
     if (st.goal.deliver) {
-      K.panel(14, 4, 126, 56);
-      K.lcd(22, 10, 110, 44, tr.riders + '/' + capacity(), tr.riders >= capacity() ? '#ff9a6b' : '#9ad7a0', 30);
+      K.panel(14, 88, 126, 58);
+      K.lcd(22, 94, 110, 46, tr.riders + '/' + capacity(), tr.riders >= capacity() ? '#ff9a6b' : '#9ad7a0', 30);
     }
     // したの そうさ
     K.panel(0, 596, W, 124);
