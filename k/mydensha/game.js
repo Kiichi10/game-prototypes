@@ -118,8 +118,15 @@
     const out = start.out != null && start.dirs.includes(start.out) ? start.out : start.dirs[0];
     tr = { cx: start.x, cy: start.y, eIn: T.opp(out), eOut: out, u: 0.5, v: 0, want: 1, stopT: 0, riders: 0, time: 0, toldNeed: false, done: false, visited: {}, trail: [] };
     tr.path = T.pathIn(tr.eIn, tr.eOut);
-    const h0 = T.at(tr.path, tr.u);
-    for (let i = 0; i < 80; i++) tr.trail.push({ x: sx(tr.cx) + h0.x - i * TRAIL_STEP, y: sy(tr.cy) + h0.y, ang: h0.ang });
+    // はじめは うしろむきに ならべる（でる むきの はんたいがわに しゃりょうを おく）
+    const h0 = T.at(tr.path, tr.u), back = T.opp(out);
+    for (let i = 0; i < 120; i++) {
+      tr.trail.push({
+        x: sx(tr.cx) + h0.x + T.DX[back] * i * TRAIL_STEP,
+        y: sy(tr.cy) + h0.y + T.DY[back] * i * TRAIL_STEP,
+        ang: h0.ang,
+      });
+    }
   }
 
   // ---------- はしる ----------
@@ -166,7 +173,7 @@
       enterCell(next);
     }
   }
-  function capacity() { return (BUILD.cars - 1) * 2; }
+  function capacity() { return BUILD.cars * 2; }   // 1りょうに 2にん
   function enterCell(cell) {
     tr.visited[T.key(cell.x, cell.y)] = true;
     if (cell.card === 'stop' && tr.time - (cell.usedAt == null ? -99 : cell.usedAt) > 8) { cell.usedAt = tr.time; tr.stopT = 2.4; tr.want = 0; K.sfx.door(); }
@@ -459,13 +466,21 @@
     const q = T.at(tr.path, Math.max(0, Math.min(1, tr.u)));
     return { x: sx(tr.cx) + q.x, y: sy(tr.cy) + q.y, ang: q.ang };
   }
+  // ★ trail[0] は「さいごに きろくした ところ」。ここを まいかい うわがきすると
+  //    きょりが たまらず、うしろの しゃりょうが ついてこない（2026-11-09 の ふぐあい）
   function pushTrail() {
     const h = headPos();
     const last = tr.trail[0];
-    if (!last || Math.hypot(h.x - last.x, h.y - last.y) >= TRAIL_STEP) {
-      tr.trail.unshift(h);
-      if (tr.trail.length > 400) tr.trail.length = 400;
-    } else { tr.trail[0] = h; }
+    if (!last) { tr.trail.unshift(h); return; }
+    const d = Math.hypot(h.x - last.x, h.y - last.y);
+    if (d < TRAIL_STEP) return;
+    // はやく うごいた ときも あいだを うめて、しゃりょうの かんかくを そろえる
+    const n = Math.min(24, Math.floor(d / TRAIL_STEP));
+    for (let i = 1; i <= n; i++) {
+      const k = (i * TRAIL_STEP) / d;
+      tr.trail.unshift({ x: last.x + (h.x - last.x) * k, y: last.y + (h.y - last.y) * k, ang: h.ang });
+    }
+    if (tr.trail.length > 500) tr.trail.length = 500;
   }
   function trainPos(back) {
     if (back <= 0) return headPos();
