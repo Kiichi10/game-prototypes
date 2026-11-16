@@ -49,9 +49,22 @@
   };
   // くらい きんぞくの いた
   S.plate = function (x, y, w, h, o) {
-    o = o || {}; const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, o.top || '#34415a'); g.addColorStop(1, o.bot || '#222b3d');
-    K.rr(x, y + 4, w, h, o.r || 12, 'rgba(0,0,0,0.35)'); K.rr(x, y, w, h, o.r || 12, g, o.edge || '#55637c', o.lw || 2.5);
-    c.fillStyle = 'rgba(255,255,255,0.07)'; c.fillRect(x + 8, y + 5, w - 16, 3);
+    o = o || {}; const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, o.top || '#fffdf7'); g.addColorStop(1, o.bot || '#f1e9d8');
+    K.rr(x, y + 4, w, h, o.r || 12, 'rgba(0,0,0,0.28)'); K.rr(x, y, w, h, o.r || 12, g, o.edge || '#a89c84', o.lw || 2.5);
+  };
+  // もじ（ふちどり なし。けしきの うえに かく ときだけ stroke を わたす）
+  S.t = (s, x, y, size, color, align, stroke) => K.text(s, x, y, size, color, align, stroke || null);
+  // ぶひんが はいった はこ（あける まえの どきどき）。リボンの いろ＝ぶひんの よさ
+  S.capsule = function (x, y, k, col, t, rays) {
+    c.save(); c.translate(x, y);
+    if (rays) { c.save(); c.rotate(t * 1.4); c.globalAlpha = 0.5; c.fillStyle = col; for (let i = 0; i < 10; i++) { c.rotate(Math.PI / 5); c.beginPath(); c.moveTo(0, 0); c.lineTo(-22 * k, -150 * k); c.lineTo(22 * k, -150 * k); c.closePath(); c.fill(); } c.restore(); }
+    c.rotate(Math.sin(t * 34) * 0.08); c.scale(k, k);
+    K.rr(-46, -34, 92, 80, 8, '#d9a866', '#7a5a2a', 4); K.rr(-52, -50, 104, 26, 7, '#e8c088', '#7a5a2a', 4);
+    c.fillStyle = col; c.fillRect(-11, -50, 22, 96); c.fillRect(-46, -2, 92, 16);
+    c.strokeStyle = sh(col, -0.45); c.lineWidth = 2.5; c.strokeRect(-11, -50, 22, 96);
+    for (const d of [-1, 1]) { c.beginPath(); c.ellipse(d * 17, -60, 17, 10, d * 0.5, 0, 7); c.fillStyle = col; c.fill(); c.stroke(); }
+    K.circle(0, -56, 8, sh(col, 0.3), sh(col, -0.45), 2.5);
+    c.restore();
   };
   S.coin = function (x, y, r) { K.circle(x, y, r, '#f0b53a', '#8a5a00', Math.max(1.5, r * 0.12)); K.circle(x, y, r * 0.66, '#ffd76a'); K.star(x, y, r * 0.42, '#c98a10'); };
   S.box = function (x, y, s) { K.rr(x - s / 2, y - s / 2, s, s, s * 0.12, '#c99a5a', '#7a5a2a', 2); c.fillStyle = '#e8c88a'; c.fillRect(x - s * 0.09, y - s / 2, s * 0.18, s); c.fillStyle = '#7a5a2a'; c.fillRect(x - s / 2, y - s * 0.5, s, 2); };

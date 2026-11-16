@@ -27,7 +27,7 @@
   L.fresh = () => {
     const parts = {};
     for (const s of L.SLOTS) parts[s.id] = { slot: s.id, rank: 0, lv: 1, pow: 10 };
-    return { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, seen: {} };
+    return { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, miss: 0, seen: {} };
   };
   L.power = S => L.SLOTS.reduce((a, s) => a + S.parts[s.id].pow, 0);
   L.target = S => Math.round(L.rival(S.stage) * (1 - Math.min(L.MAXEASE, S.losses * 0.04)));
@@ -40,8 +40,13 @@
     const odds = L.ODDS[S.factory]; let r = rnd() * 100, rank = 0;
     for (let i = 0; i < 4; i++) { if (r < odds[i]) { rank = i; break; } r -= odds[i]; }
     if (S.made === 0) rank = 1;                 // はじめの 1こは かならず いいもの
-    const pow = Math.max(1, Math.round(L.base(S.stage) * L.RANKS[rank].mul * (0.9 + rnd() * 0.25)));
-    return { slot, rank, lv: S.stage, pow };
+    let pow = Math.max(1, Math.round(L.base(S.stage) * L.RANKS[rank].mul * (0.9 + rnd() * 0.25)));
+    let sl = slot;
+    // はずれが 2かい つづいたら、つぎは かならず つよく なる
+    if ((S.miss || 0) >= 2) { sl = order[0]; pow = Math.max(pow, S.parts[sl].pow + Math.max(1, Math.round(L.base(S.stage) * 0.2))); }
+    const p = { slot: sl, rank, lv: S.stage, pow };
+    S.made++; S.miss = p.pow > S.parts[sl].pow ? 0 : (S.miss || 0) + 1;
+    return p;
   };
   L.diff = (S, p) => p.pow - S.parts[p.slot].pow;
   L.sellOf = p => L.RANKS[p.rank].sell;
@@ -71,7 +76,7 @@
       const o = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (!o || o.v !== 1) return S;
       for (const s of L.SLOTS) { const p = o.parts && o.parts[s.id]; if (p && p.pow > 0 && L.RANKS[p.rank]) S.parts[s.id] = { slot: s.id, rank: p.rank, lv: p.lv || 1, pow: p.pow }; }
-      for (const k of ['stage', 'coins', 'boxes', 'factory', 'losses', 'made']) if (Number.isFinite(o[k]) && o[k] >= 0) S[k] = Math.floor(o[k]);
+      for (const k of ['stage', 'coins', 'boxes', 'factory', 'losses', 'made', 'miss']) if (Number.isFinite(o[k]) && o[k] >= 0) S[k] = Math.floor(o[k]);
       S.stage = Math.max(1, S.stage); S.factory = Math.min(L.FCOST.length, S.factory);
       if (Array.isArray(o.rules)) S.rules = [0, 1].map(i => { const r = o.rules[i]; return r && ['up', 'down'].includes(r.if) && ['equip', 'sell'].includes(r.then) ? { if: r.if, then: r.then } : null; });
       S.seen = o.seen && typeof o.seen === 'object' ? o.seen : {};
