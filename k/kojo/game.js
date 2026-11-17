@@ -18,7 +18,7 @@
   G.VOICE = false; G.say = s => { if (G.VOICE) K.say(s); };
   G.S = L.load(localStorage.getItem(KEY));
   G.save = () => { try { localStorage.setItem(KEY, JSON.stringify(G.S)); } catch (e) { } };
-  G.mode = 'title'; G.detail = null; G.banner = null; G.shake = {}; G.cap = null; G.pop = null; G.race = null; G.result = null; G.rules = false;
+  G.mode = 'title'; G.dex = null; G.cue = { coin: 0, box: 0 }; G.detail = null; G.banner = null; G.shake = {}; G.cap = null; G.pop = null; G.race = null; G.result = null; G.rules = false;
   G.dist = 0; G.press = 0; G.flash = 0; G.zoom = 0; G.floats = []; G.fly = []; G.hintT = 0;
   G.pshow = L.power(G.S); G.cshow = G.S.coins; G.bump = 0;
   G.looks = () => { const o = {}; for (const s of L.SLOTS) o[s.id] = G.S.parts[s.id].rank; return o; };
@@ -26,26 +26,29 @@
   G.hurt = () => G.S.broken.length > 0;
   // 6つ ぜんぶ さいごの すがたに なったら おいわい
   G.checkShin = function () { if (!G.S.seen.shin && L.SLOTS.every(s => G.S.parts[s.id].rank === 3)) { G.S.seen.shin = 1; G.save(); K.addSticker('でんしゃ こうじょう'); K.sfx.fanfare(); K.confetti(180); G.say(G.V.shinAll); G.banner = { text: 'しんかんせん かんせい！', t: 0 }; } };
-  G.busy = () => !!(G.detail || G.cap || G.pop || G.race || G.result || G.rules || G.press > 0);
+  G.busy = () => !!(G.dex || G.detail || G.cap || G.pop || G.race || G.result || G.rules || G.press > 0);
   const TX = 430, INK = '#1d2a44', SUB = '#5a6880', AMB = '#a85f00', UPC = '#1f8a3a', DNC = '#c9382c', CREAM = '#f4efe2';
   G.COL = { INK, SUB, AMB, UPC, DNC };
   const RIVAL_PAL = { main: '#4a4f5c', stripe: '#d8483c' }, RIVAL_RANK = [0, 1, 1, 2, 2, 3];
   const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
   // あいてが どれだけ まえに いるか（つよく なるほど おいつく）
+  // りょうすうが ふえると すこし ひいて うつす
+  const KSC = [1.25, 1.05, 0.92, 0.82], TXC = [430, 520, 600, 660];
+  G.cars = () => L.cars(G.race ? G.race.stage : G.S.stage); G.k = () => KSC[G.cars() - 1]; G.tx = () => TXC[G.cars() - 1];
   G.gap = () => Math.max(-300, Math.min(560, (L.target(G.S) / Math.max(1, G.pshow) - 1) * 1100));
   G.drawRival = function (x, sp, stage) {
     const r = RIVAL_RANK[L.world(stage)];
-    T.draw(x, S.RAIL1 + 2, 0.8, { face: r, body: 0, wheel: r, roof: r, back: r, light: Math.min(r, 1) }, G.t + 3, { speed: sp, dist: G.dist * 0.05, pal: RIVAL_PAL });
+    T.draw(G.tx() - 40 + x, S.RAIL1 + 2, 0.64 * G.k(), { face: r, body: 0, wheel: r, roof: r, back: r, light: Math.min(r, 1) }, G.t + 3, { speed: sp, dist: G.dist * 0.05, pal: RIVAL_PAL, cars: G.cars() });
   };
-  G.drawTrain = function (x, sp) { T.draw(x, S.RAIL2 + 2, 1.25, G.looks(), G.t, { speed: sp, dist: G.dist * 0.05, flash: G.flash, cols: G.cols(), broken: G.S.broken.map(b => b.slot) }); };
+  G.drawTrain = function (x, sp) { T.draw(G.tx() + x, S.RAIL2 + 2, G.k(), G.looks(), G.t, { cars: G.cars(), speed: sp, dist: G.dist * 0.05, flash: G.flash, cols: G.cols(), broken: G.S.broken.map(b => b.slot) }); };
   const chime = (rank, up) => { const f = [523, 659, 784, 1047]; for (let i = 0; i <= rank + (up ? 1 : 0); i++) K.tone(f[Math.min(3, i)] * (up ? 1 : 0.75), i * 0.08, 0.22, 'triangle', 0.16); };
   function coinsFly(n, x, y) { for (let i = 0; i < Math.min(8, n + 2); i++) G.fly.push({ x, y, t: -i * 0.05, a: Math.random() * 6.3 }); }
 
   // ---- きかいを おす → カプセル → くらべる ----
   G.tapMachine = function () {
     if (G.busy()) return;
-    if (G.hurt()) { K.sfx.oops(); G.say(G.V.needfix); return; }
-    if (G.S.boxes <= 0) { K.sfx.oops(); G.say(G.V.nobox); G.hintT = 99; return; }
+    if (G.hurt()) { K.sfx.oops(); G.say(G.V.needfix); for (const b of G.S.broken) G.shake[b.slot] = 1; return; }
+    if (G.S.boxes <= 0) { K.sfx.oops(); G.say(G.V.nobox); G.hintT = 99; G.cue.box = 1; return; }
     G.S.boxes--; G.press = 1; K.sfx.door && K.sfx.door();
   };
   function born() {
@@ -65,7 +68,7 @@
     const pp = G.pop; if (!pp) return; const before = L.power(G.S);
     if (act === 'equip') {
       const got = L.equip(G.S, pp.p), d = L.power(G.S) - before;
-      G.flash = 1; G.zoom = 1; G.bump = 1; K.sfx.good(); chime(pp.p.rank, true); K.sparkle(TX + 40, 260, 30, L.RANKS[pp.p.rank].col);
+      G.flash = 1; G.zoom = 1; G.bump = 1; K.sfx.good(); chime(pp.p.rank, true); K.sparkle(G.tx() + 40, 260, 30, L.RANKS[pp.p.rank].col);
       G.floats.push({ text: (d >= 0 ? '+' : '') + d, col: d >= 0 ? '#8dff9a' : '#ffb0a0', t: 0 }); coinsFly(got, 920, 535);
     } else { coinsFly(L.sell(G.S, pp.p), 360, 535); K.sfx.pop(); K.tone(988, 0, 0.1, 'square', 0.08); K.tone(1319, 0.08, 0.18, 'square', 0.08); }
     G.pop = null; G.save(); G.checkShin();
@@ -73,7 +76,11 @@
   };
   G.upFactory = function () {
     if (G.busy()) return;
-    if (L.upFactory(G.S)) { K.sfx.fanfare(); K.confetti(40); G.say(G.V.fac); G.save(); } else { K.sfx.oops(); G.say(G.V.poor); }
+    if (L.upFactory(G.S)) { K.sfx.fanfare(); K.confetti(40); G.say(G.V.fac); G.save(); } else { K.sfx.oops(); G.say(G.V.poor); G.cue.coin = 1; }
+  };
+  G.buyBox = function () {
+    if (G.busy()) return;
+    if (L.buyBox(G.S)) { K.sfx.good(); G.cue.box = 0.6; G.save(); } else { K.sfx.oops(); G.cue.coin = 1; }
   };
 
   // ---- え ----
@@ -81,7 +88,8 @@
     const st = G.race ? G.race.stage : G.S.stage, w = L.world(st);
     S.plate(440, 12, 400, 64); tx(L.WORLDS[w], 600, 45, 36, INK, 'center');
     for (let i = 0; i < 3; i++) K.circle(764 + i * 28, 44, 10, i < L.step(st) ? '#f0b53a' : '#d9d0bc', '#8a7f68', 2);
-    S.plate(1040, 12, 224, 64); S.coin(1078, 44, 21); tx(String(Math.round(G.cshow)), 1246, 46, 40, AMB, 'right');
+    const cq = G.cue.coin, cx = Math.sin(cq * 40) * 10 * cq;   // おかねが たりない ときは ゆれて あかく ひかる（こえの かわり）
+    S.plate(1040 + cx, 12, 224, 64, cq > 0 ? { edge: DNC, lw: 6 } : null); S.coin(1078 + cx, 44, 21); tx(String(Math.round(G.cshow)), 1246 + cx, 46, 40, cq > 0 ? DNC : AMB, 'right');
     const me = Math.round(G.pshow), need = G.race ? G.race.res.need : L.target(G.S), ok = L.power(G.S) >= need && !G.race;
     S.plate(230, 84, 820, 66);
     tx('じぶん', 250, 118, 32, SUB, 'left'); tx(String(me), 520, 119, 46 + 10 * G.bump, ok ? UPC : INK, 'right');
@@ -109,14 +117,16 @@
     const idle = !G.busy(), can = L.power(G.S) >= L.target(G.S);
     S.machine(690, 540, G.t, G.press, idle && G.S.boxes > 0 && !can);
     for (let i = 0; i <= G.S.factory; i++) K.star(690 - G.S.factory * 13 + i * 26, 653, 10, '#f0b53a');
-    const bx = G.race ? G.race.boxes : G.S.boxes; S.box(632, 698, 32); tx('はこ ' + bx, 658, 700, 36, bx > 0 ? INK : DNC, 'left');
+    const bx = G.race ? G.race.boxes : G.S.boxes, bq = G.cue.box, bs = Math.sin(bq * 40) * 9 * bq; S.box(632 + bs, 698, 32 + 10 * bq); tx('はこ ' + bx, 658 + bs, 700, 36 + 8 * bq, bx > 0 ? INK : DNC, 'left');
     if (idle) S.hit(566, 402, 248, 318, G.tapMachine);
     if (idle && G.hurt()) { S.plate(836, 412, 424, 128, { edge: '#ff7a2a', lw: 5 }); S.wrench(900, 480, 1.6, -0.7 + Math.sin(G.t * 9) * 0.5); tx('たたいて', 1090, 452, 44, INK, 'center'); tx('なおそう', 1090, 504, 44, INK, 'center'); }
     else if (idle) {
       if (can) { c.save(); c.globalAlpha = 0.6 + 0.4 * Math.sin(G.t * 7); K.rr(828, 404, 440, 144, 20, null, '#ffb020', 8); c.restore(); }
       K.button(836, 412, 424, 128, 'レース！', '#e2562f', () => G.startRace(), { size: 64 });
       const fc = L.FCOST[G.S.factory], max = fc == null, afford = L.canUp(G.S);
-      K.button(836, 556, 424, 74, max ? 'こうじょう さいこう！' : '', max ? '#7a8496' : afford ? '#2f9a55' : '#7a8496', () => { if (!max) G.upFactory(); }, { size: 32 });
+      const okb = max ? G.S.coins >= L.BOXCOST : afford;
+      K.button(836, 556, 424, 74, '', okb ? '#2f9a55' : '#7a8496', () => { if (max) G.buyBox(); else G.upFactory(); }, { size: 32 });
+      if (max) { tx('はこを かう', 856, 595, 32, '#fff', 'left'); S.box(1060, 593, 30); tx('+' + L.BOXGET, 1082, 595, 30, '#fff', 'left'); S.coin(1158, 593, 17); tx(String(L.BOXCOST), 1180, 595, 32, '#fff', 'left'); }
       if (!max) { tx('こうじょうを つよく', 846, 595, 30, '#fff', 'left'); S.coin(1158, 593, 17); tx(String(fc), 1180, 595, 32, '#fff', 'left'); }
       if (G.ruleGlow) { c.save(); c.globalAlpha = 0.6 + 0.4 * Math.sin(G.t * 7); K.rr(828, 636, 440, 82, 18, null, '#ffb020', 7); c.restore(); }
       if (G.S.stage >= L.RULE_STAGE || G.S.seen.rule) K.button(836, 644, 424, 66, 'じどうの きまり', '#6b5bb5', () => G.openRules(), { size: 34 });
@@ -158,13 +168,15 @@
   }
   function effects(dt) {
     G.floats = G.floats.filter(f => (f.t += dt) < 1.3);
-    for (const f of G.floats) { c.save(); c.globalAlpha = Math.min(1, (1.3 - f.t) * 3); tx(f.text, TX + 40, 215 - f.t * 40, 76 + 30 * Math.max(0, 0.25 - f.t), f.col, 'center', '#141a26'); c.restore(); }
+    for (const f of G.floats) { c.save(); c.globalAlpha = Math.min(1, (1.3 - f.t) * 3); tx(f.text, G.tx() + 40, 215 - f.t * 40, 76 + 30 * Math.max(0, 0.25 - f.t), f.col, 'center', '#141a26'); c.restore(); }
     G.fly = G.fly.filter(f => (f.t += dt) < 0.7);
     for (const f of G.fly) { if (f.t < 0) continue; const e = sm(f.t / 0.7), mx = f.x + Math.cos(f.a) * 90, my = f.y + Math.sin(f.a) * 90 - 80; S.coin((1 - e) * (1 - e) * f.x + 2 * e * (1 - e) * mx + e * e * 1078, (1 - e) * (1 - e) * f.y + 2 * e * (1 - e) * my + e * e * 44, 15); }
   }
   const main = {
     update(dt, t) {
+      t = Math.max(0, t); dt = Math.max(0, dt);
       G.t = t; G.hintT += dt; G.flash = Math.max(0, G.flash - dt * 2.5); G.zoom = Math.max(0, G.zoom - dt * 1.3); G.bump = Math.max(0, G.bump - dt * 2.5);
+      G.cue.coin = Math.max(0, G.cue.coin - dt * 1.6); G.cue.box = Math.max(0, G.cue.box - dt * 1.6);
       for (const k in G.shake) G.shake[k] = Math.max(0, G.shake[k] - dt * 3);
       if (G.banner && (G.banner.t += dt) > 3.5) G.banner = null;
       G.pshow += (L.power(G.S) - G.pshow) * Math.min(1, dt * 6);
@@ -175,15 +187,16 @@
       if (G.race) G.raceUpdate(dt); else { G.dist += dt * (300 + 500 * G.zoom); K.runSound(dt, 0.8); }
     },
     draw(t, dt) {
+      t = Math.max(0, t); dt = Math.max(0, dt || 0);
       S.flip();
       const st = G.race ? G.race.stage : G.S.stage, z = 1 + 0.22 * Math.sin(Math.min(1, G.zoom) * Math.PI);
-      c.save(); c.translate(TX + 60, 300); c.scale(z, z); c.translate(-TX - 60, -300);
+      c.save(); c.translate(G.tx() + 60, 300); c.scale(z, z); c.translate(-G.tx() - 60, -300);
       S.bg(L.world(st), G.dist, t);
-      if (G.race) G.raceDraw(dt); else { G.drawRival(TX - 40 + G.gap(), 0.5, st); if (G.zoom > 0) S.speedLines(t, G.zoom); G.drawTrain(TX, 0.5 + 0.5 * G.zoom); }
+      if (G.race) G.raceDraw(dt); else { G.drawRival(G.gap(), 0.5, st); if (G.zoom > 0) S.speedLines(t, G.zoom); G.drawTrain(0, 0.5 + 0.5 * G.zoom); }
       c.restore();
       panel(); hud(); effects(dt);
       if (!G.busy()) {
-        K.homeButton();
+        K.homeButton(); K.button(156, 16, 150, 62, 'ずかん', '#3f7fb5', () => G.openDex(), { size: 30 });
         const b0 = G.S.broken[0], bi = b0 ? L.SLOTS.findIndex(s => s.id === b0.slot) : -1;
         if (b0) S.finger(16 + (bi % 3) * 184 + 130, 410 + Math.floor(bi / 3) * 152 + 110, t);
         else if (G.evoHint) S.finger(16 + 130, 410 + 110, t);
@@ -192,16 +205,26 @@
       }
       if (G.banner) { const e = Math.min(1, G.banner.t * 3); tx(G.banner.text, W / 2, 250, 84 * e, '#ffd23f', 'center', '#141a26'); }
       if (G.detail) G.detailDraw();
+      if (G.dex) G.dexDraw();
       if (G.cap) capsule();
       if (G.pop) popup();
       if (G.rules) G.rulesDraw();
       if (G.result) G.resultDraw(dt);
     },
   };
+  // かきなおしの まえに おされた ときの うけざら（ボタンと おなじ ばしょ）
+  S.fallback = function (p) {
+    if (G.mode !== 'main' || G.busy()) return;
+    const inr = (x, y, w, h) => p.x > x && p.x < x + w && p.y > y && p.y < y + h;
+    if (inr(836, 412, 424, 128)) { if (!G.hurt()) { K.sfx.pop(); G.startRace(); } return; }
+    if (inr(566, 402, 248, 318)) { G.tapMachine(); return; }
+    for (let i = 0; i < 6; i++) if (inr(16 + (i % 3) * 184, 410 + Math.floor(i / 3) * 152, 176, 144)) { const id = L.SLOTS[i].id; if (G.S.broken.find(b => b.slot === id)) G.fix(id); else if (!G.hurt()) G.openDetail(id); return; }
+  };
   G.start = function () { G.mode = 'main'; K.scene = main; G.hintT = 0; if (G.S.made === 0) G.say(G.V.start); };
   K.scene = {
-    update(dt, t) { G.t = t; G.dist += dt * 420; },
+    update(dt, t) { G.t = Math.max(0, t); G.dist += Math.max(0, dt) * 420; },
     draw(t) {
+      t = Math.max(0, t);                    // さいしょの 1こまは じかんが マイナスに なる ことが ある
       S.flip(); S.bg(0, G.dist, t);
       const r = Math.floor(t / 1.6) % 4, cl = Math.floor(t / 6.4) % 5; T.draw(TX + 60, S.RAIL2 + 2, 1.25, { face: r, body: r, wheel: r, roof: r, back: r, light: r }, t, { speed: 0.8, dist: G.dist * 0.05, cols: { face: cl, body: cl, wheel: cl, roof: cl, back: cl } });
       c.fillStyle = CREAM; c.fillRect(0, 400, W, H - 400); c.fillStyle = '#a89c84'; c.fillRect(0, 398, W, 4);

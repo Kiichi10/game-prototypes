@@ -18,6 +18,7 @@
   L.NCOL = 5;                                   // ぶひんの いろの かず
   L.EVO_PER = 3;                                // この かいすう かいぞう すると すがたが しんか する
   L.HITS = 3;                                   // しゅうりで たたく かいすう
+  L.BOXCOST = 10; L.BOXGET = 5;                 // こうじょうが さいこうに なった あとの おかねの つかいみち
   L.RULE_STAGE = 4;                             // この ばんごうに ついたら「きまり」が つかえる（はらっぱを ぬけたら）
 
   L.base = lv => 10 * Math.pow(1.22, lv - 1);
@@ -27,10 +28,31 @@
   L.lap = stage => Math.floor((stage - 1) / 18);
   L.step = stage => (stage - 1) % 3;           // その くにの なんばんめ（0〜2）
 
+  // でんしゃの りょうすう（くにを すすむと ながく なる）
+  L.cars = stage => L.lap(stage) > 0 ? 4 : 1 + Math.floor((L.world(stage) + 1) / 2);
+  // レースの すじがき: ながさ・てんかい・コースに ある もの・てんき（レースごとに ちがう）
+  L.plan = (stage, ratio, win) => {
+    const w = L.world(stage), st = L.step(stage), pair = w % 2 ? ['tunnel', 'bridge'] : ['bridge', 'tunnel'];
+    const fast = win && ratio >= 1.35;
+    return {
+      len: fast ? 4.8 : [5.6, 7.2, 8.8][st], kind: fast ? 'fast' : win ? ['steady', 'seesaw', 'close'][st] : 'steady',
+      feats: st === 0 ? [[pair[0], 0.28, 0.52]] : st === 1 ? [[pair[1], 0.3, 0.56]] : [[pair[0], 0.16, 0.36], [pair[1], 0.52, 0.72]],
+      weather: [null, null, 'snow', null, 'wind', 'stars'][w],
+    };
+  };
+  // ずかん: でた ぶひんを おぼえる
+  L.dexKey = p => p.slot + '-' + p.rank + '-' + p.col;
+  L.mark = (S, p) => { S.dex[L.dexKey(p)] = 1; };
+  L.dexCount = S => Object.keys(S.dex).length;
+  L.DEXMAX = 6 * 4 * 5;
+  L.buyBox = S => { if (S.coins < L.BOXCOST) return false; S.coins -= L.BOXCOST; S.boxes += L.BOXGET; return true; };
+
   L.fresh = () => {
     const parts = {};
     for (const s of L.SLOTS) parts[s.id] = { slot: s.id, rank: 0, col: 1, ev: 0, lv: 1, pow: 10 };
-    return { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, miss: 0, broken: [], seen: {} };
+    const S0 = { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, miss: 0, broken: [], dex: {}, seen: {} };
+    for (const s of L.SLOTS) L.mark(S0, parts[s.id]);
+    return S0;
   };
   L.power = S => L.SLOTS.reduce((a, s) => a + S.parts[s.id].pow, 0);
   L.target = S => Math.round(L.rival(S.stage) * (1 - Math.min(L.MAXEASE, S.losses * 0.04)));
@@ -48,7 +70,7 @@
     // はずれが 2かい つづいたら、つぎは かならず つよく なる
     if ((S.miss || 0) >= 2) { sl = order[0]; pow = Math.max(pow, S.parts[sl].pow + Math.max(1, Math.round(L.base(S.stage) * 0.2))); }
     const p = { slot: sl, rank, col: Math.floor(rnd() * L.NCOL), ev: 0, lv: S.stage, pow };
-    S.made++; S.miss = p.pow > S.parts[sl].pow ? 0 : (S.miss || 0) + 1;
+    L.mark(S, p); S.made++; S.miss = p.pow > S.parts[sl].pow ? 0 : (S.miss || 0) + 1;
     return p;
   };
   L.diff = (S, p) => p.pow - S.parts[p.slot].pow;
@@ -68,7 +90,7 @@
   L.evolve = (S, slot) => {
     const p = S.parts[slot], cost = L.evoCost(S, slot); if (S.coins < cost) return null;
     S.coins -= cost; p.ev++; p.pow = Math.round(p.pow * 1.2) + 1;
-    const up = p.rank < 3 && p.ev % L.EVO_PER === 0; if (up) { p.rank++; p.pow = Math.round(p.pow * 1.15); }
+    const up = p.rank < 3 && p.ev % L.EVO_PER === 0; if (up) { p.rank++; p.pow = Math.round(p.pow * 1.15); L.mark(S, p); }
     return { up, rank: p.rank, cost };
   };
   // しゅうり: まけると ぶひんが 2つ ゆるむ。たたいて なおす
@@ -83,7 +105,7 @@
   L.race = (S, rnd) => {
     rnd = rnd || Math.random;
     const me = L.power(S), need = L.target(S), win = me >= need;
-    const res = { win, me, need, stage: S.stage, world: L.world(S.stage), clear: false };
+    const res = { win, me, need, stage: S.stage, world: L.world(S.stage), clear: false, plan: L.plan(S.stage, me / need, win) };
     if (win) { res.clear = L.step(S.stage) === 2; S.stage++; S.losses = 0; S.coins += L.WINCOIN; S.boxes += L.WINBOX; }
     else {
       S.losses++; S.boxes += L.LOSEBOX;
@@ -103,6 +125,8 @@
       S.stage = Math.max(1, S.stage); S.factory = Math.min(L.FCOST.length, S.factory);
       if (Array.isArray(o.rules)) S.rules = [0, 1].map(i => { const r = o.rules[i]; return r && ['up', 'down'].includes(r.if) && ['equip', 'sell'].includes(r.then) ? { if: r.if, then: r.then } : null; });
       if (Array.isArray(o.broken)) S.broken = o.broken.filter(b => b && S.parts[b.slot] && b.hp > 0).map(b => ({ slot: b.slot, hp: Math.min(L.HITS, Math.floor(b.hp)) })).slice(0, 2);
+      if (o.dex && typeof o.dex === 'object') for (const k in o.dex) if (/^[a-z]+-[0-3]-[0-4]$/.test(k)) S.dex[k] = 1;
+      for (const s of L.SLOTS) L.mark(S, S.parts[s.id]);
       S.seen = o.seen && typeof o.seen === 'object' ? o.seen : {};
       if (S.boxes < 1) S.boxes = 1;
     } catch (e) { }

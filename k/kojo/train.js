@@ -16,11 +16,11 @@
   };
   // tail=うしろの すがた(2,3 は ながれる かたち)
   function bodyPath(f, tail) {
-    const n = NOSE[f];
+    const n = NOSE[Math.max(0, f)];
     c.beginPath();
     c.moveTo(REAR + (tail >= 2 ? 20 : 12), TOP);
     c.lineTo(n[0], TOP);
-    if (f === 0) { c.quadraticCurveTo(n[1], TOP, n[1], TOP + 12); c.lineTo(n[3], BOT); }
+    if (f <= 0) { c.quadraticCurveTo(n[1], TOP, n[1], TOP + 12); c.lineTo(n[3], BOT); }
     else { c.quadraticCurveTo((n[0] + n[1]) / 2 + 10, TOP + 2, n[1], n[2]); c.quadraticCurveTo(n[1] + 2, BOT - 4, n[3], BOT); }
     if (tail >= 2) { const L = tail === 3 ? 96 : 50; c.lineTo(REAR - L * 0.8, BOT); c.quadraticCurveTo(REAR - L - 2, BOT - 4, REAR - L, -28); c.quadraticCurveTo(REAR - L * 0.45, TOP + 2, REAR + 20, TOP); }
     else { c.lineTo(REAR, BOT); c.lineTo(REAR, TOP + 12); c.quadraticCurveTo(REAR, TOP, REAR + 12, TOP); }
@@ -50,6 +50,7 @@
       for (let i = 0; i < 4; i++) K.rr(-132 + i * 51, -72, 43, 23, 4, g, b >= 1 ? null : '#39445a', 1.5);
       c.fillStyle = 'rgba(255,255,255,0.28)'; for (let i = 0; i < 4; i++) c.fillRect(-128 + i * 51, -70, 14, 5);
     }
+    if (f < 0) return;
     const n = NOSE[f];                                                             // まえの まど
     if (f === 0) K.rr(82, -74, 24, 28, 4, g, '#141c2b', 2);
     else if (f === 3) poly([[n[0] + 6, -79], [n[0] + 34, -76], [n[0] + 78, -60], [n[0] + 30, -60]], g, '#141c2b', 2);
@@ -62,6 +63,7 @@
     if (f === 3) { const g = c.createLinearGradient(n[0], 0, n[1], 0); g.addColorStop(0, ac2); g.addColorStop(1, ac); poly([[n[0] + 4, -41], [n[1] - 30, -34], [n[1] + 1, n[2] + 1], [n[1] - 26, BOT - 3], [n[0] + 4, -28]], g, sh(ac, -0.45), 1.5); }
   }
   function back(r, ac, t, sp) {
+    if (r < 0) return;
     if (r === 0) { K.rr(REAR - 10, -34, 12, 12, 2, '#59647a', '#2b313b', 1.5); return; }
     if (r === 1) { K.rr(REAR - 8, -40, 10, 22, 3, '#59647a', '#2b313b', 1.5); K.circle(REAR + 9, -66, 5, '#ff5a4a', '#7a1d16', 1.5); K.circle(REAR + 9, -30, 5, ac, sh(ac, -0.5), 1.5); return; }
     const L = r === 3 ? 96 : 50;
@@ -69,8 +71,9 @@
     poly([[REAR - L * 0.55, -66], [REAR - L * 0.2, -75], [REAR - 4, -75], [REAR - 4, -60]], '#2a3d5c', '#141c2b', 2);
     if (r === 3) for (let i = 0; i < 3; i++) { const q = (t * 1.5 + i / 3) % 1; c.save(); c.globalAlpha = (1 - q) * 0.5 * sp; c.strokeStyle = '#ffffff'; c.lineWidth = 3; line(REAR - L - 10 - q * 90, -64 + i * 20, REAR - L - 50 - q * 120, -64 + i * 20); c.restore(); }
   }
-  function roof(r, ac) {
+  function roof(r, ac, mid) {
     K.rr(-20, TOP - 9, 58, 10, 3, '#c9d2e0', '#6b7384', 1.5);                      // れいぼうの はこ
+    if (mid) { if (r >= 2) poly([[-66, TOP], [-44, TOP - 13], [-8, TOP - 13], [6, TOP]], r === 3 ? '#eef2f7' : ac, r === 3 ? '#8a95a8' : sh(ac, -0.5), 2); return; }
     c.strokeStyle = '#4a5468'; c.lineWidth = 3;
     if (r === 0) { line(-78, TOP, -62, TOP - 16); line(-62, TOP - 16, -78, TOP - 30); line(-96, TOP - 30, -60, TOP - 30); return; }
     line(-70, TOP - (r >= 2 ? 6 : 0), -98, TOP - 26); line(-112, TOP - 26, -84, TOP - 26);       // うでが 1ぽんの パンタグラフ
@@ -95,31 +98,44 @@
   }
   // (x,y)= からだの まんなかの せんろの たかさ。lk={face,body,wheel,roof,back,light}（すがた 0〜3）
   // o.cols={slot: いろ 0〜4} / o.pal=あいての いろ / o.broken=[slot] / o.flash / o.speed / o.dist
-  T.draw = function (x, y, k, lk, t, o) {
+  T.GAP = 270;
+  T.draw = function (x, y, k, lk0, t, o) {
+    // すがたの ばんごうは かならず 0〜3 に そろえる（はんいの そとだと えが とまる。11/18 タイトルで じっさいに おきた）
+    const lk = {}; for (const s of ['face', 'body', 'wheel', 'roof', 'back', 'light']) lk[s] = Math.max(0, Math.min(3, Math.floor(lk0[s]) || 0));
+    t = Math.max(0, t || 0);
     o = o || {}; const sp = o.speed == null ? 0.5 : o.speed, f = lk.face, n = NOSE[f], rot = (o.dist || t * 6) * 0.9, cs = o.cols || {};
-    const col = s => o.pal ? o.pal.stripe : T.COLS[cs[s] == null ? 1 : cs[s]], col2 = s => o.pal ? o.pal.stripe : COL2[cs[s] == null ? 1 : cs[s]];
+    const ci = s => { const v = cs[s]; return v == null || !(v >= 0) ? 1 : Math.floor(v) % 5; };
+    const col = s => o.pal ? o.pal.stripe : T.COLS[ci(s)], col2 = s => o.pal ? o.pal.stripe : COL2[ci(s)];
     const tail = lk.back, br = o.broken || [];
     c.save(); c.translate(x, y + Math.sin(t * 17) * 0.8 * sp); if (br.length) c.rotate(Math.sin(t * 5) * 0.012); c.scale(k, k); c.lineJoin = 'round';
-    c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(20, 3, 200, 7, 0, 0, 7); c.fill();
-    if (lk.light >= 2) { const g = c.createRadialGradient(10, 0, 10, 10, 0, 200); g.addColorStop(0, lk.light === 3 ? 'rgba(170,230,255,0.85)' : 'rgba(110,230,255,0.55)'); g.addColorStop(1, 'rgba(110,230,255,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(10, 0, 200, 13, 0, 0, 7); c.fill(); }
-    back(tail, col('back'), t, sp);
-    let main;
-    if (o.pal) { const g = c.createLinearGradient(0, TOP, 0, BOT); g.addColorStop(0, sh(o.pal.main, 0.3)); g.addColorStop(1, sh(o.pal.main, -0.35)); bodyPath(f, tail); c.fillStyle = g; c.fill(); c.save(); bodyPath(f, tail); c.clip(); c.fillStyle = o.pal.stripe; c.fillRect(-300, -40, 700, 7); c.restore(); main = o.pal.main; }
-    else main = paintBody(lk.body, f, tail, col('body'), col2('body'), t);
-    windows(o.pal ? 1 : lk.body, f); faceTrim(f, col('face'), col2('face'));
-    bodyPath(f, tail); c.strokeStyle = sh(main, lk.body === 3 && !o.pal ? -0.45 : -0.62); c.lineWidth = 3; c.stroke();
-    c.strokeStyle = sh(main, -0.4); c.lineWidth = 1.5; for (const dx of [-82, 22]) { line(dx, -44, dx, BOT); line(dx + 22, -44, dx + 22, BOT); }
-    roof(lk.roof, col('roof'));
-    const x0 = tail >= 2 ? REAR - (tail === 3 ? 70 : 34) : REAR + 4;
-    K.rr(x0, BOT, n[3] - x0 - 10, 9, 3, '#2b313b');
-    for (const wx of [-112, -72, 38, 78]) wheel(wx, lk.wheel, col('wheel'), rot, t);
-    if (lk.wheel === 3) { const wc = col('wheel'); for (const bx of [-134, 16]) { K.rr(bx, -22, 84, 17, 6, '#eef2f7', '#8a95a8', 2); c.fillStyle = wc; c.fillRect(bx + 6, -12, 72, 3); } c.save(); c.globalAlpha = 0.5 + 0.3 * Math.sin(t * 8); c.fillStyle = '#9fe6ff'; c.fillRect(-140, -3, 250, 3); c.restore(); }
+    const cars = o.cars || 1, GAP = 270;
+    // 1りょうぶん。front=かおの すがた(-1 は つなぎめ)、tl=うしろの すがた(-1 は つなぎめ)
+    function car(front, tl) {
+      const nn = NOSE[Math.max(0, front)];
+      c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(20, 3, 200, 7, 0, 0, 7); c.fill();
+      if (lk.light >= 2) { const g = c.createRadialGradient(10, 0, 10, 10, 0, 200); g.addColorStop(0, lk.light === 3 ? 'rgba(170,230,255,0.85)' : 'rgba(110,230,255,0.55)'); g.addColorStop(1, 'rgba(110,230,255,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(10, 0, 200, 13, 0, 0, 7); c.fill(); }
+      back(tl, col('back'), t, sp);
+      let main;
+      if (o.pal) { const g = c.createLinearGradient(0, TOP, 0, BOT); g.addColorStop(0, sh(o.pal.main, 0.3)); g.addColorStop(1, sh(o.pal.main, -0.35)); bodyPath(front, tl); c.fillStyle = g; c.fill(); c.save(); bodyPath(front, tl); c.clip(); c.fillStyle = o.pal.stripe; c.fillRect(-300, -40, 700, 7); c.restore(); main = o.pal.main; }
+      else main = paintBody(lk.body, front, tl, col('body'), col2('body'), t);
+      windows(o.pal ? 1 : lk.body, front); if (front >= 0) faceTrim(front, col('face'), col2('face'));
+      bodyPath(front, tl); c.strokeStyle = sh(main, lk.body === 3 && !o.pal ? -0.45 : -0.62); c.lineWidth = 3; c.stroke();
+      c.strokeStyle = sh(main, -0.4); c.lineWidth = 1.5; for (const dx of [-82, 22]) { line(dx, -44, dx, BOT); line(dx + 22, -44, dx + 22, BOT); }
+      roof(lk.roof, col('roof'), front < 0);
+      const x0 = tl >= 2 ? REAR - (tl === 3 ? 70 : 34) : REAR + 4;
+      K.rr(x0, BOT, nn[3] - x0 - 10, 9, 3, '#2b313b');
+      for (const wx of [-112, -72, 38, 78]) wheel(wx, lk.wheel, col('wheel'), rot, t);
+      if (lk.wheel === 3) { const wc = col('wheel'); for (const bx of [-134, 16]) { K.rr(bx, -22, 84, 17, 6, '#eef2f7', '#8a95a8', 2); c.fillStyle = wc; c.fillRect(bx + 6, -12, 72, 3); } c.save(); c.globalAlpha = 0.5 + 0.3 * Math.sin(t * 8); c.fillStyle = '#9fe6ff'; c.fillRect(-140, -3, 250, 3); c.restore(); }
+      if (front < 0) K.rr(112, -40, 10, 16, 2, '#3b4660');                                // つなぎめ
+    }
+    for (let i = cars - 1; i >= 1; i--) { c.save(); c.translate(-i * GAP, 0); car(-1, i === cars - 1 ? tail : -1); c.restore(); }
+    car(f, cars === 1 ? tail : -1);
     const hx = n[1] - (f === 0 ? 2 : f === 3 ? 34 : 12), hy = f === 0 ? -30 : n[2] + (f === 3 ? -8 : 4);     // まえの あかり
     if (lk.light >= 1) { const L = [0, 130, 190, 250][lk.light], gb = c.createLinearGradient(hx, 0, hx + L, 0); gb.addColorStop(0, lk.light === 3 ? 'rgba(235,248,255,0.85)' : 'rgba(255,244,170,0.75)'); gb.addColorStop(1, 'rgba(255,244,170,0)'); poly([[hx, hy - 4], [hx + L, hy - 34], [hx + L, hy + 30], [hx, hy + 4]], gb); }
     K.circle(hx, hy, lk.light ? 7 : 5, lk.light === 3 ? '#ffffff' : lk.light ? '#fff6c8' : '#ffe27a', '#7a5410', 1.5);
     if (lk.light === 3) { K.circle(hx - 16, hy - 5, 5, '#ffffff', '#7a5410', 1.5); for (let i = 0; i < 5; i++) { const q = (t * 0.9 + i / 5) % 1; c.save(); c.globalAlpha = 1 - q; K.star(REAR - 60 - q * 150, -30 - 40 * Math.sin(i * 2.1 + q * 4), 5, '#bfeaff'); c.restore(); } }
-    br.forEach((s, i) => { const p = SPOT[s](f); hurt(p[0], p[1], t, i); });
-    if (o.flash > 0) { c.save(); c.globalAlpha = Math.min(1, o.flash) * 0.8; bodyPath(f, tail); c.fillStyle = '#ffffff'; c.fill(); c.restore(); }
+    br.forEach((s, i) => { const p = SPOT[s](f); hurt(p[0] - (s === 'back' ? (cars - 1) * GAP : 0), p[1], t, i); });
+    if (o.flash > 0) { c.save(); c.globalAlpha = Math.min(1, o.flash) * 0.8; bodyPath(f, cars === 1 ? tail : -1); c.fillStyle = '#ffffff'; c.fill(); c.restore(); }
     c.restore();
   };
   // ぶひんの ふだに かく え（その ぶひんの あたりを おおきく）

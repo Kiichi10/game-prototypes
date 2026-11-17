@@ -40,7 +40,41 @@
     for (let i = i0 - 1; i < i0 + 7; i++) thing(d.kind, i * sp - o + rnd(i + 3) * 90, S.GY + 4, i);
     c.fillStyle = d.gnd; c.fillRect(0, S.GY, W, S.SCENE_H - S.GY);
     c.fillStyle = d.gnd2; for (let i = 0; i < 9; i++) { const x = ((i * 170 - dist * 0.8) % 1530 + 1530) % 1530 - 120; c.beginPath(); c.ellipse(x, 296 + (i % 3) * 8, 46, 6, 0, 0, 7); c.fill(); }
-    rail(S.RAIL1, dist * 0.8, 0.8); rail(S.RAIL2, dist, 1.1);
+    S.rails(dist);
+  };
+  S.rails = dist => { rail(S.RAIL1, dist * 0.8, 0.8); rail(S.RAIL2, dist, 1.1); };
+  // コースに ある もの（はし・トンネル）。xL〜xR が がめんの なかの はんい。でんしゃの まえに かく
+  const WATER = ['#4f9fd8', '#59647a', '#bfe6f5', '#3f5a4a', '#b9763a', '#141a3a'], WALL = ['#6b5a4a', '#4a5468', '#7fa8c4', '#55504a', '#8a5a3a', '#2a2f55'];
+  S.feature = function (kind, world, xL, xR, dist, t) {
+    const a = Math.max(-20, xL), b = Math.min(W + 20, xR); if (b <= a) return;
+    if (kind === 'bridge') {
+      c.fillStyle = WATER[world]; c.fillRect(a, S.GY, b - a, S.SCENE_H - S.GY);
+      c.fillStyle = 'rgba(255,255,255,0.35)'; for (let i = 0; i < 14; i++) { const x = ((i * 137 - dist * 0.5) % 1400 + 1400) % 1400 - 60; if (x > a && x + 50 < b) c.fillRect(x, S.GY + 14 + (i * 53) % 170, 50, 4); }
+      for (const [y, k] of [[S.RAIL1, 0.8], [S.RAIL2, 1.1]]) {
+        c.fillStyle = '#7a3d2a'; c.fillRect(a, y + 16 * k, b - a, 12 * k);
+        c.strokeStyle = '#a8553a'; c.lineWidth = 5 * k; const st = 70 * k;
+        for (let x = xL - ((dist * (k === 0.8 ? 0.8 : 1)) % st) ; x < b; x += st) { if (x + st < a) continue; c.beginPath(); c.moveTo(x, y + 28 * k); c.lineTo(x + st / 2, y + 62 * k); c.lineTo(x + st, y + 28 * k); c.stroke(); }
+        c.fillStyle = '#7a3d2a'; c.fillRect(a, y + 60 * k, b - a, 7 * k);
+      }
+      c.fillStyle = sh(WD[world].gnd, -0.25); if (xL > -20) c.fillRect(xL - 14, S.GY, 14, S.SCENE_H - S.GY); if (xR < W + 20) c.fillRect(xR, S.GY, 14, S.SCENE_H - S.GY);
+      S.rails(dist);
+    }
+    if (kind === 'tunnel') {
+      const g = c.createLinearGradient(0, 0, 0, S.SCENE_H); g.addColorStop(0, sh(WALL[world], -0.55)); g.addColorStop(1, sh(WALL[world], -0.3));
+      c.fillStyle = g; c.fillRect(a, 0, b - a, S.SCENE_H);
+      c.fillStyle = sh(WALL[world], -0.62); c.fillRect(a, S.GY, b - a, S.SCENE_H - S.GY);
+      for (let x = xL + 120; x < xR - 60; x += 220) if (x > a - 20 && x < b + 20) { const gl = c.createRadialGradient(x, 150, 4, x, 150, 90); gl.addColorStop(0, 'rgba(255,230,150,0.55)'); gl.addColorStop(1, 'rgba(255,230,150,0)'); c.fillStyle = gl; c.fillRect(x - 90, 60, 180, 180); K.circle(x, 150, 7, '#ffe9a3', '#7a5410', 2); }
+      S.rails(dist);
+      for (const x of [xL, xR]) if (x > -80 && x < W + 80) { K.rr(x - 34, 0, 68, S.SCENE_H, 0, WALL[world], sh(WALL[world], -0.5), 4); c.fillStyle = sh(WALL[world], 0.25); for (let y = 10; y < S.SCENE_H; y += 44) c.fillRect(x - 26, y, 52, 8); }
+    }
+  };
+  // てんき（でんしゃの あとに かく）
+  S.weather = function (kind, t) {
+    c.save();
+    if (kind === 'snow') { c.fillStyle = '#ffffff'; for (let i = 0; i < 46; i++) { const q = (t * (0.25 + rnd(i) * 0.3) + rnd(i + 9)) % 1; c.globalAlpha = 0.85; c.beginPath(); c.arc(((rnd(i + 4) * 1500 - q * 520) % 1340 + 1340) % 1340 - 30, q * 400, 3 + rnd(i + 2) * 3, 0, 7); c.fill(); } }
+    if (kind === 'wind') { c.strokeStyle = '#fff1cf'; c.lineWidth = 3; c.lineCap = 'round'; for (let i = 0; i < 10; i++) { const q = (t * (0.9 + rnd(i)) + rnd(i + 5)) % 1, x = W - q * (W + 300), y = 60 + rnd(i + 11) * 320; c.globalAlpha = 0.45; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 60, y - 14, x + 130, y); c.stroke(); } }
+    if (kind === 'stars') { for (let i = 0; i < 4; i++) { const q = (t * 0.5 + i / 4) % 1, x = W + 100 - q * (W + 400), y = 20 + i * 38 + q * 70; c.globalAlpha = 1 - q; c.strokeStyle = '#ffffff'; c.lineWidth = 3; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 70, y - 22); c.stroke(); K.star(x, y, 7, '#fff6c8'); } }
+    c.restore();
   };
   S.speedLines = function (t, a) {
     c.save(); c.strokeStyle = '#ffffff'; c.lineWidth = 4; c.lineCap = 'round';
@@ -97,5 +131,6 @@
   let hits = [], next = [];
   S.hit = (x, y, w, h, fn) => next.push({ x, y, w, h, fn });
   S.flip = () => { hits = next; next = []; };
-  K.handlers.down = p => { for (let i = hits.length - 1; i >= 0; i--) { const b = hits[i]; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { b.fn(p); return; } } };
+  // がめんが かきなおされる まえに おされても とりこぼさない よう、さいごに S.fallback（きまった ばしょの はんてい）を よぶ
+  K.handlers.down = p => { for (let i = hits.length - 1; i >= 0; i--) { const b = hits[i]; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { b.fn(p); return; } } if (S.fallback) S.fallback(p); };
 })();
