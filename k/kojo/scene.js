@@ -82,6 +82,13 @@
     S.box(x, y + 34 - (press > 0.5 ? 0 : 0), 54 - dn * 0.5);
     if (press > 0.3 && press < 0.7) for (let i = 0; i < 6; i++) { const a = i * 1.05 + t; K.star(x + Math.cos(a) * 70, y + 30 + Math.sin(a) * 40, 9, '#ffd23f'); }
   };
+  // かなづち（しゅうりの しるし）
+  S.wrench = function (x, y, k, rot) {
+    c.save(); c.translate(x, y + 14 * k); c.rotate(rot); c.scale(k, k);
+    K.rr(-5, -34, 10, 50, 4, '#b9824a', '#5a3a1a', 2.5);
+    K.rr(-22, -48, 44, 20, 5, '#aab3c2', '#3b4660', 3); K.rr(-26, -45, 8, 14, 2, '#6b7384', '#3b4660', 2);
+    c.restore();
+  };
   S.finger = function (x, y, t) {
     const b = Math.abs(Math.sin(t * 4)) * 16; c.save(); c.translate(x, y + b);
     K.rr(-13, -44, 26, 52, 13, '#ffe1c2', '#8a5a3a', 3); K.rr(-28, -4, 56, 46, 16, '#ffe1c2', '#8a5a3a', 3); c.restore();

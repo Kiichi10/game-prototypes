@@ -5,19 +5,26 @@
   const KEY = 'kidtrain_kojo', G = {}; window.KJG = G;
   G.V = {
     start: 'きかいを おして ぶひんを つくろう', up: 'つよく なるよ。つけてみよう', down: 'いまの ほうが つよいね。うる を おそう',
-    legend: 'でんせつの ぶひんだ', great: 'すごい ぶひんだ', ready: 'あいてより つよく なった。レースを おそう',
+    legend: 'しんかんせんの ぶひんだ', great: 'すごい ぶひんだ', ready: 'あいてより つよく なった。レースを おそう',
     nobox: 'はこが ないよ。レースを すると もらえるよ', go: 'よーい どん', win: 'かった！ やったね',
     lose: 'あと すこし。ぶひんを つくって つよく しよう', clear: 'シールを もらったよ。つぎの くにへ すすもう',
     fac: 'こうじょうが つよく なった。いい ぶひんが でやすいよ', rule: 'じどうの きまりが つかえるよ',
     ruleHelp: 'もし つよく なるなら つける。きまりを つくると じどうで やってくれるよ', poor: 'おかねが たりないよ。ぶひんを うると ふえるよ',
+    broke: 'がんばりすぎて ぶひんが ゆるんだよ。たたいて なおして あげよう', fixed: 'なおった！ もう いちど がんばろう', needfix: 'さきに ぶひんを なおして あげよう',
+    evo: 'かいぞう できた。つよく なったよ', form: 'しんか した！ すがたが かわったよ', shin1: 'しんかんせんの すがたに なった',
+    shinAll: 'しんかんせんが かんせい した！ おめでとう', evoHint: 'ぶひんを おすと かいぞう できるよ',
   };
   G.S = L.load(localStorage.getItem(KEY));
   G.save = () => { try { localStorage.setItem(KEY, JSON.stringify(G.S)); } catch (e) { } };
-  G.mode = 'title'; G.cap = null; G.pop = null; G.race = null; G.result = null; G.rules = false;
+  G.mode = 'title'; G.detail = null; G.banner = null; G.shake = {}; G.cap = null; G.pop = null; G.race = null; G.result = null; G.rules = false;
   G.dist = 0; G.press = 0; G.flash = 0; G.zoom = 0; G.floats = []; G.fly = []; G.hintT = 0;
   G.pshow = L.power(G.S); G.cshow = G.S.coins; G.bump = 0;
   G.looks = () => { const o = {}; for (const s of L.SLOTS) o[s.id] = G.S.parts[s.id].rank; return o; };
-  G.busy = () => !!(G.cap || G.pop || G.race || G.result || G.rules || G.press > 0);
+  G.cols = () => { const o = {}; for (const s of L.SLOTS) o[s.id] = G.S.parts[s.id].col; return o; };
+  G.hurt = () => G.S.broken.length > 0;
+  // 6つ ぜんぶ さいごの すがたに なったら おいわい
+  G.checkShin = function () { if (!G.S.seen.shin && L.SLOTS.every(s => G.S.parts[s.id].rank === 3)) { G.S.seen.shin = 1; G.save(); K.addSticker('でんしゃ こうじょう'); K.sfx.fanfare(); K.confetti(180); K.say(G.V.shinAll); G.banner = { text: 'しんかんせん かんせい！', t: 0 }; } };
+  G.busy = () => !!(G.detail || G.cap || G.pop || G.race || G.result || G.rules || G.press > 0);
   const TX = 430, INK = '#1d2a44', SUB = '#5a6880', AMB = '#a85f00', UPC = '#1f8a3a', DNC = '#c9382c', CREAM = '#f4efe2';
   G.COL = { INK, SUB, AMB, UPC, DNC };
   const RIVAL_PAL = { main: '#4a4f5c', stripe: '#d8483c' }, RIVAL_RANK = [0, 1, 1, 2, 2, 3];
@@ -28,13 +35,14 @@
     const r = RIVAL_RANK[L.world(stage)];
     T.draw(x, S.RAIL1 + 2, 0.8, { face: r, body: 0, wheel: r, roof: r, back: r, light: Math.min(r, 1) }, G.t + 3, { speed: sp, dist: G.dist * 0.05, pal: RIVAL_PAL });
   };
-  G.drawTrain = function (x, sp) { T.draw(x, S.RAIL2 + 2, 1.25, G.looks(), G.t, { speed: sp, dist: G.dist * 0.05, flash: G.flash }); };
+  G.drawTrain = function (x, sp) { T.draw(x, S.RAIL2 + 2, 1.25, G.looks(), G.t, { speed: sp, dist: G.dist * 0.05, flash: G.flash, cols: G.cols(), broken: G.S.broken.map(b => b.slot) }); };
   const chime = (rank, up) => { const f = [523, 659, 784, 1047]; for (let i = 0; i <= rank + (up ? 1 : 0); i++) K.tone(f[Math.min(3, i)] * (up ? 1 : 0.75), i * 0.08, 0.22, 'triangle', 0.16); };
   function coinsFly(n, x, y) { for (let i = 0; i < Math.min(8, n + 2); i++) G.fly.push({ x, y, t: -i * 0.05, a: Math.random() * 6.3 }); }
 
   // ---- きかいを おす → カプセル → くらべる ----
   G.tapMachine = function () {
     if (G.busy()) return;
+    if (G.hurt()) { K.sfx.oops(); K.say(G.V.needfix); return; }
     if (G.S.boxes <= 0) { K.sfx.oops(); K.say(G.V.nobox); G.hintT = 99; return; }
     G.S.boxes--; G.press = 1; K.sfx.door && K.sfx.door();
   };
@@ -58,7 +66,7 @@
       G.flash = 1; G.zoom = 1; G.bump = 1; K.sfx.good(); chime(pp.p.rank, true); K.sparkle(TX + 40, 260, 30, L.RANKS[pp.p.rank].col);
       G.floats.push({ text: (d >= 0 ? '+' : '') + d, col: d >= 0 ? '#8dff9a' : '#ffb0a0', t: 0 }); coinsFly(got, 920, 535);
     } else { coinsFly(L.sell(G.S, pp.p), 360, 535); K.sfx.pop(); K.tone(988, 0, 0.1, 'square', 0.08); K.tone(1319, 0.08, 0.18, 'square', 0.08); }
-    G.pop = null; G.save();
+    G.pop = null; G.save(); G.checkShin();
     if (L.power(G.S) >= L.target(G.S) && G.S.seen.ready !== G.S.stage) { G.S.seen.ready = G.S.stage; K.say(G.V.ready); G.save(); }
   };
   G.upFactory = function () {
@@ -80,11 +88,18 @@
     tx('あいて', 780, 118, 32, SUB, 'left'); tx(String(need), 1034, 119, 46, DNC, 'right');
   }
   function slotCard(i) {
-    const s = L.SLOTS[i], p = G.S.parts[s.id], x = 16 + (i % 3) * 184, y = 410 + Math.floor(i / 3) * 152, col = L.RANKS[p.rank].col;
+    const s = L.SLOTS[i], p = G.S.parts[s.id], sk = G.shake[s.id] || 0, x = 16 + (i % 3) * 184 + Math.sin(sk * 40) * 8 * sk, y = 410 + Math.floor(i / 3) * 152, col = L.RANKS[p.rank].col;
+    const bk = G.S.broken.find(b => b.slot === s.id);
     S.plate(x, y, 176, 144, { edge: col, lw: 5 });
-    K.rr(x + 8, y + 8, 160, 86, 6, '#c5d6ea'); T.icon(s.id, p.rank, x + 88, y + 51, 160, 86, G.t);
+    K.rr(x + 8, y + 8, 160, 86, 6, '#c5d6ea'); T.icon(s.id, p.rank, x + 88, y + 51, 160, 86, G.t, p.col);
     K.rr(x + 8, y + 8, 22 + p.rank * 20, 24, 5, 'rgba(255,255,255,0.85)'); for (let k = 0; k <= p.rank; k++) K.star(x + 20 + k * 20, y + 20, 9, K.shade(col, -0.2));
     tx(String(p.pow), x + 88, y + 121, 42, INK, 'center');
+    if (bk) {
+      c.save(); c.globalAlpha = 0.5 + 0.4 * Math.sin(G.t * 8); K.rr(x - 3, y - 3, 182, 150, 14, null, '#ff7a2a', 8); c.restore();
+      K.rr(x + 8, y + 8, 160, 86, 6, 'rgba(40,30,20,0.45)'); S.wrench(x + 88, y + 56, 1.5, -0.7 + Math.sin(G.t * 9) * 0.5);
+      for (let k = 0; k < L.HITS; k++) K.circle(x + 60 + k * 28, y + 14, 8, k < L.HITS - bk.hp ? '#3fbf5a' : '#ffffff', '#3b4660', 2);
+      if (!G.busy()) S.hit(x, y, 176, 144, () => G.fix(s.id));
+    } else if (!G.busy() && !G.hurt()) S.hit(x, y, 176, 144, () => G.openDetail(s.id));
   }
   function panel() {
     c.fillStyle = CREAM; c.fillRect(0, 400, W, H - 400); c.fillStyle = '#a89c84'; c.fillRect(0, 398, W, 4);
@@ -94,7 +109,8 @@
     for (let i = 0; i <= G.S.factory; i++) K.star(690 - G.S.factory * 13 + i * 26, 653, 10, '#f0b53a');
     const bx = G.race ? G.race.boxes : G.S.boxes; S.box(632, 698, 32); tx('はこ ' + bx, 658, 700, 36, bx > 0 ? INK : DNC, 'left');
     if (idle) S.hit(566, 402, 248, 318, G.tapMachine);
-    if (idle) {
+    if (idle && G.hurt()) { S.plate(836, 412, 424, 128, { edge: '#ff7a2a', lw: 5 }); S.wrench(900, 480, 1.6, -0.7 + Math.sin(G.t * 9) * 0.5); tx('たたいて', 1090, 452, 44, INK, 'center'); tx('なおそう', 1090, 504, 44, INK, 'center'); }
+    else if (idle) {
       if (can) { c.save(); c.globalAlpha = 0.6 + 0.4 * Math.sin(G.t * 7); K.rr(828, 404, 440, 144, 20, null, '#ffb020', 8); c.restore(); }
       K.button(836, 412, 424, 128, 'レース！', '#e2562f', () => G.startRace(), { size: 64 });
       const fc = L.FCOST[G.S.factory], max = fc == null, afford = L.canUp(G.S);
@@ -108,9 +124,8 @@
   function card(x, y, label, p, hi) {
     const r = L.RANKS[p.rank]; S.plate(x, y, 360, 330, { edge: r.col, lw: hi ? 7 : 3 });
     tx(label, x + 180, y + 32, 34, SUB, 'center');
-    K.rr(x + 20, y + 58, 320, 140, 8, '#c5d6ea'); T.icon(p.slot, p.rank, x + 180, y + 128, 320, 140, G.t);
-    K.rr(x + 20, y + 210, 176, 46, 10, r.col); tx(r.name, x + 108, y + 234, 32, p.rank === 3 ? '#3a2a00' : '#fff', 'center');
-    tx(L.SLOTS.find(s => s.id === p.slot).name, x + 340, y + 234, 34, INK, 'right');
+    K.rr(x + 20, y + 58, 320, 140, 8, '#c5d6ea'); T.icon(p.slot, p.rank, x + 180, y + 128, 320, 140, G.t, p.col);
+    K.rr(x + 60, y + 210, 240, 46, 10, r.col); tx(r.name, x + 180, y + 234, 32, p.rank === 3 ? '#3a2a00' : '#fff', 'center');
     tx('ちから', x + 24, y + 294, 32, SUB, 'left'); tx(String(p.pow), x + 338, y + 290, 62, INK, 'right');
   }
   function capsule() {
@@ -148,6 +163,8 @@
   const main = {
     update(dt, t) {
       G.t = t; G.hintT += dt; G.flash = Math.max(0, G.flash - dt * 2.5); G.zoom = Math.max(0, G.zoom - dt * 1.3); G.bump = Math.max(0, G.bump - dt * 2.5);
+      for (const k in G.shake) G.shake[k] = Math.max(0, G.shake[k] - dt * 3);
+      if (G.banner && (G.banner.t += dt) > 3.5) G.banner = null;
       G.pshow += (L.power(G.S) - G.pshow) * Math.min(1, dt * 6);
       const ct = G.race ? G.race.coins : G.S.coins; G.cshow += (ct - G.cshow) * Math.min(1, dt * 7); if (Math.abs(ct - G.cshow) < 0.5) G.cshow = ct;
       if (G.press > 0) { G.press -= dt * 2.4; if (G.press <= 0) { G.press = 0; born(); } }
@@ -165,9 +182,14 @@
       panel(); hud(); effects(dt);
       if (!G.busy()) {
         K.homeButton();
-        if (G.S.made === 0 && G.S.boxes > 0) S.finger(770, 560, t);
+        const b0 = G.S.broken[0], bi = b0 ? L.SLOTS.findIndex(s => s.id === b0.slot) : -1;
+        if (b0) S.finger(16 + (bi % 3) * 184 + 130, 410 + Math.floor(bi / 3) * 152 + 110, t);
+        else if (G.evoHint) S.finger(16 + 130, 410 + 110, t);
+        else if (G.S.made === 0 && G.S.boxes > 0) S.finger(770, 560, t);
         else if ((L.power(G.S) >= L.target(G.S) && G.hintT > 6) || (G.S.boxes <= 0 && G.hintT > 3)) S.finger(1190, 520, t);
       }
+      if (G.banner) { const e = Math.min(1, G.banner.t * 3); tx(G.banner.text, W / 2, 250, 84 * e, '#ffd23f', 'center', '#141a26'); }
+      if (G.detail) G.detailDraw();
       if (G.cap) capsule();
       if (G.pop) popup();
       if (G.rules) G.rulesDraw();
@@ -179,7 +201,7 @@
     update(dt, t) { G.t = t; G.dist += dt * 420; },
     draw(t) {
       S.flip(); S.bg(0, G.dist, t);
-      const r = Math.floor(t / 1.6) % 4; T.draw(TX + 60, S.RAIL2 + 2, 1.25, { face: r, body: r, wheel: r, roof: r, back: r, light: r }, t, { speed: 0.8, dist: G.dist * 0.05 });
+      const r = Math.floor(t / 1.6) % 4, cl = Math.floor(t / 6.4) % 5; T.draw(TX + 60, S.RAIL2 + 2, 1.25, { face: r, body: r, wheel: r, roof: r, back: r, light: r }, t, { speed: 0.8, dist: G.dist * 0.05, cols: { face: cl, body: cl, wheel: cl, roof: cl, back: cl } });
       c.fillStyle = CREAM; c.fillRect(0, 400, W, H - 400); c.fillStyle = '#a89c84'; c.fillRect(0, 398, W, 4);
       tx('でんしゃ こうじょう', W / 2, 472, 84, '#c9453a', 'center');
       tx('ぶひんを つくって どんどん つよく しよう', W / 2, 548, 36, INK, 'center');

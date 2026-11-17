@@ -1,7 +1,7 @@
 // でんしゃ こうじょう — レース・けっか・じどうの きまり
 (function () {
   'use strict';
-  const c = K.ctx, W = K.W, H = K.H, L = window.KJ, S = window.KJS, G = window.KJG, tx = S.t;
+  const c = K.ctx, W = K.W, H = K.H, L = window.KJ, T = window.KJT, S = window.KJS, G = window.KJG, tx = S.t;
   const TX = 430, LEN = 6.2, { INK, SUB, AMB, UPC, DNC } = G.COL;
   const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 
@@ -56,8 +56,54 @@
   };
   function closeResult() {
     G.result = null; G.hintT = 0; G.pshow = L.power(G.S);
-    if (G.S.stage >= L.RULE_STAGE && !G.S.seen.rule) { G.S.seen.rule = 1; G.save(); K.say(G.V.rule); G.ruleGlow = 1; }
+    if (G.hurt()) K.say(G.V.broke);
+    else if (G.S.stage >= L.RULE_STAGE && !G.S.seen.rule) { G.S.seen.rule = 1; G.save(); K.say(G.V.rule); G.ruleGlow = 1; }
+    else if (!G.S.seen.evoHint && G.S.coins >= 2) { G.S.seen.evoHint = 1; G.save(); K.say(G.V.evoHint); G.evoHint = 1; }
   }
+
+  // ---- しゅうり（まけると ぶひんが 2つ ゆるむ。たたいて なおす） ----
+  G.fix = function (slot) {
+    if (G.busy()) return; const r = L.hit(G.S, slot); if (!r) return;
+    const i = L.SLOTS.findIndex(s => s.id === slot); G.shake[slot] = 1; G.save();
+    K.tone(190, 0, 0.09, 'square', 0.16); K.tone(1400, 0, 0.05, 'triangle', 0.12); K.sparkle(16 + (i % 3) * 184 + 88, 410 + Math.floor(i / 3) * 152 + 60, 12, '#ffd23f');
+    if (r.fixed) K.sfx.good();
+    if (r.all) { K.confetti(50); K.say(G.V.fixed); G.flash = 1; G.hintT = 0; }
+  };
+
+  // ---- かいぞう（すきな ぶひんを そのまま つよく する。3かいごとに すがたが しんか） ----
+  G.openDetail = function (slot) { if (G.busy() || G.hurt()) return; G.detail = { slot, pop: 0 }; G.evoHint = 0; K.sfx.pop(); };
+  function evolve() {
+    const D = G.detail, r = L.evolve(G.S, D.slot);
+    if (!r) { K.sfx.oops(); K.say(G.V.poor); return; }
+    D.pop = 1; G.bump = 1; G.save(); K.sparkle(390, 225, 26, L.RANKS[r.rank].col);
+    for (let i = 0; i < 3 + r.rank; i++) K.tone([523, 659, 784, 1047, 1319, 1568][i], i * 0.07, 0.2, 'triangle', 0.15);
+    if (r.up) { K.sfx.fanfare(); K.confetti(90); G.flash = 1; K.say(r.rank === 3 ? G.V.shin1 : G.V.form); }
+    else if ((G.S.seen.evo || 0) < 2) { G.S.seen.evo = (G.S.seen.evo || 0) + 1; K.say(G.V.evo); }
+    G.checkShin();
+  }
+  G.detailDraw = function () {
+    const D = G.detail, p = G.S.parts[D.slot], r = L.RANKS[p.rank], cost = L.evoCost(G.S, D.slot), ok = G.S.coins >= cost, left = L.evoLeft(p);
+    D.pop = Math.max(0, D.pop - 0.04);
+    c.fillStyle = 'rgba(8,12,22,0.62)'; c.fillRect(0, 0, W, H);
+    S.plate(130, 30, 1020, 660, { r: 24, edge: r.col, lw: 6 });
+    tx(L.SLOTS.find(s => s.id === D.slot).name + 'を かいぞう', W / 2, 84, 50, INK, 'center');
+    S.coin(1010, 82, 20); tx(String(G.S.coins), 1040, 84, 40, AMB, 'left');
+    const z = 1 + 0.12 * D.pop;
+    K.rr(170, 126, 440, 200, 10, '#c5d6ea', r.col, 5); T.icon(D.slot, p.rank, 390, 226, 430 * z, 190 * z, G.t, p.col);
+    K.rr(170, 340, 196, 50, 10, r.col); tx(r.name, 268, 366, 30, p.rank === 3 ? '#3a2a00' : '#fff', 'center');
+    tx('ちから', 380, 368, 30, SUB, 'left'); tx(String(p.pow), 610, 364, 60 + 14 * D.pop, INK, 'right');
+    if (p.rank < 3) {
+      tx('つぎの すがた', 890, 146, 34, SUB, 'center');
+      K.rr(700, 172, 380, 154, 10, '#c5d6ea', L.RANKS[p.rank + 1].col, 4); T.icon(D.slot, p.rank + 1, 890, 249, 372, 146, G.t, p.col);
+      c.fillStyle = INK; c.beginPath(); c.moveTo(626, 200); c.lineTo(682, 240); c.lineTo(626, 280); c.closePath(); c.fill();
+      tx('あと', 760, 366, 34, INK, 'center'); for (let i = 0; i < L.EVO_PER; i++) K.circle(830 + i * 44, 364, 16, i < L.EVO_PER - left ? '#3fbf5a' : '#ffffff', '#3b4660', 3); tx(left + 'かい', 1020, 366, 38, INK, 'center');
+    } else { K.star(890, 230, 60 + 6 * Math.sin(G.t * 5), '#f0b53a'); tx('さいごの すがた！', 890, 340, 40, AMB, 'center'); }
+    K.button(170, 440, 580, 150, '', ok ? '#2f9a55' : '#7a8496', evolve, { size: 60 });
+    tx('かいぞう', 380, 517, 62, '#fff', 'center'); S.coin(590, 515, 26); tx(String(cost), 626, 517, 50, '#fff', 'left');
+    if (ok) { c.save(); c.globalAlpha = 0.5 + 0.4 * Math.sin(G.t * 7); K.rr(161, 431, 598, 168, 24, null, '#ffb020', 8); c.restore(); }
+    else tx('おかねが たりないよ', 460, 632, 34, DNC, 'center');
+    K.button(800, 440, 310, 150, 'もどる', '#55637c', () => { G.detail = null; }, { size: 50 });
+  };
 
   // ---- じどうの きまり（もし 〜 なら 〜） ----
   const IFN = { up: 'つよく なる', down: 'よわく なる' }, THN = { equip: 'つける', sell: 'うる' };

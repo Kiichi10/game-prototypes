@@ -8,13 +8,16 @@
   ];
   L.RANKS = [
     { name: 'ふつう', col: '#9aa5b8', mul: 1, sell: 1 }, { name: 'いい', col: '#3f8fd8', mul: 1.5, sell: 2 },
-    { name: 'すごい', col: '#9a6ad8', mul: 2.2, sell: 4 }, { name: 'でんせつ', col: '#f0b53a', mul: 3.2, sell: 8 },
+    { name: 'すごい', col: '#9a6ad8', mul: 2.2, sell: 4 }, { name: 'しんかんせん', col: '#f0b53a', mul: 3.2, sell: 8 },
   ];
   L.WORLDS = ['はらっぱ', 'まちなか', 'こおりの くに', 'やまごえ', 'さばく', 'うちゅう'];
   // こうじょうの つよさ ごとの「でやすさ」（ふつう・いい・すごい・でんせつ）
   L.ODDS = [[70, 25, 5, 0], [58, 30, 10, 2], [45, 34, 16, 5], [34, 34, 22, 10], [24, 32, 28, 16], [15, 30, 33, 22]];
   L.FCOST = [15, 35, 70, 120, 200];           // こうじょうを つよく する コイン
   L.WINCOIN = 5; L.WINBOX = 6; L.LOSEBOX = 5; L.STARTBOX = 12; L.MAXEASE = 0.2;
+  L.NCOL = 5;                                   // ぶひんの いろの かず
+  L.EVO_PER = 3;                                // この かいすう かいぞう すると すがたが しんか する
+  L.HITS = 3;                                   // しゅうりで たたく かいすう
   L.RULE_STAGE = 4;                             // この ばんごうに ついたら「きまり」が つかえる（はらっぱを ぬけたら）
 
   L.base = lv => 10 * Math.pow(1.22, lv - 1);
@@ -26,8 +29,8 @@
 
   L.fresh = () => {
     const parts = {};
-    for (const s of L.SLOTS) parts[s.id] = { slot: s.id, rank: 0, lv: 1, pow: 10 };
-    return { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, miss: 0, seen: {} };
+    for (const s of L.SLOTS) parts[s.id] = { slot: s.id, rank: 0, col: 1, ev: 0, lv: 1, pow: 10 };
+    return { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, miss: 0, broken: [], seen: {} };
   };
   L.power = S => L.SLOTS.reduce((a, s) => a + S.parts[s.id].pow, 0);
   L.target = S => Math.round(L.rival(S.stage) * (1 - Math.min(L.MAXEASE, S.losses * 0.04)));
@@ -44,7 +47,7 @@
     let sl = slot;
     // はずれが 2かい つづいたら、つぎは かならず つよく なる
     if ((S.miss || 0) >= 2) { sl = order[0]; pow = Math.max(pow, S.parts[sl].pow + Math.max(1, Math.round(L.base(S.stage) * 0.2))); }
-    const p = { slot: sl, rank, lv: S.stage, pow };
+    const p = { slot: sl, rank, col: Math.floor(rnd() * L.NCOL), ev: 0, lv: S.stage, pow };
     S.made++; S.miss = p.pow > S.parts[sl].pow ? 0 : (S.miss || 0) + 1;
     return p;
   };
@@ -59,14 +62,34 @@
   // つける（ふるい ほうは うれる）／ うる
   L.equip = (S, p) => { const old = S.parts[p.slot]; S.parts[p.slot] = p; S.coins += L.sellOf(old); return L.sellOf(old); };
   L.sell = (S, p) => { S.coins += L.sellOf(p); return L.sellOf(p); };
+  // かいぞう: すきな ぶひんを そのまま つよく する。L.EVO_PER かいごとに すがたが しんか する
+  L.evoCost = (S, slot) => { const p = S.parts[slot], r = p.pow * 1.2 / (L.base(S.stage) * 1.5); return Math.max(2, Math.round(4 * r * r * r)); };
+  L.evoLeft = p => p.rank >= 3 ? 0 : L.EVO_PER - (p.ev % L.EVO_PER);
+  L.evolve = (S, slot) => {
+    const p = S.parts[slot], cost = L.evoCost(S, slot); if (S.coins < cost) return null;
+    S.coins -= cost; p.ev++; p.pow = Math.round(p.pow * 1.2) + 1;
+    const up = p.rank < 3 && p.ev % L.EVO_PER === 0; if (up) { p.rank++; p.pow = Math.round(p.pow * 1.15); }
+    return { up, rank: p.rank, cost };
+  };
+  // しゅうり: まけると ぶひんが 2つ ゆるむ。たたいて なおす
+  L.hit = (S, slot) => {
+    const b = S.broken.find(x => x.slot === slot); if (!b) return null;
+    b.hp--; if (b.hp <= 0) S.broken = S.broken.filter(x => x !== b);
+    return { fixed: b.hp <= 0, all: S.broken.length === 0 };
+  };
   L.canUp = S => S.factory < L.FCOST.length && S.coins >= L.FCOST[S.factory];
   L.upFactory = S => { if (!L.canUp(S)) return false; S.coins -= L.FCOST[S.factory]; S.factory++; return true; };
   // レース。かてば つぎへ
-  L.race = S => {
+  L.race = (S, rnd) => {
+    rnd = rnd || Math.random;
     const me = L.power(S), need = L.target(S), win = me >= need;
     const res = { win, me, need, stage: S.stage, world: L.world(S.stage), clear: false };
     if (win) { res.clear = L.step(S.stage) === 2; S.stage++; S.losses = 0; S.coins += L.WINCOIN; S.boxes += L.WINBOX; }
-    else { S.losses++; S.boxes += L.LOSEBOX; }
+    else {
+      S.losses++; S.boxes += L.LOSEBOX;
+      const ids = L.SLOTS.map(s => s.id), a = ids.splice(Math.floor(rnd() * ids.length), 1)[0], b = ids[Math.floor(rnd() * ids.length)];
+      S.broken = [{ slot: a, hp: L.HITS }, { slot: b, hp: L.HITS }];
+    }
     return res;
   };
   // むかしの きろくを なおす
@@ -75,10 +98,11 @@
     try {
       const o = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (!o || o.v !== 1) return S;
-      for (const s of L.SLOTS) { const p = o.parts && o.parts[s.id]; if (p && p.pow > 0 && L.RANKS[p.rank]) S.parts[s.id] = { slot: s.id, rank: p.rank, lv: p.lv || 1, pow: p.pow }; }
+      for (const s of L.SLOTS) { const p = o.parts && o.parts[s.id]; if (p && p.pow > 0 && L.RANKS[p.rank]) S.parts[s.id] = { slot: s.id, rank: p.rank, col: p.col >= 0 && p.col < L.NCOL ? p.col : 1, ev: p.ev > 0 ? Math.floor(p.ev) : 0, lv: p.lv || 1, pow: p.pow }; }
       for (const k of ['stage', 'coins', 'boxes', 'factory', 'losses', 'made', 'miss']) if (Number.isFinite(o[k]) && o[k] >= 0) S[k] = Math.floor(o[k]);
       S.stage = Math.max(1, S.stage); S.factory = Math.min(L.FCOST.length, S.factory);
       if (Array.isArray(o.rules)) S.rules = [0, 1].map(i => { const r = o.rules[i]; return r && ['up', 'down'].includes(r.if) && ['equip', 'sell'].includes(r.then) ? { if: r.if, then: r.then } : null; });
+      if (Array.isArray(o.broken)) S.broken = o.broken.filter(b => b && S.parts[b.slot] && b.hp > 0).map(b => ({ slot: b.slot, hp: Math.min(L.HITS, Math.floor(b.hp)) })).slice(0, 2);
       S.seen = o.seen && typeof o.seen === 'object' ? o.seen : {};
       if (S.boxes < 1) S.boxes = 1;
     } catch (e) { }
