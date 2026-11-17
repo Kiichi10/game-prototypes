@@ -14,6 +14,8 @@
     evo: 'かいぞう できた。つよく なったよ', form: 'しんか した！ すがたが かわったよ', shin1: 'しんかんせんの すがたに なった',
     shinAll: 'しんかんせんが かんせい した！ おめでとう', evoHint: 'ぶひんを おすと かいぞう できるよ',
   };
+  // よみあげ: 11/18 お頭「ふしぜんな ところが あるので なしでも いい」→ kojo では けしてある（true に すると もどる）
+  G.VOICE = false; G.say = s => { if (G.VOICE) K.say(s); };
   G.S = L.load(localStorage.getItem(KEY));
   G.save = () => { try { localStorage.setItem(KEY, JSON.stringify(G.S)); } catch (e) { } };
   G.mode = 'title'; G.detail = null; G.banner = null; G.shake = {}; G.cap = null; G.pop = null; G.race = null; G.result = null; G.rules = false;
@@ -23,7 +25,7 @@
   G.cols = () => { const o = {}; for (const s of L.SLOTS) o[s.id] = G.S.parts[s.id].col; return o; };
   G.hurt = () => G.S.broken.length > 0;
   // 6つ ぜんぶ さいごの すがたに なったら おいわい
-  G.checkShin = function () { if (!G.S.seen.shin && L.SLOTS.every(s => G.S.parts[s.id].rank === 3)) { G.S.seen.shin = 1; G.save(); K.addSticker('でんしゃ こうじょう'); K.sfx.fanfare(); K.confetti(180); K.say(G.V.shinAll); G.banner = { text: 'しんかんせん かんせい！', t: 0 }; } };
+  G.checkShin = function () { if (!G.S.seen.shin && L.SLOTS.every(s => G.S.parts[s.id].rank === 3)) { G.S.seen.shin = 1; G.save(); K.addSticker('でんしゃ こうじょう'); K.sfx.fanfare(); K.confetti(180); G.say(G.V.shinAll); G.banner = { text: 'しんかんせん かんせい！', t: 0 }; } };
   G.busy = () => !!(G.detail || G.cap || G.pop || G.race || G.result || G.rules || G.press > 0);
   const TX = 430, INK = '#1d2a44', SUB = '#5a6880', AMB = '#a85f00', UPC = '#1f8a3a', DNC = '#c9382c', CREAM = '#f4efe2';
   G.COL = { INK, SUB, AMB, UPC, DNC };
@@ -42,8 +44,8 @@
   // ---- きかいを おす → カプセル → くらべる ----
   G.tapMachine = function () {
     if (G.busy()) return;
-    if (G.hurt()) { K.sfx.oops(); K.say(G.V.needfix); return; }
-    if (G.S.boxes <= 0) { K.sfx.oops(); K.say(G.V.nobox); G.hintT = 99; return; }
+    if (G.hurt()) { K.sfx.oops(); G.say(G.V.needfix); return; }
+    if (G.S.boxes <= 0) { K.sfx.oops(); G.say(G.V.nobox); G.hintT = 99; return; }
     G.S.boxes--; G.press = 1; K.sfx.door && K.sfx.door();
   };
   function born() {
@@ -55,9 +57,9 @@
     const { p, d } = G.cap; G.cap = null;
     G.pop = { p, d, t: 0, auto: L.auto(G.S, p) };
     K.sparkle(W / 2, 330, 18 + p.rank * 10, L.RANKS[p.rank].col); chime(p.rank, d > 0);
-    if (p.rank === 3) { K.sfx.fanfare(); K.confetti(70); K.say(G.V.legend); }
-    else if (p.rank === 2) K.say(G.V.great);
-    else { const k = d > 0 ? 'up' : 'down'; if (!G.pop.auto && (G.S.seen[k] || 0) < 2) { G.S.seen[k] = (G.S.seen[k] || 0) + 1; K.say(G.V[k]); } }
+    if (p.rank === 3) { K.sfx.fanfare(); K.confetti(70); G.say(G.V.legend); }
+    else if (p.rank === 2) G.say(G.V.great);
+    else { const k = d > 0 ? 'up' : 'down'; if (!G.pop.auto && (G.S.seen[k] || 0) < 2) { G.S.seen[k] = (G.S.seen[k] || 0) + 1; G.say(G.V[k]); } }
   }
   G.decide = function (act) {
     const pp = G.pop; if (!pp) return; const before = L.power(G.S);
@@ -67,11 +69,11 @@
       G.floats.push({ text: (d >= 0 ? '+' : '') + d, col: d >= 0 ? '#8dff9a' : '#ffb0a0', t: 0 }); coinsFly(got, 920, 535);
     } else { coinsFly(L.sell(G.S, pp.p), 360, 535); K.sfx.pop(); K.tone(988, 0, 0.1, 'square', 0.08); K.tone(1319, 0.08, 0.18, 'square', 0.08); }
     G.pop = null; G.save(); G.checkShin();
-    if (L.power(G.S) >= L.target(G.S) && G.S.seen.ready !== G.S.stage) { G.S.seen.ready = G.S.stage; K.say(G.V.ready); G.save(); }
+    if (L.power(G.S) >= L.target(G.S) && G.S.seen.ready !== G.S.stage) { G.S.seen.ready = G.S.stage; G.say(G.V.ready); G.save(); }
   };
   G.upFactory = function () {
     if (G.busy()) return;
-    if (L.upFactory(G.S)) { K.sfx.fanfare(); K.confetti(40); K.say(G.V.fac); G.save(); } else { K.sfx.oops(); K.say(G.V.poor); }
+    if (L.upFactory(G.S)) { K.sfx.fanfare(); K.confetti(40); G.say(G.V.fac); G.save(); } else { K.sfx.oops(); G.say(G.V.poor); }
   };
 
   // ---- え ----
@@ -196,7 +198,7 @@
       if (G.result) G.resultDraw(dt);
     },
   };
-  G.start = function () { G.mode = 'main'; K.scene = main; G.hintT = 0; if (G.S.made === 0) K.say(G.V.start); };
+  G.start = function () { G.mode = 'main'; K.scene = main; G.hintT = 0; if (G.S.made === 0) G.say(G.V.start); };
   K.scene = {
     update(dt, t) { G.t = t; G.dist += dt * 420; },
     draw(t) {

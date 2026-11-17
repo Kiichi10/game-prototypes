@@ -9,7 +9,7 @@
     if (G.busy()) return;
     const stage = G.S.stage, coins = G.S.coins, boxes = G.S.boxes, gap0 = G.gap(), res = L.race(G.S); G.save();
     G.race = { t: 0, res, stage, coins, boxes, gap0, done: false };
-    K.say(G.V.go); K.sfx.whistle();
+    G.say(G.V.go); K.sfx.whistle();
   };
   G.raceUpdate = function (dt) {
     const R = G.race; R.t += dt;
@@ -18,8 +18,8 @@
   };
   function finish(R) {
     const res = R.res; let sticker = null;
-    if (res.win) { K.sfx.fanfare(); K.confetti(res.clear ? 140 : 70); if (res.clear) sticker = K.addSticker('でんしゃ こうじょう'); K.say(res.clear ? G.V.clear : G.V.win); }
-    else { K.sfx.good(); K.say(G.V.lose); }
+    if (res.win) { K.sfx.fanfare(); K.confetti(res.clear ? 140 : 70); if (res.clear) sticker = K.addSticker('でんしゃ こうじょう'); G.say(res.clear ? G.V.clear : G.V.win); }
+    else { K.sfx.good(); G.say(G.V.lose); }
     G.result = { res, sticker, t: 0 }; G.race = null; G.pshow = L.power(G.S);
   }
   // じぶんは てまえの せんろ・あいては おくの せんろ（ぶつからない）
@@ -56,9 +56,9 @@
   };
   function closeResult() {
     G.result = null; G.hintT = 0; G.pshow = L.power(G.S);
-    if (G.hurt()) K.say(G.V.broke);
-    else if (G.S.stage >= L.RULE_STAGE && !G.S.seen.rule) { G.S.seen.rule = 1; G.save(); K.say(G.V.rule); G.ruleGlow = 1; }
-    else if (!G.S.seen.evoHint && G.S.coins >= 2) { G.S.seen.evoHint = 1; G.save(); K.say(G.V.evoHint); G.evoHint = 1; }
+    if (G.hurt()) G.say(G.V.broke);
+    else if (G.S.stage >= L.RULE_STAGE && !G.S.seen.rule) { G.S.seen.rule = 1; G.save(); G.say(G.V.rule); G.ruleGlow = 1; }
+    else if (!G.S.seen.evoHint && G.S.coins >= 2) { G.S.seen.evoHint = 1; G.save(); G.say(G.V.evoHint); G.evoHint = 1; }
   }
 
   // ---- しゅうり（まけると ぶひんが 2つ ゆるむ。たたいて なおす） ----
@@ -67,18 +67,18 @@
     const i = L.SLOTS.findIndex(s => s.id === slot); G.shake[slot] = 1; G.save();
     K.tone(190, 0, 0.09, 'square', 0.16); K.tone(1400, 0, 0.05, 'triangle', 0.12); K.sparkle(16 + (i % 3) * 184 + 88, 410 + Math.floor(i / 3) * 152 + 60, 12, '#ffd23f');
     if (r.fixed) K.sfx.good();
-    if (r.all) { K.confetti(50); K.say(G.V.fixed); G.flash = 1; G.hintT = 0; }
+    if (r.all) { K.confetti(50); G.say(G.V.fixed); G.flash = 1; G.hintT = 0; }
   };
 
   // ---- かいぞう（すきな ぶひんを そのまま つよく する。3かいごとに すがたが しんか） ----
   G.openDetail = function (slot) { if (G.busy() || G.hurt()) return; G.detail = { slot, pop: 0 }; G.evoHint = 0; K.sfx.pop(); };
   function evolve() {
     const D = G.detail, r = L.evolve(G.S, D.slot);
-    if (!r) { K.sfx.oops(); K.say(G.V.poor); return; }
+    if (!r) { K.sfx.oops(); G.say(G.V.poor); return; }
     D.pop = 1; G.bump = 1; G.save(); K.sparkle(390, 225, 26, L.RANKS[r.rank].col);
     for (let i = 0; i < 3 + r.rank; i++) K.tone([523, 659, 784, 1047, 1319, 1568][i], i * 0.07, 0.2, 'triangle', 0.15);
-    if (r.up) { K.sfx.fanfare(); K.confetti(90); G.flash = 1; K.say(r.rank === 3 ? G.V.shin1 : G.V.form); }
-    else if ((G.S.seen.evo || 0) < 2) { G.S.seen.evo = (G.S.seen.evo || 0) + 1; K.say(G.V.evo); }
+    if (r.up) { K.sfx.fanfare(); K.confetti(90); G.flash = 1; G.say(r.rank === 3 ? G.V.shin1 : G.V.form); }
+    else if ((G.S.seen.evo || 0) < 2) { G.S.seen.evo = (G.S.seen.evo || 0) + 1; G.say(G.V.evo); }
     G.checkShin();
   }
   G.detailDraw = function () {
@@ -107,7 +107,7 @@
 
   // ---- じどうの きまり（もし 〜 なら 〜） ----
   const IFN = { up: 'つよく なる', down: 'よわく なる' }, THN = { equip: 'つける', sell: 'うる' };
-  G.openRules = function () { if (G.busy()) return; G.rules = true; G.ruleGlow = 0; if (!G.S.seen.ruleHelp) { G.S.seen.ruleHelp = 1; K.say(G.V.ruleHelp); } };
+  G.openRules = function () { if (G.busy()) return; G.rules = true; G.ruleGlow = 0; if (!G.S.seen.ruleHelp) { G.S.seen.ruleHelp = 1; G.say(G.V.ruleHelp); } };
   function cycleIf(i) {
     const r = G.S.rules[i];
     if (!r) G.S.rules[i] = { if: 'up', then: 'equip' }; else if (r.if === 'up') G.S.rules[i] = { if: 'down', then: 'sell' }; else G.S.rules[i] = null;
