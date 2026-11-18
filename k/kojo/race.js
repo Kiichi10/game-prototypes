@@ -20,7 +20,7 @@
   };
   function finish(R) {
     const res = R.res; let sticker = null;
-    if (res.win) { K.sfx.fanfare(); K.confetti(res.clear ? 140 : 70); if (res.clear) sticker = K.addSticker('でんしゃ こうじょう'); G.say(res.clear ? G.V.clear : G.V.win); }
+    if (res.win) { K.sfx.fanfare(); K.confetti(res.champion ? 220 : res.clear ? 140 : 70); if (res.clear) sticker = K.addSticker('でんしゃ こうじょう'); G.say(res.clear ? G.V.clear : G.V.win); }
     else { K.sfx.good(); G.say(G.V.lose); }
     G.result = { res, sticker, t: 0 }; G.race = null; G.pshow = L.power(G.S);
   }
@@ -55,19 +55,24 @@
     const R = G.result, res = R.res, e = sm((R.t += dt) / 0.35);
     c.fillStyle = `rgba(8,12,22,${0.62 * e})`; c.fillRect(0, 0, W, H);
     S.plate(250, 60, 780, 600, { r: 24, edge: res.win ? '#f0b53a' : '#a89c84', lw: 6 });
-    tx(res.win ? 'かった！' : 'あと すこし！', W / 2, 140, 88, res.win ? '#e2562f' : INK, 'center');
-    if (res.win) {
-      S.coin(450, 270, 38); tx('+' + L.WINCOIN, 502, 273, 64, AMB, 'left');
-      S.box(740, 270, 70); tx('+' + L.WINBOX, 792, 273, 64, INK, 'left');
-      if (R.sticker) { K.circle(W / 2 - 220, 410, 66, '#ffffff', '#c3cedd', 3); K.drawSticker(R.sticker.s, W / 2 - 220, 410, 50); tx('シールを もらったよ', W / 2 - 136, 390, 38, INK, 'left'); tx('つぎは ' + L.WORLDS[L.world(G.S.stage)], W / 2 - 136, 440, 34, SUB, 'left'); }
-      else tx('はこを もらったよ', W / 2, 400, 40, INK, 'center');
+    tx(res.champion ? 'ゆうしょう！' : res.win ? 'かった！' : 'あと すこし！', W / 2, 140, 88, res.win ? '#e2562f' : INK, 'center');
+    if (res.champion) {
+      S.cup(W / 2, 330, 1.9 + 0.08 * Math.sin(G.t * 5)); tx('トロフィー ' + G.S.cups + 'こめ', W / 2, 432, 40, AMB, 'center');
+      if (G.S.cups <= L.MAXCUP) tx('つぎは あいてが すこし つよいよ', W / 2, 482, 32, SUB, 'center');
+    } else if (res.win) {
+      S.coin(450, 262, 38); tx('+' + L.WINCOIN * (1 + res.skip), 502, 265, 64, AMB, 'left');
+      S.box(740, 262, 70); tx('+' + L.WINBOX, 792, 265, 64, INK, 'left');
+      if (res.skip) tx('つよいので ' + res.skip + 'つ とびこえたよ！', W / 2, 344, 38, UPC, 'center');
+      if (R.sticker) { K.circle(W / 2 - 220, 430, 58, '#ffffff', '#c3cedd', 3); K.drawSticker(R.sticker.s, W / 2 - 220, 430, 44); tx('シールを もらったよ', W / 2 - 140, 412, 36, INK, 'left'); tx('つぎは ' + L.WORLDS[L.world(G.S.stage)], W / 2 - 140, 458, 32, SUB, 'left'); }
+      else if (!res.skip) tx('はこを もらったよ', W / 2, 400, 40, INK, 'center');
     } else {
       S.box(580, 262, 70); tx('+' + L.LOSEBOX, 632, 265, 64, INK, 'left');
       tx('ぶひんを つくって', W / 2, 364, 40, INK, 'center'); tx('つよく しよう', W / 2, 416, 40, INK, 'center');
     }
-    if (R.t > 0.8) K.button(W / 2 - 210, 520, 420, 112, res.win ? 'つぎへ' : 'わかった', res.win ? '#2f9a55' : '#2f7fc4', closeResult, { size: 54 });
+    if (R.t > 0.8) K.button(W / 2 - 230, 520, 460, 112, res.champion ? 'さいしょから あそぶ' : res.win ? 'つぎへ' : 'わかった', res.win ? '#2f9a55' : '#2f7fc4', closeResult, { size: res.champion ? 44 : 54 });
   };
   function closeResult() {
+    if (G.result.res.champion) { G.restart(); return; }
     G.result = null; G.hintT = 0; G.pshow = L.power(G.S);
     if (G.hurt()) G.say(G.V.broke);
     else if (G.S.stage >= L.RULE_STAGE && !G.S.seen.rule) { G.S.seen.rule = 1; G.save(); G.say(G.V.rule); G.ruleGlow = 1; }

@@ -123,6 +123,14 @@
     K.rr(-22, -48, 44, 20, 5, '#aab3c2', '#3b4660', 3); K.rr(-26, -45, 8, 14, 2, '#6b7384', '#3b4660', 2);
     c.restore();
   };
+  // トロフィー
+  S.cup = function (x, y, k) {
+    c.save(); c.translate(x, y); c.scale(k, k);
+    c.strokeStyle = '#c98a10'; c.lineWidth = 7; for (const d of [-1, 1]) { c.beginPath(); c.arc(d * 30, -22, 17, 0, 7); c.stroke(); }
+    c.beginPath(); c.moveTo(-32, -46); c.lineTo(32, -46); c.quadraticCurveTo(30, 6, 0, 12); c.quadraticCurveTo(-30, 6, -32, -46); c.closePath(); c.fillStyle = '#f0b53a'; c.fill(); c.strokeStyle = '#8a5a00'; c.lineWidth = 4; c.stroke();
+    K.rr(-7, 10, 14, 20, 2, '#d9a520', '#8a5a00', 3); K.rr(-28, 28, 56, 16, 5, '#8a5a3a', '#4a2a10', 3); K.star(0, -20, 14, '#fff3c4');
+    c.restore();
+  };
   S.finger = function (x, y, t) {
     const b = Math.abs(Math.sin(t * 4)) * 16; c.save(); c.translate(x, y + b);
     K.rr(-13, -44, 26, 52, 13, '#ffe1c2', '#8a5a3a', 3); K.rr(-28, -4, 56, 46, 16, '#ffe1c2', '#8a5a3a', 3); c.restore();

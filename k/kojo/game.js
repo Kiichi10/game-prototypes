@@ -17,6 +17,7 @@
   // よみあげ: 11/18 お頭「ふしぜんな ところが あるので なしでも いい」→ kojo では けしてある（true に すると もどる）
   G.VOICE = false; G.say = s => { if (G.VOICE) K.say(s); };
   G.S = L.load(localStorage.getItem(KEY));
+  if (G.S.stage > L.FINAL) G.S = L.restart(G.S);          // ゆうしょうの あとで とじた とき
   G.save = () => { try { localStorage.setItem(KEY, JSON.stringify(G.S)); } catch (e) { } };
   G.mode = 'title'; G.dex = null; G.cue = { coin: 0, box: 0 }; G.detail = null; G.banner = null; G.shake = {}; G.cap = null; G.pop = null; G.race = null; G.result = null; G.rules = false;
   G.dist = 0; G.press = 0; G.flash = 0; G.zoom = 0; G.floats = []; G.fly = []; G.hintT = 0;
@@ -34,7 +35,7 @@
   // あいてが どれだけ まえに いるか（つよく なるほど おいつく）
   // りょうすうが ふえると すこし ひいて うつす
   const KSC = [1.25, 1.05, 0.92, 0.82], TXC = [430, 520, 600, 660];
-  G.cars = () => L.cars(G.race ? G.race.stage : G.S.stage); G.k = () => KSC[G.cars() - 1]; G.tx = () => TXC[G.cars() - 1];
+  G.stg = () => Math.min(L.FINAL, G.race ? G.race.stage : G.S.stage); G.cars = () => L.cars(G.stg()); G.k = () => KSC[G.cars() - 1]; G.tx = () => TXC[G.cars() - 1];
   G.gap = () => Math.max(-300, Math.min(560, (L.target(G.S) / Math.max(1, G.pshow) - 1) * 1100));
   G.drawRival = function (x, sp, stage) {
     const r = RIVAL_RANK[L.world(stage)];
@@ -85,7 +86,7 @@
 
   // ---- え ----
   function hud() {
-    const st = G.race ? G.race.stage : G.S.stage, w = L.world(st);
+    const st = G.stg(), w = L.world(st);
     S.plate(440, 12, 400, 64); tx(L.WORLDS[w], 600, 45, 36, INK, 'center');
     for (let i = 0; i < 3; i++) K.circle(764 + i * 28, 44, 10, i < L.step(st) ? '#f0b53a' : '#d9d0bc', '#8a7f68', 2);
     const cq = G.cue.coin, cx = Math.sin(cq * 40) * 10 * cq;   // おかねが たりない ときは ゆれて あかく ひかる（こえの かわり）
@@ -189,7 +190,7 @@
     draw(t, dt) {
       t = Math.max(0, t); dt = Math.max(0, dt || 0);
       S.flip();
-      const st = G.race ? G.race.stage : G.S.stage, z = 1 + 0.22 * Math.sin(Math.min(1, G.zoom) * Math.PI);
+      const st = G.stg(), z = 1 + 0.22 * Math.sin(Math.min(1, G.zoom) * Math.PI);
       c.save(); c.translate(G.tx() + 60, 300); c.scale(z, z); c.translate(-G.tx() - 60, -300);
       S.bg(L.world(st), G.dist, t);
       if (G.race) G.raceDraw(dt); else { G.drawRival(G.gap(), 0.5, st); if (G.zoom > 0) S.speedLines(t, G.zoom); G.drawTrain(0, 0.5 + 0.5 * G.zoom); }
@@ -220,6 +221,12 @@
     if (inr(566, 402, 248, 318)) { G.tapMachine(); return; }
     for (let i = 0; i < 6; i++) if (inr(16 + (i % 3) * 184, 410 + Math.floor(i / 3) * 152, 176, 144)) { const id = L.SLOTS[i].id; if (G.S.broken.find(b => b.slot === id)) G.fix(id); else if (!G.hurt()) G.openDetail(id); return; }
   };
+  // さいしょから（でんしゃと すすみぐあいは きえる。ずかんと トロフィーは のこる）
+  G.restart = function () {
+    G.S = L.restart(G.S); G.save();
+    G.detail = G.dex = G.cap = G.pop = G.race = G.result = G.banner = G.ask = null; G.rules = false; G.press = 0; G.floats = []; G.fly = []; G.shake = {};
+    G.pshow = L.power(G.S); G.cshow = G.S.coins; G.evoHint = 0; G.ruleGlow = 0; G.start();
+  };
   G.start = function () { G.mode = 'main'; K.scene = main; G.hintT = 0; if (G.S.made === 0) G.say(G.V.start); };
   K.scene = {
     update(dt, t) { G.t = Math.max(0, t); G.dist += Math.max(0, dt) * 420; },
@@ -230,7 +237,16 @@
       c.fillStyle = CREAM; c.fillRect(0, 400, W, H - 400); c.fillStyle = '#a89c84'; c.fillRect(0, 398, W, 4);
       tx('でんしゃ こうじょう', W / 2, 472, 84, '#c9453a', 'center');
       tx('ぶひんを つくって どんどん つよく しよう', W / 2, 548, 36, INK, 'center');
+      for (let i = 0; i < Math.min(8, G.S.cups); i++) S.cup(110 + i * 70, 640, 0.75);
+      if (G.ask) {
+        c.fillStyle = 'rgba(8,12,22,0.62)'; c.fillRect(0, 0, W, H); S.plate(190, 130, 900, 460, { r: 24, edge: '#c9453a', lw: 6 });
+        tx('さいしょから はじめる？', W / 2, 210, 56, INK, 'center'); tx('いまの でんしゃは きえるよ', W / 2, 290, 38, DNC, 'center'); tx('ずかんと トロフィーは のこるよ', W / 2, 344, 34, SUB, 'center');
+        K.button(230, 420, 440, 130, 'やめる', '#2f9a55', () => { G.ask = null; }, { size: 56 });
+        K.button(710, 420, 340, 130, 'さいしょから', '#c9453a', () => { K.sfx.good(); G.restart(); }, { size: 42 });
+        return;
+      }
       K.button(W / 2 - 200, 592, 400, 108, G.S.made ? 'つづきから' : 'はじめる', '#e2562f', G.start, { size: 52 });
+      if (G.S.made) K.button(900, 610, 330, 84, 'さいしょから', '#7a8496', () => { G.ask = 1; }, { size: 36 });
       K.homeButton();
     },
   };

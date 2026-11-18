@@ -23,9 +23,12 @@
 
   L.base = lv => 10 * Math.pow(1.22, lv - 1);
   L.hard = stage => Math.min(1.75, 1.15 + 0.05 * (stage - 1));   // あとの あいてほど いい ぶひんが いる
-  L.rival = stage => Math.round(6 * L.base(stage) * L.hard(stage));
+  L.FINAL = 18;                                 // この レースに かつと ゆうしょう（おわりが ある）
+  L.SKIP = 1.35; L.MAXSKIP = 2;                 // あいてより この ばいりつ いじょう つよいと、つぎの あいてを とびこえる（さいだい 2つ）
+  L.CUPUP = 0.08; L.MAXCUP = 3;                 // トロフィー 1こごとに あいてが 8% つよく なる（3こ まで）
+  L.rival = (stage, cups) => Math.round(6 * L.base(stage) * L.hard(stage) * (1 + L.CUPUP * Math.min(L.MAXCUP, cups || 0)));
   L.world = stage => Math.floor((stage - 1) / 3) % L.WORLDS.length;
-  L.lap = stage => Math.floor((stage - 1) / 18);
+  L.lap = () => 0;
   L.step = stage => (stage - 1) % 3;           // その くにの なんばんめ（0〜2）
 
   // でんしゃの りょうすう（くにを すすむと ながく なる）
@@ -50,12 +53,12 @@
   L.fresh = () => {
     const parts = {};
     for (const s of L.SLOTS) parts[s.id] = { slot: s.id, rank: 0, col: 1, ev: 0, lv: 1, pow: 10 };
-    const S0 = { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, miss: 0, broken: [], dex: {}, seen: {} };
+    const S0 = { v: 1, parts, stage: 1, coins: 0, boxes: L.STARTBOX, factory: 0, rules: [null, null], losses: 0, made: 0, miss: 0, broken: [], dex: {}, cups: 0, seen: {} };
     for (const s of L.SLOTS) L.mark(S0, parts[s.id]);
     return S0;
   };
   L.power = S => L.SLOTS.reduce((a, s) => a + S.parts[s.id].pow, 0);
-  L.target = S => Math.round(L.rival(S.stage) * (1 - Math.min(L.MAXEASE, S.losses * 0.04)));
+  L.target = S => Math.round(L.rival(Math.min(L.FINAL, S.stage), S.cups) * (1 - Math.min(L.MAXEASE, S.losses * 0.04)));
 
   // あたらしい ぶひんを 1つ つくる（よわい ところが でやすい）
   L.make = (S, rnd) => {
@@ -106,7 +109,14 @@
     rnd = rnd || Math.random;
     const me = L.power(S), need = L.target(S), win = me >= need;
     const res = { win, me, need, stage: S.stage, world: L.world(S.stage), clear: false, plan: L.plan(S.stage, me / need, win) };
-    if (win) { res.clear = L.step(S.stage) === 2; S.stage++; S.losses = 0; S.coins += L.WINCOIN; S.boxes += L.WINBOX; }
+    if (win) {
+      const w0 = L.world(S.stage); S.stage++; res.skip = 0;
+      // つよすぎる ときは つぎの あいてを とびこえる（いつも きそえる あいてに あたる ように）
+      while (res.skip < L.MAXSKIP && S.stage <= L.FINAL && me >= L.rival(S.stage, S.cups) * L.SKIP) { S.stage++; res.skip++; }
+      res.champion = S.stage > L.FINAL; if (res.champion) { S.stage = L.FINAL + 1; S.cups = (S.cups || 0) + 1; }
+      res.clear = res.champion || L.world(S.stage) !== w0;
+      S.losses = 0; S.coins += L.WINCOIN * (1 + res.skip); S.boxes += L.WINBOX;
+    }
     else {
       S.losses++; S.boxes += L.LOSEBOX;
       const ids = L.SLOTS.map(s => s.id), a = ids.splice(Math.floor(rnd() * ids.length), 1)[0], b = ids[Math.floor(rnd() * ids.length)];
@@ -114,6 +124,8 @@
     }
     return res;
   };
+  // さいしょから: でんしゃと すすみぐあいは きえる。ずかん・トロフィー・おぼえた ことは のこる
+  L.restart = S => { const N = L.fresh(); N.dex = Object.assign({}, S.dex, N.dex); N.cups = S.cups || 0; N.boxes += 3 * Math.min(L.MAXCUP, N.cups); N.seen = { rule: S.seen.rule, ruleHelp: S.seen.ruleHelp, up: 2, down: 2 }; return N; };
   // むかしの きろくを なおす
   L.load = raw => {
     const S = L.fresh();
@@ -121,8 +133,8 @@
       const o = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (!o || o.v !== 1) return S;
       for (const s of L.SLOTS) { const p = o.parts && o.parts[s.id]; if (p && p.pow > 0 && L.RANKS[p.rank]) S.parts[s.id] = { slot: s.id, rank: p.rank, col: p.col >= 0 && p.col < L.NCOL ? p.col : 1, ev: p.ev > 0 ? Math.floor(p.ev) : 0, lv: p.lv || 1, pow: p.pow }; }
-      for (const k of ['stage', 'coins', 'boxes', 'factory', 'losses', 'made', 'miss']) if (Number.isFinite(o[k]) && o[k] >= 0) S[k] = Math.floor(o[k]);
-      S.stage = Math.max(1, S.stage); S.factory = Math.min(L.FCOST.length, S.factory);
+      for (const k of ['stage', 'coins', 'boxes', 'factory', 'losses', 'made', 'miss', 'cups']) if (Number.isFinite(o[k]) && o[k] >= 0) S[k] = Math.floor(o[k]);
+      S.stage = Math.max(1, Math.min(L.FINAL + 1, S.stage)); S.factory = Math.min(L.FCOST.length, S.factory);
       if (Array.isArray(o.rules)) S.rules = [0, 1].map(i => { const r = o.rules[i]; return r && ['up', 'down'].includes(r.if) && ['equip', 'sell'].includes(r.then) ? { if: r.if, then: r.then } : null; });
       if (Array.isArray(o.broken)) S.broken = o.broken.filter(b => b && S.parts[b.slot] && b.hp > 0).map(b => ({ slot: b.slot, hp: Math.min(L.HITS, Math.floor(b.hp)) })).slice(0, 2);
       if (o.dex && typeof o.dex === 'object') for (const k in o.dex) if (/^[a-z]+-[0-3]-[0-4]$/.test(k)) S.dex[k] = 1;
